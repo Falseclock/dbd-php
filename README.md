@@ -1,10 +1,3 @@
-Apple
-:   Pomaceous fruit of plants of the genus Malus in 
-    the family Rosaceae.
-
-Orange
-:   The fruit of an evergreen tree of the genus Citrus.
-
 # PostgreSQL driver for PHP
 
 Basic useful feature list:
@@ -38,10 +31,12 @@ Basic useful feature list:
 * [result](#result)
 
 * * *
+
 ## **`do`**
+
 **do** — Returns number of affected records (tuples)
 
-#### Description
+### Description
 
 ```php
 int do ( string $statement [, mixed $params ] )
@@ -51,16 +46,17 @@ int do ( string $statement [, mixed $params ] )
 
 Since PostgreSQL 9.0 and above, the server returns the number of SELECTed rows. Older PostgreSQL return 0 for SELECT.
 
-#### Parameters
-<dl>
-  <dt><b>statement</b></dt>
-  <dd>The SQL statement to be executed. Can have placeholders. Must contain only a single statement (multiple statements separated by semi-colons are not allowed). If any parameters are used, they are referred to as ?, ?, etc.</dd>
 
-<dt><b>params</b></dt>
-  <dd>An array of parameter values to substitute for the ?, ?, etc. placeholders in the original prepared SQL statement string. The number of elements in the array must match the number of placeholders.</dd>
-</dl>
+### Parameters
 
-#### Example
+**statement**
+>The SQL statement to be executed. Can have placeholders. Must contain only a single statement (multiple statements separated by semi-colons are not allowed). If any parameters are used, they are referred to as ?, ?, etc.
+
+**params**
+>An array of parameter values to substitute for the ?, ?, etc. placeholders in the original prepared SQL statement string. The number of elements in the array must match the number of placeholders.
+
+
+### Example
 
 ```php
 <?php
@@ -82,10 +78,12 @@ $result = $db->do("UPDATE table SET column1 = ? WHERE column2 = ?", NULL, 'must 
 ```
 
 * * *
+
 ## **`prepare`**
+
 **prepare** — creates a prepared statement for later execution with [execute](#execute)() method. This feature allows commands that will be used repeatedly to be parsed and planned just once, rather than each time they are executed.
 
-#### Description
+### Description
 
 ```php
 resource prepare ( string $statement )
@@ -93,13 +91,12 @@ resource prepare ( string $statement )
 
 **prepare()** returns the new DB driver instance.
 
-#### Parameters
-<dl>
-  <dt><b>statement</b></dt>
-  <dd>The SQL statement to be executed. Can have placeholders. Must contain only a single statement (multiple statements separated by semi-colons are not allowed). If any parameters are used, they are referred to as ?, ?, etc.</dd>
-</dl>
+### Parameters
 
-#### Example
+**statement**
+> The SQL statement to be executed. Can have placeholders. Must contain only a single statement (multiple statements separated by semi-colons are not allowed). If any parameters are used, they are referred to as ?, ?, etc.
+
+### Example
 
 ```php
 <?php
@@ -122,9 +119,10 @@ foreach ($fruits as $fruit) {
 
 * * *
 ## **`execute`**
+
 **execute** — Sends a request to execute a prepared statement with given parameters, and waits for the result.
 
-#### Description
+### Description
 
 ```php
 resource execute ( [ mixed $params ] )
@@ -132,13 +130,12 @@ resource execute ( [ mixed $params ] )
 
 **execute()** executes previously-prepared statement, instead of giving a query string. This feature allows commands that will be used repeatedly to be parsed and planned just once, rather than each time they are executed. The statement must have been prepared previously.
 
-#### Parameters
-<dl>
-  <dt><b>params</b></dt>
-  <dd>An array of parameter values to substitute for the ?, ?, etc. placeholders in the original prepared query string. The number of elements in the array must match the number of placeholders.</dd>
-</dl>
+### Parameters
 
-#### Example
+**params**
+  >An array of parameter values to substitute for the ?, ?, etc. placeholders in the original prepared query string. The number of elements in the array must match the number of placeholders.
+
+### Example
 
 ```php
 <?php
@@ -159,5 +156,54 @@ while ($row = $sth->fetchrow()) {
     	$std->execute(FALSE,NULL,$row[col2]);
     }
 }
+?>
+```
+
+
+* * *
+## **`fetch`**
+
+**fetch** — Fetch a column from first row.
+
+### Description
+
+```php
+mixed fetch ()
+```
+
+**fetch()** fetch a column from first row without fetching whole row and not reducing result. Calling fetchrow() or fetchrowset() will still return whole result set. Subsequent fetch() invoking will return next column in a row. Useful when you need to get value of column when it is a same in all rows.
+
+### Example
+
+```php
+<?php
+$sth = $db->prepare("SELECT 'VIR-TEX LLP' AS company, generate_series AS wrh_id, 'Warehouse #'||trunc(random()*1000) AS wrh_name, trunc((random()*1000)::numeric, 2) AS wrh_volume FROM generate_series(1,3)");
+
+/* select result example
+   company   | wrh_id |    wrh_name    | wrh_volume
+-------------+--------+----------------+------------
+ VIR-TEX LLP |      1 | Warehouse #845 |     489.20
+ VIR-TEX LLP |      2 | Warehouse #790 |     241.80
+ VIR-TEX LLP |      3 | Warehouse #509 |     745.29
+*/
+
+$sth->execute();
+
+$company_name = $sth->fetch();
+$wrh_id = $sth->fetch();
+$wrh_name = $sth->fetch();
+
+echo ("Company name: $company\n");
+
+while ($row = $sth->fetchrow()) {
+	echo("	{$row['wrh_name']} volume {$row['wrh_volume']}\n");
+}
+
+/* cycle abobe will produce following printout
+Company name: VIR-TEX LLP
+	Warehouse #845 volume: 489.20
+	Warehouse #790 volume: 241.80
+	Warehouse #509 volume: 745.29
+*/
 ?>
 ```
