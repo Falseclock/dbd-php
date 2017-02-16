@@ -281,22 +281,22 @@ Array
     [0] => Array
         (
             [wrh_id] => 1
-            [wrh_name] => Warehouse #893
-            [wrh_volume] => 924.35
+            [wrh_name] => Warehouse #795
+            [wrh_volume] => 809.73
         )
 
     [1] => Array
         (
             [wrh_id] => 2
-            [wrh_name] => Warehouse #710
-            [wrh_volume] => 948.64
+            [wrh_name] => Warehouse #639
+            [wrh_volume] => 894.50
         )
 
     [2] => Array
         (
             [wrh_id] => 3
-            [wrh_name] => Warehouse #698
-            [wrh_volume] => 753.40
+            [wrh_name] => Warehouse #334
+            [wrh_volume] => 13.77
         )
 
 )
@@ -308,25 +308,25 @@ print_r($sth->fetchrowset('wrh_name'));
 /*
 Array
 (
-    [Warehouse #893] => Array
+    [Warehouse #214] => Array
         (
             [wrh_id] => 1
-            [wrh_name] => Warehouse #893
-            [wrh_volume] => 924.35
+            [wrh_name] => Warehouse #214
+            [wrh_volume] => 462.10
         )
 
-    [Warehouse #710] => Array
+    [Warehouse #563] => Array
         (
             [wrh_id] => 2
-            [wrh_name] => Warehouse #710
-            [wrh_volume] => 948.64
+            [wrh_name] => Warehouse #563
+            [wrh_volume] => 8.88
         )
 
-    [Warehouse #698] => Array
+    [Warehouse #634] => Array
         (
             [wrh_id] => 3
-            [wrh_name] => Warehouse #698
-            [wrh_volume] => 753.40
+            [wrh_name] => Warehouse #634
+            [wrh_volume] => 338.18
         )
 
 )
