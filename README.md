@@ -3,6 +3,7 @@
 Basic useful feature list:
 
 * Protection from SQL injection
+* DBD-PG perl-like syntax
 
 ## Database operation
 
