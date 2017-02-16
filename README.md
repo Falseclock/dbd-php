@@ -47,11 +47,12 @@ Since PostgreSQL 9.0 and above, the server returns the number of SELECTed rows. 
 <dl>
   <dt><b>statement</b></dt>
   <dd>The SQL statement to be executed. Can have placeholders. Must contain only a single statement (multiple statements separated by semi-colons are not allowed). If any parameters are used, they are referred to as ?, ?, etc.</dd>
+
 <dt><b>params</b></dt>
   <dd>An array of parameter values to substitute for the ?, ?, etc. placeholders in the original prepared SQL statement string. The number of elements in the array must match the number of placeholders.</dd>
 </dl>
 
-
+<font color="red">This is some text!</font>
 #### Examples
 
 ```php
