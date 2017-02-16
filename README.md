@@ -60,7 +60,7 @@ Since PostgreSQL 9.0 and above, the server returns the number of SELECTed rows. 
 ```php
 <?php
 // Create DSN 
-$dsn = Driver::create("database_name", "sql_user", "sql_pass", "hostname.com", 5432);
+$dsn = DBD::PG::create("database_name", "sql_user", "sql_pass", "hostname.com", 5432);
 
 // make connection to the database
 $db = $dsn->connect();
@@ -138,7 +138,7 @@ resource execute ( [ mixed $params ] )
 ```php
 <?php
 // Create DSN 
-$dsn = Driver::create("database_name", "sql_user", "sql_pass", "hostname.com", 5432);
+$dsn = DBD::PG::create("database_name", "sql_user", "sql_pass", "hostname.com", 5432);
 
 // make connection to the database
 $db = $dsn->connect();
