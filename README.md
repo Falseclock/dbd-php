@@ -2,40 +2,74 @@
 
 Basic useful feature list:
 
- * Ctrl+S / Cmd+S to save the file
- * Ctrl+Shift+S / Cmd+Shift+S to choose to save as Markdown or HTML
- * Drag and drop a file into here to load it
- * File contents are saved in the URL so you can share files
+* Protection from SQL injection
 
+## Database operation
 
-I'm no good at writing sample / filler text, so go write something yourself.
+* connect
+* disconnect
+* isConnected
 
-Look, a list!
+## Main methods
 
- * foo
- * bar
- * baz
+* do
+* prepare
+* execute
+* fetch
+* fetchrow
+* fetchrowset
+* insert
+* select
+* delete
+* begin
+* commit
+* rollback
+* cache
+* rows
+* getColumn
+* result
 
-And here's some code! :+1:
+* * *
+### **`do`**
+do — Returns number of affected records (tuples)
+
+#### Description
 
 ```php
-$sth = $db->prepare("SELECT a,b,c FROM WHERE d=?");
-$sth->execute($e);
-while ($row = $sth->fetchrow())
-{
-	print $row['a'];
-}
+int do ( string $statement [, mixed $params ] )
 ```
 
-This is [on GitHub](https://github.com/jbt/markdown-editor) so let me know if I've b0rked it somewhere.
+**do()** returns the number of tuples (instances/records/rows) affected by INSERT, UPDATE, and DELETE queries.
+
+Since PostgreSQL 9.0 and above, the server returns the number of SELECTed rows. Older PostgreSQL return 0 for SELECT.
+
+#### Parameters
+<dl>
+  <dt><b>statement</b></dt>
+  <dd>The SQL statement to be executed. Can have placeholders. Must contain only a single statement (multiple statements separated by semi-colons are not allowed). If any parameters are used, they are referred to as ?, ?, etc.</dd>
+  <br />
+
+<dt><b>params</b></dt>
+  <dd>An array of parameter values to substitute for the ?, ?, etc. placeholders in the original prepared SQL statement string. The number of elements in the array must match the number of placeholders.</dd>
+</dl>
 
 
-Props to Mr. Doob and his [code editor](http://mrdoob.com/projects/code-editor/), from which
-the inspiration to this, and some handy implementation hints, came.
+#### Examples
 
-### Stuff used to make this:
+```php
+<?php
+// Create DSN 
+$dsn = Driver::create("database_name", "sql_user", "sql_pass", "hostname.com", 5432);
 
- * [markdown-it](https://github.com/markdown-it/markdown-it) for Markdown parsing
- * [CodeMirror](http://codemirror.net/) for the awesome syntax-highlighted editor
- * [highlight.js](http://softwaremaniacs.org/soft/highlight/en/) for syntax highlighting in output code blocks
- * [js-deflate](https://github.com/dankogai/js-deflate) for gzipping of data to make it fit in URLs
+// make connection to the database
+$db = $dsn->connect();
+
+// Execute SQL query and write number affected tuples into $result variable
+// very dangerous and every string parameter must be escaped manually or with $db->quote('must be null');
+$param = "'must be null'";
+$result = $db->do("UPDATE table SET column1 = NULL WHERE column2 = $param");
+
+// more easiest, simple and safe for SQL injections way
+$result = $db->do("UPDATE table SET column1 = ? WHERE column2 = ?", NULL, 'must be null');
+?>
+```
