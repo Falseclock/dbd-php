@@ -263,7 +263,7 @@ array fetchrowset ([ string $key ])
 
 ### Return Values
 
-An associative array (in case if key provided) or indexed array if no key was provided. Each value in the array represented as an associatively (by field name). 
+An associative array (in case if key provided) or indexed array if no key was provided. Each value in the array represented as an associative array (by field name). 
 Values in a row Database NULL values are returned as NULL.
 
 
