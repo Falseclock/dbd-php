@@ -2,14 +2,14 @@
 
 Basic useful feature list:
 
-* Protection from SQL injection
+* Protection from SQL injections
 * DBD-PG perl-like syntax
 
-## Database operation
+## Database operations
 
-* connect
-* disconnect
-* isConnected
+* [connect](#connect)
+* [disconnect](#disconnect)
+* [isConnected](#isConnected)
 
 ## Main methods
 
@@ -17,18 +17,18 @@ Basic useful feature list:
 * [prepare](#prepare)
 * [execute](#execute)
 * [fetch](#fetch)
-* fetchrow
-* fetchrowset
-* insert
-* select
-* delete
-* begin
-* commit
-* rollback
-* cache
-* rows
-* getColumn
-* result
+* [fetchrow](#fetchrow)
+* [fetchrowset](#fetchrowset)
+* [insert](#insert)
+* [select](#select)
+* [delete](#delete)
+* [begin](#begin)
+* [commit](#commit)
+* [rollback](#rollback)
+* [cache](#cache)
+* [rows](#rows)
+* [getColumn](#getColumn)
+* [result](#result)
 
 * * *
 ## **`do`**
