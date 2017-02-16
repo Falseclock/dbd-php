@@ -15,7 +15,7 @@ Basic useful feature list:
 * [do](#do)
 * [prepare](#prepare)
 * [execute](#execute)
-* fetch
+* [fetch](#fetch)
 * fetchrow
 * fetchrowset
 * insert
@@ -72,6 +72,7 @@ $result = $db->do("UPDATE table SET column1 = NULL WHERE column2 = $param");
 $result = $db->do("UPDATE table SET column1 = ? WHERE column2 = ?", NULL, 'must be null');
 ?>
 ```
+
 * * *
 ## **`prepare`**
 **prepare** — creates a prepared statement for later execution with [execute](#execute)() method. This feature allows commands that will be used repeatedly to be parsed and planned just once, rather than each time they are executed.
@@ -107,5 +108,48 @@ foreach ($fruits as $fruit) {
 // UPDATE table SET column1 = NULL WHERE column2 = 'apple';
 // UPDATE table SET column1 = NULL WHERE column2 = 'banana';
 // UPDATE table SET column1 = NULL WHERE column2 = 'apricot';
+?>
+```
+
+
+* * *
+## **`execute`**
+**execute** — Sends a request to execute a prepared statement with given parameters, and waits for the result.
+
+#### Description
+
+```php
+resource execute ( [ mixed $params ] )
+```
+
+**execute()** executes previously-prepared statement, instead of giving a query string. This feature allows commands that will be used repeatedly to be parsed and planned just once, rather than each time they are executed. The statement must have been prepared previously.
+
+#### Parameters
+<dl>
+  <dt><b>params</b></dt>
+  <dd>An array of parameter values to substitute for the ?, ?, etc. placeholders in the original prepared query string. The number of elements in the array must match the number of placeholders.</dd>
+</dl>
+
+#### Example
+
+```php
+<?php
+// Create DSN 
+$dsn = Driver::create("database_name", "sql_user", "sql_pass", "hostname.com", 5432);
+
+// make connection to the database
+$db = $dsn->connect();
+
+// Common usage for repeatedly UPDATE queries
+$sth = $db->prepare("SELECT col1, col2, col3 FROM table1");
+$std = $db->prepare("UPDATE table2 SET col2 =? WHERE col1=? AND col2=?");
+
+$sth->execute();
+
+while ($row = $sth->fetchrow()) {
+	if ($row['col1'] == 'banana') {
+    	$std->execute(FALSE,NULL,$row[col2]);
+    }
+}
 ?>
 ```
