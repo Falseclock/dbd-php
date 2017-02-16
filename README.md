@@ -31,7 +31,6 @@ Basic useful feature list:
 * [result](#result)
 
 * * *
-
 ## **`do`**
 
 **do** — Returns number of affected records (tuples)
@@ -78,7 +77,6 @@ $result = $db->do("UPDATE table SET column1 = ? WHERE column2 = ?", NULL, 'must 
 ```
 
 * * *
-
 ## **`prepare`**
 
 **prepare** — creates a prepared statement for later execution with [execute](#execute)() method. This feature allows commands that will be used repeatedly to be parsed and planned just once, rather than each time they are executed.
@@ -189,9 +187,9 @@ $sth = $db->prepare("SELECT 'VIR-TEX LLP' AS company, generate_series AS wrh_id,
 
 $sth->execute();
 
-$company_name = $sth->fetch();
-$wrh_id = $sth->fetch();
-$wrh_name = $sth->fetch();
+$company_name = $sth->fetch(); // getting first column
+$wrh_id = $sth->fetch(); // getting second column as an example of subsequent invoking
+$wrh_name = $sth->fetch(); // getting third column
 
 echo ("Company name: $company\n");
 
@@ -204,6 +202,134 @@ Company name: VIR-TEX LLP
 	Warehouse #845 volume: 489.20
 	Warehouse #790 volume: 241.80
 	Warehouse #509 volume: 745.29
+*/
+?>
+```
+
+* * *
+## **`fetchrow`**
+
+**fetchrow** — fetch a row as an associative array
+
+### Description
+
+```php
+array fetchrow ()
+```
+
+**fetchrow()** returns an associative array that corresponds to the fetched row (records).
+
+### Return Values
+
+An array indexed associatively (by field name). Each value in the array is represented as a string. Database NULL values are returned as NULL.
+
+FALSE is returned if row exceeds the number of rows in the set, there are no more rows, or on any other error.
+
+### Example
+
+```php
+<?php
+$sth = $db->prepare("SELECT *, 'orange' AS col1, 'apple' AS col2, 'tomato'  AS col3 FROM generate_series(1,3)");
+$sth->execute();
+print_r($sth->fetchrow());
+
+/* code above will produce following printout
+Array
+(
+    [generate_series] => 1
+    [col1] => orange
+    [col2] => apple
+    [col3] => tomato
+)
+*/
+?>
+```
+
+* * *
+## **`fetchrowset`**
+
+**fetchrowset** — fetch a full result as multidimensional array, where each element is an associative array that corresponds to the fetched row.
+
+### Description
+
+```php
+array fetchrowset ([ string $key ])
+```
+
+### Parameters
+
+**key**
+  >A column name to use as an index. If two or more columns will have the same value in a column, only last row will be stored in array.
+
+### Return Values
+
+An associative array (in case if key provided) or indexed array if no key was provided. Each value in the array represented as an associatively (by field name). 
+Values in a row Database NULL values are returned as NULL.
+
+
+### Example
+
+```php
+<?php
+$sth = $db->prepare("SELECT generate_series AS wrh_id, 'Warehouse #'||trunc(random()*1000) AS wrh_name, trunc((random()*1000)::numeric, 2) AS wrh_volume FROM generate_series(1,3)");
+$sth->execute();
+print_r($sth->fetchrowset());
+
+/* code above will produce following printout
+Array
+(
+    [0] => Array
+        (
+            [wrh_id] => 1
+            [wrh_name] => Warehouse #893
+            [wrh_volume] => 924.35
+        )
+
+    [1] => Array
+        (
+            [wrh_id] => 2
+            [wrh_name] => Warehouse #710
+            [wrh_volume] => 948.64
+        )
+
+    [2] => Array
+        (
+            [wrh_id] => 3
+            [wrh_name] => Warehouse #698
+            [wrh_volume] => 753.40
+        )
+
+)
+*/
+
+$sth->execute();
+print_r($sth->fetchrowset('wrh_name'));
+
+/*
+Array
+(
+    [Warehouse #893] => Array
+        (
+            [wrh_id] => 1
+            [wrh_name] => Warehouse #893
+            [wrh_volume] => 924.35
+        )
+
+    [Warehouse #710] => Array
+        (
+            [wrh_id] => 2
+            [wrh_name] => Warehouse #710
+            [wrh_volume] => 948.64
+        )
+
+    [Warehouse #698] => Array
+        (
+            [wrh_id] => 3
+            [wrh_name] => Warehouse #698
+            [wrh_volume] => 753.40
+        )
+
+)
 */
 ?>
 ```
