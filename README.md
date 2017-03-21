@@ -31,17 +31,17 @@ Basic useful feature list:
 * [result](#result)
 
 * * *
-## **`do`**
+## **`du`**
 
-**do** — Returns number of affected records (tuples)
+**du** — Returns number of affected records (tuples)
 
 ### Description
 
 ```php
-int do ( string $statement [, mixed $params ] )
+int du ( string $statement [, mixed $params ] )
 ```
 
-**do()** returns the number of tuples (instances/records/rows) affected by INSERT, UPDATE, and DELETE queries.
+**du()** returns the number of tuples (instances/records/rows) affected by INSERT, UPDATE, and DELETE queries.
 
 Since PostgreSQL 9.0 and above, the server returns the number of SELECTed rows. Older PostgreSQL return 0 for SELECT.
 
@@ -73,11 +73,11 @@ $db = $dsn->connect();
 // Bad example how SQL can be injected as every string parameter must be escaped 
 // manually or with $db->quote('must be null');
 $param = "'must be null'";
-$result = $db->do("UPDATE table SET column1 = NULL WHERE column2 = $param");
+$result = $db->du("UPDATE table SET column1 = NULL WHERE column2 = $param");
 
 // more easiest, simple and safe for SQL injections way.
 // Number of affected tuples will be stored in $result variable
-$result = $db->do("UPDATE table SET column1 = ? WHERE column2 = ?", NULL, 'must be null');
+$result = $db->du("UPDATE table SET column1 = ? WHERE column2 = ?", NULL, 'must be null');
 ?>
 ```
 
