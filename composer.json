@@ -1,9 +1,10 @@
 {
     "name": "falseclock/dbd-php",
+    "version": "1.0.12",
     "description": "Database driver for PHP",
-	"keywords": ["dbd", "dbi", "sql", "cache", "driver", "postgres", "postgresql"],
+    "keywords": ["dbd", "dbi", "sql", "cache", "driver", "postgres", "postgresql"],
     "license": "MIT",
-    "authors": [ { "name": "Nurlan Mukhanov" } ],
+    "authors": [ { "name": "Nurlan Mukhanov", "email": "nurike@gmail.com" } ],
     "require": {
         "php": "^5.3.3 || ^7.0"
     },
