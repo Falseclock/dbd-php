@@ -7,7 +7,7 @@
     "authors": [ { "name": "Nurlan Mukhanov", "email": "nurike@gmail.com" } ],
     "require": {
         "php": "^5.3.3 || ^7.0",
-        "ext-memcached": "*"
+        "ext-memcache": "*"
     },
     "autoload": {
         "psr-4": {
