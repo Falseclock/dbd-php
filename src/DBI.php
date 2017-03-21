@@ -25,15 +25,15 @@
 
 namespace DBD;
 
-interface DBI
-{
+interface DBI {
 	public function prepare($statement);
     public function du();
 	public function execute();
 	public function fetchrow();
-    public function fetchrowset($key = null);
-    public function rows();
-    public function update( $table, $values, $where = "", $return = null );
-    public function insert( $table, $values, $where = "");
-    public function delete( $table, $where = "", $return = null );
+	public function fetch();
+	public function fetchrowset($key = null);
+	public function rows();
+	public function update( $table, $values, $where = "", $return = null );
+	public function insert( $table, $values, $where = "");
+	public function delete( $table, $where = "", $return = null );
 }

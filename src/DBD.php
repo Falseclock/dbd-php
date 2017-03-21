@@ -130,20 +130,6 @@ abstract class DBD {
         return is_resource($this->dbh);
     }
 
-    public function __destruct()
-    {
-        if ($this->isConnected()) {
-            if ($this->transaction)
-                $this->rollback();
-            if (!$this->options['Persistent'])
-                $this->disconnect();
-        }
-        if (is_resource($this->options['CacheDriver'])) {
-            $this->options['CacheDriver']->close();
-            //Cache::me()->close();
-        }
-    }
-
     protected function parse_args($ARGS)
     {
         $args = array();
@@ -199,7 +185,7 @@ abstract class DBD {
         return array( 'COLUMNS' => $columns, 'ARGS' => $args );
     }
 
-    protected function cache($key, $expire = null, $compress = null)
+    public function cache($key, $expire = null, $compress = null)
     {
         if ( ! isset($key) or ! $key)
             trigger_error("caching failed: key is not set or empty", E_USER_ERROR);

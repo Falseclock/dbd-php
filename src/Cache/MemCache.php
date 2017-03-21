@@ -52,8 +52,7 @@ class MemCache extends Cache implements CacheInterface{
         if (!$expire)
             $expire = $this->EXPIRE;
 
-        $expire = preg_replace_callback("/(\d+)\s*(.*)?/",Cache::secCalc,$expire);
-
+        $expire = preg_replace_callback("/(\d+)\s*(.*)?/", function ($matches) { return Cache::secCalc($matches); },$expire);
         return $this->link->set($key, $var, $this->COMPRESS, $expire);
     }
 
@@ -65,7 +64,7 @@ class MemCache extends Cache implements CacheInterface{
         if (!$expire)
             $expire = $this->EXPIRE;
 
-        $expire = preg_replace_callback("/(\d+)\s*(.*)?/",Cache::secCalc,$expire);
+        $expire = preg_replace_callback("/(\d+)\s*(.*)?/",function ($matches) { return Cache::secCalc($matches); },$expire);
 
         // If we trying to replace non exist cache, just set it
         if ( !$this->link->replace($key, $var, $this->COMPRESS, $expire) )
