@@ -35,7 +35,7 @@
 * [result](#result)
 
 * * *
-## **`du`**
+## **du**
 
 **du** — Returns number of affected records (tuples)
 
@@ -86,7 +86,7 @@ $result = $db->du("UPDATE table SET column1 = ? WHERE column2 = ?", NULL, 'must 
 ```
 
 * * *
-## **`prepare`**
+## **prepare**
 
 **prepare** — creates a prepared statement for later execution with [execute](#execute)() method. This feature allows commands that will be used repeatedly to be parsed and planned just once, rather than each time they are executed.
 
@@ -125,7 +125,7 @@ foreach ($fruits as $fruit) {
 
 
 * * *
-## **`execute`**
+## **execute**
 
 **execute** — Sends a request to execute a prepared statement with given parameters, and waits for the result.
 
@@ -172,7 +172,7 @@ while ($row = $sth->fetchrow()) {
 
 
 * * *
-## **`fetch`**
+## **fetch**
 
 **fetch** — Fetch a column from first row.
 
@@ -220,7 +220,7 @@ Company name: VIR-TEX LLP
 ```
 
 * * *
-## **`fetchrow`**
+## **fetchrow**
 
 **fetchrow** — fetch a row as an associative array
 
@@ -259,7 +259,7 @@ Array
 ```
 
 * * *
-## **`fetchrowset`**
+## **fetchrowset**
 
 **fetchrowset** — fetch a full result as multidimensional array, where each element is an associative array that corresponds to the fetched row.
 
