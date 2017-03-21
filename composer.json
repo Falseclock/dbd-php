@@ -1,7 +1,9 @@
 {
     "name": "falseclock/dbd-php",
     "description": "Database driver for PHP",
-    "license": "MIT"
+	"keywords": ["dbd", "dbi", "sql", "cache", "driver", "postgres", "postgresql"],
+    "license": "MIT",
+    "authors": [ { "name": "Nurlan Mukhanov" } ],
     "require": {
         "php": "^5.3.3 || ^7.0"
     },
@@ -9,5 +11,5 @@
         "psr-0": {
             "dbd-php": "src"
         }
-    },
+    }
 }
