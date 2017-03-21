@@ -1,5 +1,5 @@
 {
-    "name": "DBD-PHP",
+    "name": "falseclock/DBD-PHP",
     "description": "Database driver for PHP",
     "require": {
         "php": "^5.3.3 || ^7.0"
