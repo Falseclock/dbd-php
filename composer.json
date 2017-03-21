@@ -1,7 +1,6 @@
 {
     "name": "falseclock/dbd-php",
     "type": "library",
-    "version": "1.0.0",
     "description": "Database driver for PHP",
     "keywords": ["dbd", "dbi", "sql", "cache", "driver", "postgres", "postgresql"],
     "license": "MIT",
