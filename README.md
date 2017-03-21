@@ -59,8 +59,13 @@ Since PostgreSQL 9.0 and above, the server returns the number of SELECTed rows. 
 
 ```php
 <?php
+
+$db_options = array(
+    'ConvertNumeric'    => true,
+    'UseDebug'          => true
+);
 // Create DSN 
-$dsn = DBD::PG::create("database_name", "sql_user", "sql_pass", "hostname.com", 5432);
+$dsn = (new DBD\Pg())->create("host=localhost;port=5432;dbname=falseclock", "username","password", $db_options);
 
 // make connection to the database
 $db = $dsn->connect();
@@ -137,8 +142,12 @@ resource execute ( [ mixed $params ] )
 
 ```php
 <?php
+$db_options = array(
+    'ConvertNumeric'    => true,
+    'UseDebug'          => true
+);
 // Create DSN 
-$dsn = DBD::PG::create("database_name", "sql_user", "sql_pass", "hostname.com", 5432);
+$dsn = (new DBD\Pg())->create("host=localhost;port=5432;dbname=falseclock", "username","password", $db_options);
 
 // make connection to the database
 $db = $dsn->connect();
