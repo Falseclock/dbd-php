@@ -1,9 +1,9 @@
-# PostgreSQL driver for PHP
+# SQL Database driver for PHP
 
 Basic useful feature list:
 
 * Protection from SQL injections
-* DBD-PG perl-like syntax
+* DBD/DBI perl-like syntax
 
 ## Database operations
 
