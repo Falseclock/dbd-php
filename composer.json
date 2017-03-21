@@ -6,8 +6,7 @@
     "license": "MIT",
     "authors": [ { "name": "Nurlan Mukhanov", "email": "nurike@gmail.com" } ],
     "require": {
-        "php": "^5.3.3 || ^7.0",
-        "falseclock/dbd-php": "1.0.1"
+        "php": "^5.3.3 || ^7.0"
     },
     "autoload": {
         "psr-4": {
