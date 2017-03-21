@@ -1,0 +1,7 @@
+{
+    "name": "DBD-PHP",
+    "description": "Universal DBD driver for PHP",
+    "require": {
+        "php": "^5.3.3 || ^7.0"
+    }
+}
