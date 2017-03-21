@@ -28,40 +28,38 @@ namespace DBD;
 use DBD\Base\Singleton;
 use DBD\Base\Instantiatable;
 
-abstract class Cache extends Singleton implements Instantiatable
-{
-    /** @var Cache $link */
-    public $link             = null;
-    public $COMPRESS         = [];
-    public $EXPIRE           = null;
-    protected $SERVERS       = null;
-
-    abstract public function open();
-    abstract public function close();
-
+abstract class Cache extends Singleton implements Instantiatable {
+	/** @var Cache $link */
+	public $link             = null;
+	public $COMPRESS         = [];
+	public $EXPIRE           = null;
+	protected $SERVERS       = null;
+	
+	abstract public function open();
+	abstract public function close();
+	
 	public static function me() {
 		return Singleton::getInstance(get_called_class());
 	}
-
-    /**
-     * @param array $servers
-     * @param bool $compress
-     * @param int $expire
-     * @return Cache
-     */
-    public function create($servers = array(), $compress = false, $expire = 300) {
-
-        $this->SERVERS = $servers;
-        $this->COMPRESS = $compress;
-        $this->EXPIRE = $expire;
-
-        return $this;
-    }
-
-    public static function secCalc($matches) {
+	
+	/**
+	* @param array $servers
+	* @param bool $compress
+	* @param int $expire
+	* @return Cache
+	*/
+	public function create($servers = array(), $compress = false, $expire = 300) {
+		$this->SERVERS = $servers;
+		$this->COMPRESS = $compress;
+		$this->EXPIRE = $expire;
+		
+		return $this;
+	}
+	
+	public static function secCalc($matches) {
 		$val = $matches[1];
 		$mult = 1;
-
+		
 		switch(strtolower($matches[2]))
 		{
 			case 'm':
@@ -70,44 +68,44 @@ abstract class Cache extends Singleton implements Instantiatable
 			case 'minutes':
 				$mult = $val * 60;
 			break;
-
-            case 'h':
-            case 'hr':
+			
+			case 'h':
+			case 'hr':
 			case 'hour':
 			case 'hours':
 				$mult = $val * 60 * 60;
 			break;
-
+			
 			case 'd':
 			case 'day':
 			case 'days':
 				$mult = $val * 60 * 60 * 24;
 			break;
-
+			
 			case 'w':
 			case 'week':
 			case 'weeks':
 				$mult = $val * 60 * 60 * 24 * 7;
 			break;
-
+			
 			case 'month':
 			case 'monthes':
 				$mult = $val * 60 * 60  * 24 * 30;
 			break;
-
+			
 			case 'y':
 			case 'year':
 			case 'years':
 				$mult = $val * 60 * 60 * 24 * 365;
 			break;
-
+			
 			default:
 			case 's':
 			case 'sec':
 			case 'second':
 			case 'seconds':
 		}
-
+		
 		return $mult;
 	}
 }

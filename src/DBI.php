@@ -27,7 +27,7 @@ namespace DBD;
 
 interface DBI {
 	public function prepare($statement);
-    public function du();
+	public function du();
 	public function execute();
 	public function fetchrow();
 	public function fetch();

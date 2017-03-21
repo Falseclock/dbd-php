@@ -453,7 +453,7 @@ final class PgExtend extends Pg implements DBI {
 		
 		return $data;
 	}
-
+	
 	public function update( $table, $values, $where="", $return = null )
 	{
 		$db = $this->compile_update( $values );
@@ -468,7 +468,7 @@ final class PgExtend extends Pg implements DBI {
 		
 		return $this->du("UPDATE $table SET {$db['COLUMNS']}" . ($where?" WHERE $where":"") . ($return ? " RETURNING {$return}":""), $db['ARGS'] );
 	}
-
+	
 	public function insert( $table, $args, $return = null )
 	{
 		$db = $this->compile_insert( $args );

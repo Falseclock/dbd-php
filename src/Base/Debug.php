@@ -22,13 +22,12 @@
  *   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE   *
  *   SOFTWARE.                                                                       *
  ************************************************************************************/
- 
+
 namespace DBD\Base;
 
-class Debug extends Singleton implements Instantiatable
-{
+final class Debug extends Singleton implements Instantiatable {
 	protected static $starttime = null;
-
+	
 	public function __construct() {
 		return $this;
 	}
@@ -42,7 +41,7 @@ class Debug extends Singleton implements Instantiatable
 		$mtime = explode (' ', $mtime);
 		$mtime = $mtime[1] + $mtime[0];
 		Debug::$starttime = $mtime;
-
+		
 		return Debug::$starttime;
 	}
 	

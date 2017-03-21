@@ -29,54 +29,52 @@ use DBD\Cache\CacheInterface as CacheInterface;
 use DBD\Cache as Cache;
 
 class MemCache extends Cache implements CacheInterface{
-
-    /**
-     * @return Cache
-     */
-    public function open()
-    {
-        $this->link = new \Memcache();
-
-        foreach ($this->SERVERS as $server) {
-            $this->link->addServer($server['host'],$server['port']);
-        }
-
-        return $this;
-    }
-
-    public function close() {
-        return $this->link->close();
-    }
-
-    public function set($key, $var, $expire = null) {
-        if (!$expire)
-            $expire = $this->EXPIRE;
-
-        $expire = preg_replace_callback("/(\d+)\s*(.*)?/", function ($matches) { return Cache::secCalc($matches); },$expire);
-        return $this->link->set($key, $var, $this->COMPRESS, $expire);
-    }
-
-    public function get($key) {
-        return $this->link->get($key);
-    }
-
-    public function replace($key, $var, $expire = null) {
-        if (!$expire)
-            $expire = $this->EXPIRE;
-
-        $expire = preg_replace_callback("/(\d+)\s*(.*)?/",function ($matches) { return Cache::secCalc($matches); },$expire);
-
-        // If we trying to replace non exist cache, just set it
-        if ( !$this->link->replace($key, $var, $this->COMPRESS, $expire) )
-            $this->set($key, $var, $expire);
-    }
-
-    public function delete($key) {
-        return $this->link->delete($key);
-    }
-
-    public function getStats() {
-        return $this->link->getStats();
-    }
-
+	/**
+	 * @return Cache
+	 */
+	public function open()
+	{
+		$this->link = new \Memcache();
+		
+		foreach ($this->SERVERS as $server) {
+			$this->link->addServer($server['host'],$server['port']);
+		}
+		
+		return $this;
+	}
+	
+	public function close() {
+		return $this->link->close();
+	}
+	
+	public function set($key, $var, $expire = null) {
+		if (!$expire)
+			$expire = $this->EXPIRE;
+			
+		$expire = preg_replace_callback("/(\d+)\s*(.*)?/", function ($matches) { return Cache::secCalc($matches); },$expire);
+		return $this->link->set($key, $var, $this->COMPRESS, $expire);
+	}
+	
+	public function get($key) {
+		return $this->link->get($key);
+	}
+	
+	public function replace($key, $var, $expire = null) {
+		if (!$expire)
+			$expire = $this->EXPIRE;
+			
+		$expire = preg_replace_callback("/(\d+)\s*(.*)?/",function ($matches) { return Cache::secCalc($matches); },$expire);
+		
+		// If we trying to replace non exist cache, just set it
+		if ( !$this->link->replace($key, $var, $this->COMPRESS, $expire) )
+			$this->set($key, $var, $expire);
+	}
+	
+	public function delete($key) {
+		return $this->link->delete($key);
+	}
+	
+	public function getStats() {
+		return $this->link->getStats();
+	}
 }

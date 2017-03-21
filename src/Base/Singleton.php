@@ -13,27 +13,24 @@ namespace DBD\Base;
 
 use Exception;
 
-abstract class Singleton
-{
+abstract class Singleton {
 	private static $instances = array();
 	
 	protected function __construct() {/* you can't create me */}
-    final private function __clone() {/* do not clone me */}
-
+	final private function __clone() {/* do not clone me */}
+	
 	/// @example singleton.php
 	final public static function getInstance(
 		$class, $args = null /* , ... */
 	)
 	{
 		// for Singleton::getInstance('class_name', $arg1, ...) calling
-		if (2 < func_num_args())
-		{
+		if (2 < func_num_args()) {
 			$args = func_get_args();
 			array_shift($args);
 		}
 		
-		if (!isset(self::$instances[$class]))
-		{
+		if (!isset(self::$instances[$class])) {
 			$object =
 				$args
 					? new $class($args)
@@ -46,15 +43,12 @@ abstract class Singleton
 				);
 			}
 			return self::$instances[$class] = $object;
-		} 
-		else
-		{
+		} else {
 			return self::$instances[$class];
 		}
 	}
 	
-	final public static function getAllInstances()
-	{
+	final public static function getAllInstances() {
 		return self::$instances;
 	}
 	
