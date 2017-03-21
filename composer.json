@@ -1,7 +1,13 @@
 {
     "name": "falseclock/dbd-php",
     "description": "Database driver for PHP",
+    "license": "MIT"
     "require": {
         "php": "^5.3.3 || ^7.0"
-    }
+    },
+    "autoload": {
+        "psr-0": {
+            "dbd-php": "src"
+        }
+    },
 }
