@@ -1,9 +1,12 @@
-# Database driver for PHP
+## Database driver for PHP (beta version)
 
-Basic useful feature list:
+#### Basic useful feature list:
 
 * Protection from SQL injections
-* DBD/DBI perl-like syntax
+* DBD/DBI perl-like
+* Easy syntax
+* Memcache easy integration
+* Extendable by other drivers (only PostgreSQL ready, other coming)
 
 ## Database operations
 
@@ -13,7 +16,7 @@ Basic useful feature list:
 
 ## Main methods
 
-* [do](#do)
+* [du](#du)
 * [prepare](#prepare)
 * [execute](#execute)
 * [fetch](#fetch)
