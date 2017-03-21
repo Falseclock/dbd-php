@@ -1,4 +1,4 @@
-# SQL Database driver for PHP
+# Database driver for PHP
 
 Basic useful feature list:
 
