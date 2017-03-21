@@ -1,5 +1,6 @@
 {
     "name": "falseclock/dbd-php",
+    "type": "library",
     "version": "1.0.12",
     "description": "Database driver for PHP",
     "keywords": ["dbd", "dbi", "sql", "cache", "driver", "postgres", "postgresql"],
@@ -9,8 +10,8 @@
         "php": "^5.3.3 || ^7.0"
     },
     "autoload": {
-        "psr-0": {
-            "dbd-php": "src"
+        "psr-4": {
+            "DBD\\": "src/"
         }
     }
 }
