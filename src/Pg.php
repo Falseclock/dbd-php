@@ -35,6 +35,7 @@ class Pg extends DBD {
 	{
 		$dsn = "user={$this->username} ";
 		$dsn .= $this->password ? "password={$this->password} " : "";
+		$dsn .= "options='--application_name=DBD-PHP'";
 		
 		$chunks = array_chunk(preg_split('/(=|;)/', $this->dsn), 2);
 		$options = array_combine(array_column($chunks, 0), array_column($chunks, 1));

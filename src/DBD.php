@@ -50,7 +50,7 @@ abstract class DBD {
 			'PrintError'			=> true,
 			'RaiseError'			=> true,
 			'ShowErrorStatement'	=> false,
-			'HTMLError'				=> true,
+			'HTMLError'				=> false,
 			'Persistent'			=> false,
 			'ConvertNumeric'		=> false,
 			'UseDebug'				=> false,

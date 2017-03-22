@@ -5,8 +5,9 @@
 
 * Protection from SQL injections
 * DBD/DBI perl-like
-* Easy syntax
+* Easy coding
 * Memcache easy integration
+* Error handling
 * Extendable by other drivers (only PostgreSQL ready, other coming)
 
 ## Database operations

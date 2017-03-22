@@ -30,11 +30,16 @@ use DateTime;
 
 class ErrorHandler extends Exception
 {
+	const ERROR_LEVEL = 'Database error';
+	
 	public function __construct($query, $error, $caller, $options = null) {
 		if ($options['ErrorHandler'] !== null) {
 			new $options['ErrorHandler']($query, $error, $caller, $options);
 		} else {
-			$print = $this->composeHTMLError($query, $error, $caller, $options);
+			if ($options['HTMLError'])
+				$print = $this->composeHTMLError($query, $error, $caller, $options);
+			else
+				$print = $this->composeTETXError($query, $error, $caller, $options);
 			
 			if ($options['RaiseError']) {
 				
@@ -55,14 +60,16 @@ class ErrorHandler extends Exception
 	public function composeData($query, $errstr, $caller)
 	{
 		$error = array();
-		$error['error_level'] = 'Database error';
+		$error['error_level'] = self::ERROR_LEVEL;
 		$date = new DateTime("now");
 
 		$error['error_date'] = date("F j, Y, G:i:s T", $date->getTimestamp());
 		$error['error_file'] = $caller[0]['file'];
 		$error['error_line'] = $caller[0]['line'];
-		$error['error_string'] = $errstr;
+		$error['error_method'] = $caller[0]['function'];
 		$error['error_statement'] = $query;
+		$error['error_message'] = $errstr;
+		$error['error_string'] = $errstr;
 		$error['error_string'] = preg_replace("/\r/","",$error['error_string']);
 		$error['error_string'] = preg_replace("/\n/","<br/>",$error['error_string']);
 		$error['error_string'] = preg_replace("/ /","&nbsp;",$error['error_string']);
@@ -88,6 +95,20 @@ class ErrorHandler extends Exception
 		$error['error_url'] = ($_SERVER["SERVER_PORT"] == 443 ? "https" : "http" )."://".$_SERVER['HTTP_HOST'].$_SERVER['REQUEST_URI'];
 	
 		return $error;
+	}
+	
+	public function composeTETXError($query, $error, $caller, $options)
+	{
+		$data = $this->composeData($query, $error, $caller);
+		
+		$return = "";
+		$return .= sprintf ( "%s\n", $data['error_message'] );
+		$return .= sprintf ( "File: %s, line: %d, method: %s\n", $data['error_file'], $data['error_line'], $data['error_method'] );
+		$return .= sprintf ( "Date: %s\n", $data['error_date'] );
+		if ($options['ShowErrorStatement']) {
+			$return .= sprintf ( "Statement: %s\n", $data['error_statement'] );
+		}
+		return $return;
 	}
 	
 	public function composeHTMLError($query, $error, $caller, $options)
@@ -193,9 +214,9 @@ class ErrorHandler extends Exception
 			$sql 
 		);
 		
-		$sql = preg_replace( "#(LIMIT|OFFSET)#i"                                    , "<span style='color:#FF3399;font-weight:bold'>\\1</span>" , $sql );
-		$sql = preg_replace( "#(FROM|INTO|UNION|ALL|ORDER BY|GROUP BY)\s{1,}#i"                                      , "<span style='color:#669933; font-weight:bold'>\\1</span> <span style='color:orange'>\\2</span> ", $sql );
-		$sql = preg_replace( "#(SELECT|INSERT|UPDATE|DELETE|ALTER TABLE|DROP|RETURNING)\s{1,}#i"               , "<span style='color:blue;font-weight:bold'>\\1</span> " , $sql );
+		$sql = preg_replace( "/(LIMIT|OFFSET)/i"                                                      , "<span style='color:#FF3399;font-weight:bold'>\\1</span>" , $sql );
+		$sql = preg_replace( "/(FROM|INTO|UNION|ALL|ORDER BY|GROUP BY)(\s|\R)?/i"                          , "<span style='color:#669933; font-weight:bold'>\\1</span> <span style='color:orange'>\\2</span> ", $sql );
+		$sql = preg_replace( "/(SELECT|INSERT|UPDATE|DELETE|ALTER TABLE|DROP|RETURNING)(\s|\R)?/i"         , "<span style='color:blue;font-weight:bold'>\\1</span> " , $sql );
 
 		return $sql;
 	}
