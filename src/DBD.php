@@ -28,7 +28,7 @@ namespace DBD;
 use Exception;
 
 abstract class DBD {
-
+	
 	protected $dsn			= null;
 	protected $username		= null;
 	protected $password		= null;
@@ -44,7 +44,7 @@ abstract class DBD {
 		'compress'			=> null,
 		'expire'			=> null,
 		];
-	
+		
 	protected $options =
 		[
 			'PrintError'			=> true,
@@ -52,24 +52,24 @@ abstract class DBD {
 			'ShowErrorStatement'	=> true,
 			'Persistent'			=> false,
 			'ConvertNumeric'		=> false,
-			'UseDebug'			 	=> false,
+			'UseDebug'				=> false,
 			/** @var Cache CacheDriver */
 			'CacheDriver'			=> null,
 		];
-	
+		
 	protected $transaction	= false;
-
+	
 	abstract public function connect();
 	abstract public function disconnect();
 	abstract public function begin();
 	abstract public function commit();
 	abstract public function rollback();
-
-	public function create($dsn, $username, $password, $options = array()) {
 	
+	public function create($dsn, $username, $password, $options = array()) {
+		
 		$driver = get_class($this);
 		
-		/** @var DBD $db */
+		/** @var DBD\DBD $db */
 		$db = new $driver;
 		
 		return $db->setDsn($dsn)->
@@ -77,7 +77,7 @@ abstract class DBD {
 					setPassword($password)->
 					setOptions($options);
 	}
-
+	
 	public function setOptions($options) {
 		foreach ($options as $key => $value) {
 			if (is_string($key)) {
@@ -103,13 +103,13 @@ abstract class DBD {
 		
 		return $this;
 	}
-
+	
 	public function setPassword($password) {
 		$this->password = $password;
 		
 		return $this;
 	}
-
+	
 	/**
 	 * @param $dsn
 	 * @return $this
@@ -124,9 +124,16 @@ abstract class DBD {
 		return is_resource($this->dbh);
 	}
 	
+	protected function prepare_args($ARGS) {
+		$statement	= array_shift($ARGS);
+		$args		= $this->parse_args($ARGS);
+		
+		return array($statement, $args);
+	}
+	
 	protected function parse_args($ARGS) {
 		$args = array();
-		
+
 		foreach ($ARGS as $arg) {
 			if (is_array($arg)) {
 				foreach ($arg as $subarg) {
@@ -162,7 +169,7 @@ abstract class DBD {
 	}
 	
 	protected function compile_update($data) {
-	
+		
 		$columns = "";
 		$args = array();
 		
@@ -182,7 +189,7 @@ abstract class DBD {
 	{
 		if ( ! isset($key) or ! $key)
 			trigger_error("caching failed: key is not set or empty", E_USER_ERROR);
-		
+			
 		if ( preg_match("/^[\s\t\r\n]*select/i", $this->query) ) {
 			// set hash key
 			$this->cache['key'] = $key;
@@ -199,22 +206,19 @@ abstract class DBD {
 		return;
 	}
 	
-	protected function caller()
-	{
+	protected function caller() {
 		$debug = debug_backtrace();
 		
 		// working directory
 		$wd = $_SERVER["DOCUMENT_ROOT"];
 		$wd = str_replace("\\","/",$wd);
 		
-		foreach ($debug as $ind => $call)
-		{
+		foreach ($debug as $ind => $call) {
 			// our filename
 			$call['file'] = str_replace("\\","/",$call['file']);
 			$call['file'] = str_replace($wd,'',$call['file']);
 			
-			if ( !preg_match("/".__CLASS__."\.php/", $call['file']) )
-			{
+			if ( !preg_match("/".__CLASS__."\.php/", $call['file']) ) {
 				return array('file' => $call['file'], 'line' => $call['line']);
 			}
 		}

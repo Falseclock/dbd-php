@@ -110,7 +110,7 @@ class Pg extends DBD {
 
 final class PgExtend extends Pg implements DBI {
 
-	private $rows		= 0;
+	public $rows		= 0;
 	private $affected	= 0;
 	private $fetch		= "UNDEF";
 	
@@ -135,14 +135,12 @@ final class PgExtend extends Pg implements DBI {
 		return new PgExtend($this, $statement);
 	}
 	
-	public function du()
+	public function query()
 	{
 		if ( !func_num_args() )
 			trigger_error("query failed: statement is not set or empty", E_USER_ERROR);
-			
-		$ARGS		= func_get_args();
-		$statement	= array_shift($ARGS);
-		$args		= $this->parse_args($ARGS);
+		
+		list ($statement, $args) = $this->prepare_args(func_get_args());
 		
 		$sth = $this->prepare($statement);
 		
@@ -152,9 +150,19 @@ final class PgExtend extends Pg implements DBI {
 			$sth->execute();
 		}
 		
-		$sth->affected = @pg_affected_rows($sth->result);
-		
 		return $sth;
+	}
+	
+	public function du()
+	{
+		if ( !func_num_args() )
+			trigger_error("query failed: statement is not set or empty", E_USER_ERROR);
+			
+		list ($statement, $args) = $this->prepare_args(func_get_args());
+		
+		$sth = $this->query($statement,$args);
+		
+		return $sth->rows;
 	}
 	
 	public function execute()
@@ -178,6 +186,7 @@ final class PgExtend extends Pg implements DBI {
 				{
 					// To avoid errors as result by default is NULL
 					$this->result = 'cached';
+					$this->rows = count($this->cache['result']);
 					// Do not show in debug, cause data taken from cache
 					$storeDebug = 0;
 				}
@@ -234,7 +243,8 @@ final class PgExtend extends Pg implements DBI {
 			}
 			// Execute query to the database
 			$this->result = pg_query($this->dbh, $exec);
-			
+			$this->rows = pg_affected_rows($this->result);
+		
 			// If query from cache
 			if ($this->cache['key'] !== null)
 			{
@@ -453,22 +463,36 @@ final class PgExtend extends Pg implements DBI {
 		
 		return $data;
 	}
-	
-	public function update( $table, $values, $where="", $return = null )
+
+	public function update()
 	{
-		$db = $this->compile_update( $values );
+		$binds = 0;
+		$where = null;
+		$return = null;
+		$ARGS	= func_get_args();
+		$table = $ARGS[0];
+		$values = $ARGS[1];
 		
-		$numargs = func_num_args();
-		if ($numargs > 3) {
-			$args = func_get_args();
-			for ($i = 3; $i < $numargs; $i++) {
-				$db['ARGS'][] = $args[$i];
+		$db = $this->compile_update( $values );
+
+		if (func_num_args() > 2) {
+			$where = $ARGS[2];
+			$binds	= substr_count($where,"?");
+		}
+		
+		// If we set $where with placeholders or we set $return
+		if (func_num_args() > 3) {
+			for ($i = 3; $i < $binds + 3; $i++) {
+				$db['ARGS'][] = $ARGS[$i];
+			}
+			if (func_num_args() > $binds + 3) {
+				$return = $ARGS[func_num_args()-1];
 			}
 		}
 		
-		return $this->du("UPDATE $table SET {$db['COLUMNS']}" . ($where?" WHERE $where":"") . ($return ? " RETURNING {$return}":""), $db['ARGS'] );
+		return $this->query("UPDATE $table SET {$db['COLUMNS']}" . ($where?" WHERE $where":"") . ($return ? " RETURNING {$return}":""), $db['ARGS'] );
 	}
-	
+
 	public function insert( $table, $args, $return = null )
 	{
 		$db = $this->compile_insert( $args );
@@ -477,11 +501,6 @@ final class PgExtend extends Pg implements DBI {
 		$sth->execute($db['ARGS']);
 		
 		return $sth;
-	}
-	
-	public function delete( $table, $where="", $return = null )
-	{
-		return $this->du("DELETE FROM $table" . ($where?" WHERE $where":"") . ($return ? " RETURNING {$return}":""));
 	}
 	
 	private function quote($arg)
