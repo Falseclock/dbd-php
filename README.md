@@ -55,17 +55,17 @@ resource connect ( string $dsn [, string $username [, string $password [, array 
 
 ### Parameters
 
-**dsn**
+__*dsn*__
 >The *dsn* should contain one or more parameter settings separated by semicolon. Each parameter setting is in the form keyword = value.
 The currently recognized parameter keywords are: **host**, **port**, **dbname**, **user**, **password**,
 
-**username**
+__*username*__
 >Database username. If provided, then should be omitted in dsn.
 
-**password**
+__*password*__
 >Database user password. If provided, then should be omitted in dsn.
 
-**options**
+__*options*__
 >array of options. The currently recognized parameters are:
 >
 >| Parameter          | default value | definition                                                                                                                   |
@@ -144,7 +144,7 @@ The currently recognized parameter keywords are: **host**, **port**, **dbname**,
 
 
 * * *
-# **du**
+## **du**
 
 **du** — Returns number of affected records (tuples)
 
@@ -161,10 +161,10 @@ Since PostgreSQL 9.0 and above, the server returns the number of SELECTed rows. 
 
 ### Parameters
 
-**statement**
+__*statement*__
 >The SQL statement to be executed. Can have placeholders. Must contain only a single statement (multiple statements separated by semi-colons are not allowed). If any parameters are used, they are referred to as ?, ?, etc.
 
-**params**
+__*params*__
 >An array of parameter values to substitute for the ?, ?, etc. placeholders in the original prepared SQL statement string. The number of elements in the array must match the number of placeholders.
 
 
@@ -209,10 +209,10 @@ resource query ( string $statement [, mixed $params ] )
 
 ### Parameters
 
-**statement**
+__*statement*__
 >The SQL statement to be executed. Can have placeholders. Must contain only a single statement (multiple statements separated by semi-colons are not allowed). If any parameters are used, they are referred to as ?, ?, etc.
 
-**params**
+__*params*__
 >An array of parameter values to substitute for the ?, ?, etc. placeholders in the original prepared SQL statement string. The number of elements in the array must match the number of placeholders.
 
 
@@ -247,7 +247,7 @@ resource prepare ( string $statement )
 
 ### Parameters
 
-**statement**
+__*statement*__
 > The SQL statement to be executed. Can have placeholders. Must contain only a single statement (multiple statements separated by semi-colons are not allowed). If any parameters are used, they are referred to as ?, ?, etc.
 
 ### Example
@@ -286,7 +286,7 @@ resource execute ( [ mixed $params ] )
 
 ### Parameters
 
-**params**
+__*params*__
   >An array of parameter values to substitute for the ?, ?, etc. placeholders in the original prepared query string. The number of elements in the array must match the number of placeholders.
 
 ### Example
@@ -418,7 +418,7 @@ array fetchrowset ([ string $key ])
 
 ### Parameters
 
-**key**
+__*key*__
   >A column name to use as an index. If two or more columns will have the same value in a column, only last row will be stored in array.
 
 ### Return Values
@@ -506,13 +506,13 @@ mixed insert (string $table, array $values [, string $return])
 
 ### Parameters
 
-**table**
+__*table*__
 >Database table name
 
-**values**
+__*values*__
 >An associative array where key is field name and value is a field value.
 
-**return**
+__*return*__
 >You can define which fields of the table you want return after succesfull insert
 
 
@@ -562,19 +562,19 @@ mixed update (string $table, array $values [, mixed $where..., [ mixed $args...]
 
 ### Parameters
 
-**table**
+__*table*__
 >Database table name
 
-**values**
+__*values*__
 >An associative array where key is field name and value is a field value.
 
-**where**
+__*where*__
 >Specifies update condition. Can have placeholders.
 
-**args**
+__*args*__
 >Binds value for **where** condition. Strict if placeholders are exist in **where** parameter. Can be omitted if there are no any placeholders in **where** parameter.
 
-**return**
+__*return*__
 >You can define which fields of the table you want return after succesfull insert
 
 ### Example 1
