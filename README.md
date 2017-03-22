@@ -18,18 +18,19 @@
 ## Main methods
 
 * [du](#du)
+* [query](#query)
 * [prepare](#prepare)
 * [execute](#execute)
 * [fetch](#fetch)
 * [fetchrow](#fetchrow)
 * [fetchrowset](#fetchrowset)
 * [insert](#insert)
-* [select](#select)
-* [delete](#delete)
+* [update](#update)
 * [begin](#begin)
 * [commit](#commit)
 * [rollback](#rollback)
 * [cache](#cache)
+* [drop](#drop)
 * [rows](#rows)
 * [getColumn](#getColumn)
 * [result](#result)
@@ -84,7 +85,45 @@ $result = $db->du("UPDATE table SET column1 = NULL WHERE column2 = $param");
 $result = $db->du("UPDATE table SET column1 = ? WHERE column2 = ?", NULL, 'must be null');
 ?>
 ```
+* * *
+## **query**
 
+**query** — quick statement execution
+
+### Description
+
+```php
+resource query ( string $statement [, mixed $params ] )
+```
+
+**query()** do the same as [du](#du)() method, but returns self instance.
+
+
+### Parameters
+
+**statement**
+>The SQL statement to be executed. Can have placeholders. Must contain only a single statement (multiple statements separated by semi-colons are not allowed). If any parameters are used, they are referred to as ?, ?, etc.
+
+**params**
+>An array of parameter values to substitute for the ?, ?, etc. placeholders in the original prepared SQL statement string. The number of elements in the array must match the number of placeholders.
+
+
+### Example
+
+```php
+<?php
+
+$sth = $db->query("SELECT * FROM invoices");
+while ($row = $sth->fetchrow()) {
+	// do something
+}
+
+$sth = $db->query("UPDATE invoices SET invoice_uuid=?",'550e8400-e29b-41d4-a716-446655440000');
+
+echo($sth->rows);
+
+?>
+```
 * * *
 ## **prepare**
 
@@ -346,3 +385,218 @@ Array
 */
 ?>
 ```
+* * *
+## **insert**
+
+**insert** — makes new row insertion into the table. Returns self instance.
+
+### Description
+
+```php
+mixed insert (string $table, array $values [, string $return])
+```
+
+### Parameters
+
+**table**
+>Database table name
+
+**values**
+>An associative array where key is field name and value is a field value.
+
+**return**
+>You can define which fields of the table you want return after succesfull insert
+
+
+### Example 1
+
+```php
+<?php
+$insert = array(
+	'vatinvoice_uuid' => $doc['Ref'],
+	'vatinvoice_date' => $doc['Date'],
+	'vatinvoice_number' => $doc['Number'],
+	'vatinvoice_amount' => $doc['Amount'],
+	'waybill_uuid' => $doc['reference']['uuid']
+);
+$sth = $db->insert('vatinvoices',$insert);
+echo ($sth->rows);
+?>
+```
+### Example 2
+
+```php
+<?php
+$insert = array(
+	//'payment_id' => IS SERIAL, will be generated automatically
+	'payment_uuid' => $payment['Ref'],
+	'payment_date' => $payment['Date'],
+	'payment_number' => $payment['Number'],
+	'payment_amount' => $payment['Amount']
+);
+$sth = $db->insert('payments',$insert,'payment_id, payment_uuid');
+while ($row = $sth->fetchrow()) {
+	printf("We inserted new payment with ID=%d and UUID=%s\n",$row['payment_id'],$row['payment_uuid']);
+}
+?>
+```
+
+* * *
+## **update**
+
+**update** — makes updates of the rows by giving parameters and prepares values. Returns self instance.
+
+### Description
+
+```php
+mixed update (string $table, array $values [, mixed $where..., [ mixed $args...], [string $return]])
+```
+
+### Parameters
+
+**table**
+>Database table name
+
+**values**
+>An associative array where key is field name and value is a field value.
+
+**where**
+>Specifies update condition. Can have placeholders.
+
+**args**
+>Binds value for **where** condition. Strict if placeholders are exist in **where** parameter. Can be omitted if there are no any placeholders in **where** parameter.
+
+**return**
+>You can define which fields of the table you want return after succesfull insert
+
+### Example 1
+
+```php
+<?php
+$update = array(
+	'vatinvoice_date' => $doc['Date'],
+	'vatinvoice_number' => $doc['Number'],
+	'vatinvoice_amount' => $doc['Amount']
+);
+// this will update all rows in a table
+$sth = $db->update('vatinvoices',$update);
+echo ($sth->rows);
+?>
+```
+### Example 2
+
+```php
+<?php
+$update = array(
+	'vatinvoice_date' => $doc['Date'],
+	'vatinvoice_number' => $doc['Number'],
+	'vatinvoice_amount' => $doc['Amount']
+);
+// this will update all rows in a table where vatinvoice_uuid equals to some value
+$sth = $db->update('vatinvoices', $update, "vatinvoice_uuid=?", $doc['UUID']);
+echo ($sth->rows);
+?>
+```
+### Example 3
+
+```php
+<?php
+$update = array(
+	'vatinvoice_date' => $doc['Date'],
+	'vatinvoice_number' => $doc['Number'],
+	'vatinvoice_amount' => $doc['Amount']
+);
+// this will update all rows in a table where vatinvoice_uuid is null
+// query will return vatinvoice_id
+$sth = $db->update('vatinvoices', $update, "vatinvoice_uuid IS NULL", "vatinvoice_id");
+while ($row = $sth->fetchrow()) {
+	printf("Updated vatinvoice with ID=%d\n", $row['vatinvoice_id']);
+}
+?>
+```
+### Example 4
+
+```php
+<?php
+$update = array(
+	'vatinvoice_date' => $doc['Date'],
+	'vatinvoice_number' => $doc['Number'],
+	'vatinvoice_amount' => $doc['Amount']
+);
+// this will update all rows in a table where vatinvoice_uuid equals to some value
+// query will return vatinvoice_id
+$sth = $db->update('vatinvoices',$update,"vatinvoice_uuid =? ", $doc['UUID'], "vatinvoice_id, vatinvoice_uuid");
+while ($row = $sth->fetchrow()) {
+	printf("Updated vatinvoice with ID=%d and UUID=%s\n",$row['vatinvoice_id'],$row['vatinvoice_uuid']);
+}
+?>
+```
+* * *
+## **begin**
+
+**begin** — Starts database transaction
+
+### Description
+
+```php
+mixed begin ()
+```
+
+**begin()** enable transactions (by turning AutoCommit off) until the next call to [commit](#commit) or [rollback](#rollback). After the next [commit](#commit) or [rollback](#rollback), AutoCommit will automatically be turned on again.
+
+### Example
+
+```php
+<?php
+$db_options = array(
+    'ConvertNumeric'    => true,
+    'UseDebug'          => true
+);
+// Create DSN 
+$dsn = (new DBD\Pg())->create("host=localhost;port=5432;dbname=falseclock", "username","password", $db_options);
+
+// make connection to the database
+$db = $dsn->connect();
+$db->begin();
+
+// Common usage for repeatedly UPDATE queries
+$sth = $db->prepare("SELECT col1, col2, col3 FROM table1");
+$std = $db->prepare("UPDATE table2 SET col2 =? WHERE col1=? AND col2=?");
+
+$sth->execute();
+
+while ($row = $sth->fetchrow()) {
+	if ($row['col1'] == 'banana') {
+    	$std->execute(FALSE,NULL,$row[col2]);
+    }
+}
+$db->commit();
+?>
+```
+* * *
+## **commit**
+
+**commit** — Commit database transaction
+
+### Description
+
+```php
+mixed commit ()
+```
+
+**commit()** makes permanent the most recent series of database changes if the database supports transactions and AutoCommit is off.
+
+* * *
+## **rollback**
+
+**rollback** — undo changes
+
+### Description
+
+```php
+mixed rollback ()
+```
+
+**rollback()** undo the most recent series of uncommitted database changes if the database supports transactions and AutoCommit is off.
+
+
