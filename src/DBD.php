@@ -48,11 +48,12 @@ abstract class DBD {
 	protected $options =
 		[
 			'PrintError'			=> true,
-			'RaiseError'			=> false,
-			'ShowErrorStatement'	=> true,
+			'RaiseError'			=> true,
+			'ShowErrorStatement'	=> false,
 			'Persistent'			=> false,
 			'ConvertNumeric'		=> false,
 			'UseDebug'				=> false,
+			'ErrorHandler'			=> null,
 			/** @var Cache CacheDriver */
 			'CacheDriver'			=> null,
 		];
@@ -207,21 +208,26 @@ abstract class DBD {
 	}
 	
 	protected function caller() {
+		$return = array();
 		$debug = debug_backtrace();
 		
 		// working directory
 		$wd = $_SERVER["DOCUMENT_ROOT"];
-		$wd = str_replace("\\","/",$wd);
+		$wd = str_replace(DIRECTORY_SEPARATOR,"/",$wd);
+		
+		$myFilename = $debug[0]['file'];
+		$myFilename = str_replace(DIRECTORY_SEPARATOR,"/",$myFilename);
+		$myFilename = str_replace($wd,'',$myFilename);
 		
 		foreach ($debug as $ind => $call) {
 			// our filename
-			$call['file'] = str_replace("\\","/",$call['file']);
+			$call['file'] = str_replace(DIRECTORY_SEPARATOR,"/",$call['file']);
 			$call['file'] = str_replace($wd,'',$call['file']);
 			
-			if ( !preg_match("/".__CLASS__."\.php/", $call['file']) ) {
-				return array('file' => $call['file'], 'line' => $call['line']);
+			if ( $myFilename != $call['file'] ) {
+				$return[] =  array('file' => $call['file'], 'line' => $call['line'], 'function' => $call['function']);
 			}
 		}
-		return array('file' => $debug[0]['file'], 'line' => $debug[0]['line']);
+		return $return;
 	}
 }

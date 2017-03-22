@@ -25,7 +25,7 @@
 
 namespace DBD;
 use DBD\Base\Debug as Debug;
-use Exception;
+use DBD\Base\ErrorHandler as ErrorHandler;
 
 class Pg extends DBD {
 	/**
@@ -243,8 +243,11 @@ final class PgExtend extends Pg implements DBI {
 			}
 			// Execute query to the database
 			$this->result = pg_query($this->dbh, $exec);
-			$this->rows = pg_affected_rows($this->result);
-		
+			
+			if ( $this->result !== false )  {
+				$this->rows = pg_affected_rows($this->result);
+			}
+			
 			// If query from cache
 			if ($this->cache['key'] !== null)
 			{
@@ -276,17 +279,10 @@ final class PgExtend extends Pg implements DBI {
 				);
 			}
 		}
-
 		if ( $this->result === false )  {
-/*
-			$this->_error($exec);
-			$this->error = 	self::$errstr;
-*/
-			trigger_error (
-				"Query failed: " . pg_errormessage(),E_USER_ERROR
-			);
-			
-		} elseif ( $storeDebug ) {
+			new ErrorHandler ($exec, pg_last_error($this->dbh), $this->caller(), $this->options);
+		}
+		if ( $storeDebug ) {
 			//--------------------------------------
 			// Debug?
 			//--------------------------------------
@@ -411,11 +407,12 @@ final class PgExtend extends Pg implements DBI {
 				$dublications .= "[<b>{$key}</b>] => <b style='color:crimson'>{$value}</b><br />";
 			}
 			
-			throw new Exception(
+			trigger_error(
 				"Statement result has ".pg_num_fields($this->result)." columns while fetched row only ".count($data).". 
 				Fetching it associative reduces number of columns. 
 				Rename column with `AS` inside statement or fetch as indexed array.<br /><br />
-				Dublicating columns are:<br /> {$dublications}<br />"
+				Dublicating columns are:<br /> {$dublications}<br />",
+				E_USER_ERROR
 			);
 		}
 		
