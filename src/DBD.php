@@ -129,7 +129,8 @@ abstract class DBD {
 	}
 	
 	protected function setPassword($password) {
-		$this->password = $password;
+		if ($password)
+			$this->password = $password;
 		
 		return $this;
 	}
@@ -209,11 +210,13 @@ abstract class DBD {
 		return array( 'COLUMNS' => $columns, 'ARGS' => $args );
 	}
 	
-	public function cache($key, $expire = null, $compress = null)
-	{
-		if ( ! isset($key) or ! $key)
+	public function cache($key, $expire = null, $compress = null) {
+		if ( ! isset($key) or ! $key) {
 			trigger_error("caching failed: key is not set or empty", E_USER_ERROR);
-			
+		}
+		if ($this->options['CacheDriver'] == null) {
+			trigger_error("CacheDriver not initialized", E_USER_ERROR);
+		}
 		if ( preg_match("/^[\s\t\r\n]*select/i", $this->query) ) {
 			// set hash key
 			$this->cache['key'] = $key;
@@ -227,6 +230,15 @@ abstract class DBD {
 			trigger_error("caching failed: current query is not of SELECT type", E_USER_ERROR);
 		}
 		
+		return;
+	}
+	
+	public function drop($key) {
+		if ($this->options['CacheDriver'] != null) {
+			$this->options['CacheDriver']->delete($key);
+		} else {
+			trigger_error("CacheDriver not initialized", E_USER_ERROR);
+		}
 		return;
 	}
 	

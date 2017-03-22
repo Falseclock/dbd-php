@@ -47,8 +47,10 @@ class ErrorHandler extends Exception
 				header($header . "500 Internal Server Error", TRUE, 500);
 				if ($options['PrintError']) {
 					echo($print);
+					exit();
+				} else {
+					throw new Exception($error);
 				}
-				exit();
 			}
 			if ($options['PrintError']) {
 				echo($print);

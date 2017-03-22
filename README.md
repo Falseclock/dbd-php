@@ -2,7 +2,7 @@
 ## Database driver for PHP (beta version)
 *(not native English speaker, any help appreciated)*
 
-#### Basic useful feature list:
+#### Basic feature list:
 
 * Protection from SQL injections
 * DBD/DBI perl-like
@@ -66,7 +66,7 @@ The currently recognized parameter keywords are: **host**, **port**, **dbname**,
 >Database user password. If provided, then should be omitted in dsn.
 
 ***options***
->array of options. The currently recognized parameters are:
+>array of options. The currently recognized options are:
 >
 >| Parameter          | default value | definition                                                                                                                   |
 >|--------------------|:-------------:|------------------------------------------------------------------------------------------------------------------------------|
@@ -80,13 +80,13 @@ The currently recognized parameter keywords are: **host**, **port**, **dbname**,
 >| ErrorHandler       |      null     | You can create own error handler and use it errors catcher.                                                                    |
 >| CacheDriver        |      null     | Cache driver instance.                                                                                                       |
 >
->### HTML Error Example
+>## **HTML Error Example**
 >![Image of Yaktocat](https://cloud.githubusercontent.com/assets/3299139/24210184/77632df8-0f52-11e7-95fd-3514ed4ad60d.PNG)
 >
->### TEXT Error Example
+>## **TEXT Error Example**
 >![Image of Yaktocat](https://cloud.githubusercontent.com/assets/3299139/24210187/78dd0168-0f52-11e7-8294-ed0ed8b105af.PNG)
 >
->### ErrorHandler Example
+>## **ErrorHandler Example**
 >Class **DBD\Base\ErrorHandler** has three public classes: **composeData()**, **composeTETXError**, **composeHTMLError**
 >```php
 >$db_options = array(
@@ -121,7 +121,7 @@ The currently recognized parameter keywords are: **host**, **port**, **dbname**,
 >}
 >```
 >
->### CacheDriver Example
+>## **CacheDriver Example**
 >```php
 >$cache = DBD\Cache\MemCache::me()->create(array(['host' => '127.0.0.1', 'port' => 11211]), false, 15)->open();
 >
@@ -144,7 +144,7 @@ The currently recognized parameter keywords are: **host**, **port**, **dbname**,
 
 
 * * *
-## **du**
+# **du**
 
 **du** — Returns number of affected records (tuples)
 

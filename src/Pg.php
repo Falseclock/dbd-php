@@ -33,7 +33,8 @@ class Pg extends DBD {
 	 */
 	public function connect()
 	{
-		$dsn = "user={$this->username} ";
+		$dsn = "";
+		$dsn .= $this->username ? "user={$this->username} " : "";
 		$dsn .= $this->password ? "password={$this->password} " : "";
 		$dsn .= "options='--application_name=DBD-PHP'";
 		
