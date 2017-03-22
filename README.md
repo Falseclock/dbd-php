@@ -55,17 +55,17 @@ resource connect ( string $dsn [, string $username [, string $password [, array 
 
 ### Parameters
 
-__*dsn*__
+***dsn***
 >The *dsn* should contain one or more parameter settings separated by semicolon. Each parameter setting is in the form keyword = value.
 The currently recognized parameter keywords are: **host**, **port**, **dbname**, **user**, **password**,
 
-__*username*__
+***username***
 >Database username. If provided, then should be omitted in dsn.
 
-__*password*__
+***password***
 >Database user password. If provided, then should be omitted in dsn.
 
-__*options*__
+***options***
 >array of options. The currently recognized parameters are:
 >
 >| Parameter          | default value | definition                                                                                                                   |
@@ -161,10 +161,10 @@ Since PostgreSQL 9.0 and above, the server returns the number of SELECTed rows. 
 
 ### Parameters
 
-__*statement*__
+***statement***
 >The SQL statement to be executed. Can have placeholders. Must contain only a single statement (multiple statements separated by semi-colons are not allowed). If any parameters are used, they are referred to as ?, ?, etc.
 
-__*params*__
+***params***
 >An array of parameter values to substitute for the ?, ?, etc. placeholders in the original prepared SQL statement string. The number of elements in the array must match the number of placeholders.
 
 
@@ -209,10 +209,10 @@ resource query ( string $statement [, mixed $params ] )
 
 ### Parameters
 
-__*statement*__
+***statement***
 >The SQL statement to be executed. Can have placeholders. Must contain only a single statement (multiple statements separated by semi-colons are not allowed). If any parameters are used, they are referred to as ?, ?, etc.
 
-__*params*__
+***params***
 >An array of parameter values to substitute for the ?, ?, etc. placeholders in the original prepared SQL statement string. The number of elements in the array must match the number of placeholders.
 
 
@@ -247,7 +247,7 @@ resource prepare ( string $statement )
 
 ### Parameters
 
-__*statement*__
+***statement***
 > The SQL statement to be executed. Can have placeholders. Must contain only a single statement (multiple statements separated by semi-colons are not allowed). If any parameters are used, they are referred to as ?, ?, etc.
 
 ### Example
@@ -286,7 +286,7 @@ resource execute ( [ mixed $params ] )
 
 ### Parameters
 
-__*params*__
+***params***
   >An array of parameter values to substitute for the ?, ?, etc. placeholders in the original prepared query string. The number of elements in the array must match the number of placeholders.
 
 ### Example
@@ -418,7 +418,7 @@ array fetchrowset ([ string $key ])
 
 ### Parameters
 
-__*key*__
+***key***
   >A column name to use as an index. If two or more columns will have the same value in a column, only last row will be stored in array.
 
 ### Return Values
@@ -506,13 +506,13 @@ mixed insert (string $table, array $values [, string $return])
 
 ### Parameters
 
-__*table*__
+***table***
 >Database table name
 
-__*values*__
+***values***
 >An associative array where key is field name and value is a field value.
 
-__*return*__
+***return***
 >You can define which fields of the table you want return after succesfull insert
 
 
@@ -562,19 +562,19 @@ mixed update (string $table, array $values [, mixed $where..., [ mixed $args...]
 
 ### Parameters
 
-__*table*__
+***table***
 >Database table name
 
-__*values*__
+***values***
 >An associative array where key is field name and value is a field value.
 
-__*where*__
+***where***
 >Specifies update condition. Can have placeholders.
 
-__*args*__
+***args***
 >Binds value for **where** condition. Strict if placeholders are exist in **where** parameter. Can be omitted if there are no any placeholders in **where** parameter.
 
-__*return*__
+***return***
 >You can define which fields of the table you want return after succesfull insert
 
 ### Example 1
