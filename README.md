@@ -1,5 +1,6 @@
 ##
 ## Database driver for PHP (beta version)
+*(not native English speaker, any help appreciated)*
 
 #### Basic useful feature list:
 
@@ -39,7 +40,7 @@
 * [result](#result)
 
 * * *
-## **connect**
+# **connect**
 
 **connect** — initiate connection to a database
 
@@ -76,7 +77,7 @@ The currently recognized parameter keywords are: **host**, **port**, **dbname**,
 >| Persistent         |     false     | Will initiate persistent connection in case of true value                                                                    |
 >| ConvertNumeric     |     false     | By default PHP native library returns all integer and float values as text. Set to true if you need convert to proper type.  |
 >| UseDebug           |     false     | If true counts queries and benchmark each with EXPLAIN. Can be printed out before disconnect.                                |
->| ErrorHandler       |      null     | You can create own error handler and use it catch errors.                                                                    |
+>| ErrorHandler       |      null     | You can create own error handler and use it errors catcher.                                                                    |
 >| CacheDriver        |      null     | Cache driver instance.                                                                                                       |
 >
 >### HTML Error Example
@@ -121,12 +122,12 @@ The currently recognized parameter keywords are: **host**, **port**, **dbname**,
 >```
 >
 >### CacheDriver Example
->```
+>```php
 >$cache = DBD\Cache\MemCache::me()->create(array(['host' => '127.0.0.1', 'port' => 11211]), false, 15)->open();
 >
 >$db_options = array(
->	'CacheDriver'		=> $cache,
->	'ErrorHandler'		=> 'SQLErrorHandler'
+>	'CacheDriver'    => $cache,
+>	'ErrorHandler'   => 'SQLErrorHandler'
 >);
 >
 >// Create DSN 
@@ -143,7 +144,7 @@ The currently recognized parameter keywords are: **host**, **port**, **dbname**,
 
 
 * * *
-## **du**
+# **du**
 
 **du** — Returns number of affected records (tuples)
 
@@ -193,7 +194,7 @@ $result = $db->du("UPDATE table SET column1 = ? WHERE column2 = ?", NULL, 'must 
 ?>
 ```
 * * *
-## **query**
+# **query**
 
 **query** — quick statement execution
 
@@ -232,7 +233,7 @@ echo($sth->rows);
 ?>
 ```
 * * *
-## **prepare**
+# **prepare**
 
 **prepare** — creates a prepared statement for later execution with [execute](#execute)() method. This feature allows commands that will be used repeatedly to be parsed and planned just once, rather than each time they are executed.
 
@@ -271,7 +272,7 @@ foreach ($fruits as $fruit) {
 
 
 * * *
-## **execute**
+# **execute**
 
 **execute** — Sends a request to execute a prepared statement with given parameters, and waits for the result.
 
@@ -318,7 +319,7 @@ while ($row = $sth->fetchrow()) {
 
 
 * * *
-## **fetch**
+# **fetch**
 
 **fetch** — Fetch a column from first row.
 
@@ -366,7 +367,7 @@ Company name: VIR-TEX LLP
 ```
 
 * * *
-## **fetchrow**
+# **fetchrow**
 
 **fetchrow** — fetch a row as an associative array
 
@@ -405,7 +406,7 @@ Array
 ```
 
 * * *
-## **fetchrowset**
+# **fetchrowset**
 
 **fetchrowset** — fetch a full result as multidimensional array, where each element is an associative array that corresponds to the fetched row.
 
@@ -493,7 +494,7 @@ Array
 ?>
 ```
 * * *
-## **insert**
+# **insert**
 
 **insert** — makes new row insertion into the table. Returns self instance.
 
@@ -549,7 +550,7 @@ while ($row = $sth->fetchrow()) {
 ```
 
 * * *
-## **update**
+# **update**
 
 **update** — makes updates of the rows by giving parameters and prepared values. Returns self instance.
 
@@ -639,7 +640,7 @@ while ($row = $sth->fetchrow()) {
 ?>
 ```
 * * *
-## **begin**
+# **begin**
 
 **begin** — Starts database transaction
 
@@ -681,7 +682,7 @@ $db->commit();
 ?>
 ```
 * * *
-## **commit**
+# **commit**
 
 **commit** — Commit database transaction
 
@@ -694,7 +695,7 @@ mixed commit ()
 **commit()** makes permanent the most recent series of database changes if the database supports transactions and AutoCommit is off.
 
 * * *
-## **rollback**
+# **rollback**
 
 **rollback** — undo changes
 
