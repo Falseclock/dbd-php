@@ -13,6 +13,8 @@
 ## Database operations
 
 * [connect](#connect)
+* [setOption](#setOption)
+* [getOption](#getOption)
 * [disconnect](#disconnect)
 * [isConnected](#isConnected)
 
@@ -35,6 +37,110 @@
 * [rows](#rows)
 * [getColumn](#getColumn)
 * [result](#result)
+
+* * *
+## **connect**
+
+**connect** — initiate connection to a database
+
+### Description
+
+```php
+resource connect ( string $dsn [, string $username [, string $password [, array $options ]]] )
+```
+
+**connect()** opens a connection to a database specified by the **dsn**.
+
+
+### Parameters
+
+**dsn**
+>The *dsn* should contain one or more parameter settings separated by semicolon. Each parameter setting is in the form keyword = value.
+The currently recognized parameter keywords are: **host**, **port**, **dbname**, **user**, **password**,
+
+**username**
+>Database username. If provided, then should be omitted in dsn.
+
+**password**
+>Database user password. If provided, then should be omitted in dsn.
+
+**options**
+>array of options. The currently recognized parameters are:
+>
+>| Parameter          | default value | definition                                                                                                                   |
+>|--------------------|:-------------:|------------------------------------------------------------------------------------------------------------------------------|
+>| PrintError         |      true     | Print out errors to current output handler in case of SQL syntax error                                                       |
+>| RaiseError         |      true     | If true, then HTTP status 500 will be thrown with exception.                                                                 |
+>| ShowErrorStatement |     false     | Works only if PrintError set to true. If true, then error message will contain failed SQL statement                          |
+>| HTMLError          |     false     | Works only if PrintError set to true. By default error message has text format. Set to true if HTML error is preferred.      |
+>| Persistent         |     false     | Will initiate persistent connection in case of true value                                                                    |
+>| ConvertNumeric     |     false     | By default PHP native library returns all integer and float values as text. Set to true if you need convert to proper type.  |
+>| UseDebug           |     false     | If true counts queries and benchmark each with EXPLAIN. Can be printed out before disconnect.                                |
+>| ErrorHandler       |      null     | You can create own error handler and use it catch errors.                                                                    |
+>| CacheDriver        |      null     | Cache driver instance.                                                                                                       |
+>
+>### HTML Error Example
+>![Image of Yaktocat](https://cloud.githubusercontent.com/assets/3299139/24210184/77632df8-0f52-11e7-95fd-3514ed4ad60d.PNG)
+>
+>### TEXT Error Example
+>![Image of Yaktocat](https://cloud.githubusercontent.com/assets/3299139/24210187/78dd0168-0f52-11e7-8294-ed0ed8b105af.PNG)
+>
+>### ErrorHandler Example
+>Class **DBD\Base\ErrorHandler** has three public classes: **composeData()**, **composeTETXError**, **composeHTMLError**
+>```php
+>$db_options = array(
+>	'ErrorHandler'		=> 'SQLErrorHandler'
+>);
+>
+>// Create DSN 
+>$dsn = (new DBD\Pg())->create("host=localhost;port=5432;dbname=falseclock", "username","password", $db_options);
+>
+>// make connection to the database
+>$db = $dsn->connect();
+>
+>class SQLErrorHandler extends DBD\Base\ErrorHandler
+>{
+>	public function __construct($query, $errstr, $caller, $options=null) {
+>		
+>		$error = $this->composeData($query, $errstr, $caller);
+>			
+>		$filename = "sql.log";
+>		$file_data = json_encode($error, JSON_UNESCAPED_UNICODE)."\n";
+>			
+>		if (! file_exists($filename)) { @file_put_contents($filename, ''); }
+>		$file_data .= @file_get_contents($filename);
+>		@file_put_contents($filename, $file_data);
+>		@chmod($filename,0666);
+>		
+>		$html = $this->composeHTMLError($query, $errstr, $caller, $options);
+>		
+>		echo($html);
+>		exit();
+>	}
+>}
+>```
+>
+>### CacheDriver Example
+>```
+>$cache = DBD\Cache\MemCache::me()->create(array(['host' => '127.0.0.1', 'port' => 11211]), false, 15)->open();
+>
+>$db_options = array(
+>	'CacheDriver'		=> $cache,
+>	'ErrorHandler'		=> 'SQLErrorHandler'
+>);
+>
+>// Create DSN 
+>$dsn = (new DBD\Pg())->create("host=localhost;port=5432;dbname=falseclock", "username","password", $db_options);
+>
+>// make connection to the database
+>$db = $dsn->connect();
+>
+>$sth = $db->prepare("SELECT bank_id AS id, bank_name AS name FROM banks ORDER BY bank_name ASC");
+>$sth->cache("AllBanks"); // <--- this will
+>$sth->execute(); // Will try to fetch from catch if exist or will query database and store to cache
+>
+>```
+
 
 * * *
 ## **du**
