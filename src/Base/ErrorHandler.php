@@ -26,30 +26,75 @@
 namespace DBD\Base;
 
 use Exception;
+use DateTime;
 
 class ErrorHandler extends Exception
 {
-	public function __construct($query, $error, $caller, $options=null) {
+	public function __construct($query, $error, $caller, $options = null) {
 		if ($options['ErrorHandler'] !== null) {
 			new $options['ErrorHandler']($query, $error, $caller, $options);
 		} else {
-			if ($options['PrintError']) {
-				echo($this->composeError($query, $error, $caller, $options));
-			}
+			$print = $this->composeHTMLError($query, $error, $caller, $options);
+			
 			if ($options['RaiseError']) {
+				
+				$header = (php_sapi_name() != 'cgi') ? 'HTTP/1.1 ' : 'HTTP/1.1: ';
+				header($header . "500 Internal Server Error", TRUE, 500);
+				if ($options['PrintError']) {
+					echo($print);
+				}
 				exit();
+			}
+			if ($options['PrintError']) {
+				echo($print);
 			}
 			//throw new Exception($error);
 		}
 	}
 	
-	public function composeError($query, $error, $caller, $options)
+	public function composeData($query, $errstr, $caller)
+	{
+		$error = array();
+		$error['error_level'] = 'Database error';
+		$date = new DateTime("now");
+
+		$error['error_date'] = date("F j, Y, G:i:s T", $date->getTimestamp());
+		$error['error_file'] = $caller[0]['file'];
+		$error['error_line'] = $caller[0]['line'];
+		$error['error_string'] = $errstr;
+		$error['error_statement'] = $query;
+		$error['error_string'] = preg_replace("/\r/","",$error['error_string']);
+		$error['error_string'] = preg_replace("/\n/","<br/>",$error['error_string']);
+		$error['error_string'] = preg_replace("/ /","&nbsp;",$error['error_string']);
+		
+		$lines = explode("\n", $query);
+		foreach ($lines as $buffer) {
+			$buffer = preg_replace("/\t\t/","\t",$buffer);
+			$buffer = preg_replace("/\t/","&nbsp;&nbsp;",$buffer);
+			$buffer = preg_replace("/&nbsp;{4}/","&nbsp;",$buffer);
+
+			$error['context'][] = $buffer;
+		}
+
+		foreach ($caller as $debug) {
+			$error['stack'][] = array 
+			(
+				'file' => $debug['file'], 
+				'line' => $debug['line'], 
+				'function' => $debug['function']
+			);
+		}
+		$error['referer'] = $_SERVER['HTTP_REFERER'];
+		$error['error_url'] = ($_SERVER["SERVER_PORT"] == 443 ? "https" : "http" )."://".$_SERVER['HTTP_HOST'].$_SERVER['REQUEST_URI'];
+	
+		return $error;
+	}
+	
+	public function composeHTMLError($query, $error, $caller, $options)
 	{
 		$return = "";
 		
-		$errorString = preg_replace("/\r/","",$error);
-		$errorString = preg_replace("/\n/","<br/>",$errorString);
-		$errorString = preg_replace("/ /","&nbsp;",$errorString);
+		$data = $this->composeData($query, $error, $caller);
 		
 		$return .= sprintf ( "<style>\n" );
 		$return .= sprintf ( ".codeError {padding: 10px 10px; background-color: white; position: absolute; float: left; width: 90%%; z-index: 1000;  }\n" );
@@ -66,19 +111,19 @@ class ErrorHandler extends Exception
 		$return .= sprintf ( "<table style='position: static !important; float: none !important;'>           \n" );
 		$return .= sprintf ( "  <tr>                                                                         \n" );
 		$return .= sprintf ( "    <td><strong>error level: </strong>&nbsp;</td>                              \n" );
-		$return .= sprintf ( "    <td>Database error</td>                                                    \n" );
+		$return .= sprintf ( "    <td>{$data['error_level']}</td>                                            \n" );
 		$return .= sprintf ( "  </tr>                                                                        \n" );
 		$return .= sprintf ( "  <tr>                                                                         \n" );
 		$return .= sprintf ( "    <td><strong>error in file: </strong>&nbsp;</td>                            \n" );
-		$return .= sprintf ( "    <td>{$caller[0]['file']}</td>                                              \n" );
+		$return .= sprintf ( "    <td>{$data['error_file']}</td>                                             \n" );
 		$return .= sprintf ( "  </tr>                                                                        \n" );
 		$return .= sprintf ( "  <tr>                                                                         \n" );
 		$return .= sprintf ( "    <td><strong>error in file: </strong>&nbsp;</td>                            \n" );
-		$return .= sprintf ( "    <td>{$caller[0]['line']}</td>                                              \n" );
+		$return .= sprintf ( "    <td>{$data['error_line']}</td>                                             \n" );
 		$return .= sprintf ( "  </tr>                                                                        \n" );
 		$return .= sprintf ( "  <tr>                                                                         \n" );
 		$return .= sprintf ( "    <td><strong>error string: </strong>&nbsp;</td>                             \n" );
-		$return .= sprintf ( "    <td><span class='dberror'>{$errorString}</span></td>                       \n" );
+		$return .= sprintf ( "    <td><span class='dberror'>{$data['error_string']}</span></td>              \n" );
 		$return .= sprintf ( "  </tr>                                                                        \n" );
 		
 		if ($options['ShowErrorStatement']) {
@@ -89,20 +134,11 @@ class ErrorHandler extends Exception
 			$return .= sprintf ( "      <tr>                                                                 \n" );
 			$return .= sprintf ( "        <td><strong>......................................</strong></td>   \n" );
 			$return .= sprintf ( "      </tr>                                                                \n" );
-			
-			$lines = explode("\n", $query);
-			$context = array();
-			foreach ($lines as $buffer) {
-				$buffer = preg_replace("/\t\t/","\t",$buffer);
-				$buffer = preg_replace("/\t/","&nbsp;&nbsp;",$buffer);
-				$buffer = preg_replace("/&nbsp;{4}/","&nbsp;",$buffer);
 
-				$context[] = $buffer;
-			}
-			foreach ($context as $str) {
-				$str = $this->SQLhighlight($str);
+			foreach ($data['context'] as $context) {
+				$context = $this->SQLhighlight($context);
 				$return .= sprintf ( "      <tr>                                                             \n" );
-				$return .= sprintf ( "        <td>{$str}</td>                                                \n" );
+				$return .= sprintf ( "        <td>{$context}</td>                                            \n" );
 				$return .= sprintf ( "      </tr>                                                            \n" );
 			}
 			
@@ -117,7 +153,7 @@ class ErrorHandler extends Exception
 		$return .= sprintf ( "    <td><strong>code stack: </strong>&nbsp;</td>                               \n" );
 		$return .= sprintf ( "    <td>                                                                       \n" );
 		$return .= sprintf ( "    <table class='stack' cellpadding='0' cellspacing='0'>                      \n" );
-		foreach ($caller as $stack) {                                                                             
+		foreach ($data['stack'] as $stack) {                                                                             
 			$return .= sprintf ( "      <tr>                                                                 \n" );
 			$return .= sprintf ( "        <td valign='top'>{$stack['file']}</td>                             \n" );
 			$return .= sprintf ( "        <td>{$stack['line']}</td>                                          \n" );
@@ -126,6 +162,14 @@ class ErrorHandler extends Exception
 		}
 		$return .= sprintf ( "    </table>                                                                   \n" );
 		$return .= sprintf ( "    </td>                                                                      \n" );
+		$return .= sprintf ( "  </tr>                                                                        \n" );
+		$return .= sprintf ( "  <tr>                                                                         \n" );
+		$return .= sprintf ( "    <td><strong>error_url: </strong>&nbsp;</td>                                \n" );
+		$return .= sprintf ( "    <td>%s</td>                                                                \n" , urldecode($data['error_url']));
+		$return .= sprintf ( "  </tr>                                                                        \n" );
+		$return .= sprintf ( "  <tr>                                                                         \n" );
+		$return .= sprintf ( "    <td><strong>referer: </strong>&nbsp;</td>                                  \n" );
+		$return .= sprintf ( "    <td>%s</td>                                                                \n" , urldecode($data['referer']));
 		$return .= sprintf ( "  </tr>                                                                        \n" );
 		$return .= sprintf ( "</table>                                                                       \n" );
 		$return .= sprintf ( "<hr size=1>                                                                    \n" );

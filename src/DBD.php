@@ -50,6 +50,7 @@ abstract class DBD {
 			'PrintError'			=> true,
 			'RaiseError'			=> true,
 			'ShowErrorStatement'	=> false,
+			'HTMLError'				=> true,
 			'Persistent'			=> false,
 			'ConvertNumeric'		=> false,
 			'UseDebug'				=> false,
@@ -79,7 +80,29 @@ abstract class DBD {
 					setOptions($options);
 	}
 	
-	public function setOptions($options) {
+	public function setOption($key,$value) {
+		if (array_key_exists($key, $this->options)) {
+			$this->options[$key] = $value;
+			return $value;
+		} else {
+			throw new Exception(
+				"Unknown option provided"
+			);
+		}
+		return null;
+	}
+	
+	public function getOption($key) {
+		if (array_key_exists($key, $this->options)) {
+			return $this->options[$key];
+		} else {
+			throw new Exception(
+				"Unknown option provided"
+			);
+		}
+	}
+	
+	protected function setOptions($options) {
 		foreach ($options as $key => $value) {
 			if (is_string($key)) {
 				if (array_key_exists($key, $this->options)) {
@@ -99,13 +122,13 @@ abstract class DBD {
 		return $this;
 	}
 	
-	public function setUsername($name) {
+	protected function setUsername($name) {
 		$this->username = $name;
 		
 		return $this;
 	}
 	
-	public function setPassword($password) {
+	protected function setPassword($password) {
 		$this->password = $password;
 		
 		return $this;
@@ -115,7 +138,7 @@ abstract class DBD {
 	 * @param $dsn
 	 * @return $this
 	 */
-	public function setDsn($dsn) {
+	protected function setDsn($dsn) {
 		$this->dsn = $dsn;
 		
 		return $this;
