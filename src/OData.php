@@ -46,6 +46,9 @@ class OData extends DBD implements DBI {
 		}
 		curl_setopt($ch, CURLOPT_POST, false);
 		
+		$this->dbh = $ch;
+		return $this;
+		
 		$response  = curl_exec($ch);
 		$header_size = curl_getinfo($ch, CURLINFO_HEADER_SIZE);
 		$header = substr($response, 0, $header_size);
