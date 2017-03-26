@@ -29,6 +29,7 @@ interface CacheInterface
 {
 	public function set($key, $var, $expire = null );
 	public function get($key);
+	public function exist($key);
 	public function replace($key, $var, $expire = null );
 	public function delete($key);
 }

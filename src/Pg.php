@@ -167,6 +167,8 @@ final class PgExtend extends Pg implements DBI {
 		return $sth->rows;
 	}
 	
+	// As all other driver we have to return resource
+	//
 	public function execute()
 	{
 		// Set result to false
@@ -214,7 +216,7 @@ final class PgExtend extends Pg implements DBI {
 				trigger_error (
 					"Execute failed: called with 
 					$numargs bind variables when $binds are needed at 
-					{$caller['file']} line {$caller['line']}",
+					{$caller[0]['file']} line {$caller[0]['line']}",
 					E_USER_ERROR
 				);
 			}
@@ -254,7 +256,7 @@ final class PgExtend extends Pg implements DBI {
 			if ($this->cache['key'] !== null)
 			{
 				//  As we already queried database we have to set key to NULL
-				//  because during internal method invoke this Driver
+				//  because during internal method invoke (fetchrowset below) this Driver
 				//  will think we have data from cache
 				
 				$storedKey = $this->cache['key'];

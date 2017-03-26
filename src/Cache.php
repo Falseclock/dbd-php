@@ -32,7 +32,7 @@ abstract class Cache extends Singleton implements Instantiatable {
 	/** @var Cache $link */
 	public $link             = null;
 	public $COMPRESS         = [];
-	public $EXPIRE           = null;
+	public $EXPIRE           = 1;
 	protected $SERVERS       = null;
 	
 	abstract public function open();
@@ -57,55 +57,61 @@ abstract class Cache extends Singleton implements Instantiatable {
 	}
 	
 	public static function secCalc($matches) {
-		$val = $matches[1];
-		$mult = 1;
 		
-		switch(strtolower($matches[2]))
-		{
-			case 'm':
-			case 'min':
-			case 'mins':
-			case 'minutes':
-				$mult = $val * 60;
-			break;
-			
-			case 'h':
-			case 'hr':
-			case 'hour':
-			case 'hours':
-				$mult = $val * 60 * 60;
-			break;
-			
-			case 'd':
-			case 'day':
-			case 'days':
-				$mult = $val * 60 * 60 * 24;
-			break;
-			
-			case 'w':
-			case 'week':
-			case 'weeks':
-				$mult = $val * 60 * 60 * 24 * 7;
-			break;
-			
-			case 'month':
-			case 'monthes':
-				$mult = $val * 60 * 60  * 24 * 30;
-			break;
-			
-			case 'y':
-			case 'year':
-			case 'years':
-				$mult = $val * 60 * 60 * 24 * 365;
-			break;
-			
-			default:
-			case 's':
-			case 'sec':
-			case 'second':
-			case 'seconds':
+		if (!$matches || !$matches[1]) {
+			return $this->EXPIRE; 
 		}
 		
-		return $mult;
+		$val = $matches[1];
+		$mult = $matches[2];
+		
+		if ($mult) {
+			switch(strtolower($mult))
+			{
+				case 'm':
+				case 'min':
+				case 'mins':
+				case 'minutes':
+					$val = $val * 60;
+				break;
+				
+				case 'h':
+				case 'hr':
+				case 'hour':
+				case 'hours':
+					$val = $val * 60 * 60;
+				break;
+				
+				case 'd':
+				case 'day':
+				case 'days':
+					$val = $val * 60 * 60 * 24;
+				break;
+				
+				case 'w':
+				case 'week':
+				case 'weeks':
+					$val = $val * 60 * 60 * 24 * 7;
+				break;
+				
+				case 'month':
+				case 'monthes':
+					$val = $val * 60 * 60  * 24 * 30;
+				break;
+				
+				case 'y':
+				case 'year':
+				case 'years':
+					$val = $val * 60 * 60 * 24 * 365;
+				break;
+				
+				default:
+				case 's':
+				case 'sec':
+				case 'second':
+				case 'seconds':
+			}
+		}
+		return $val;
 	}
 }

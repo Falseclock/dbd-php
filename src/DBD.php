@@ -242,6 +242,15 @@ abstract class DBD {
 		return;
 	}
 	
+	public function replace($key) {
+		if ($this->options['CacheDriver'] != null) {
+			$this->options['CacheDriver']->replace($key);
+		} else {
+			trigger_error("CacheDriver not initialized", E_USER_ERROR);
+		}
+		return;
+	}
+	
 	protected function caller() {
 		$return = array();
 		$debug = debug_backtrace();
