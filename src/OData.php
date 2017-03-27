@@ -92,7 +92,7 @@ class OData extends DBD implements DBI {
 		// This is not SQL driver, so we can't make several instances with prepare
 		// and let's allow only one by one requests per driver
 		if ($this->query) {
-			trigger_error("You have an unexecuted query", E_USER_ERROR);
+//			trigger_error("You have an unexecuted query: ".$this->query, E_USER_ERROR);
 		}
 		// Drop current proteced vars to do not mix up
 		$this->dropVars();
@@ -114,7 +114,7 @@ class OData extends DBD implements DBI {
 				
 				// Cache not empty?
 				if ($this->cache['result'] && $this->cache['result'] !== false) {
-//					echo("Cache data\n");
+					if ($this->myDebug) {echo("Cache data\n");}
 					// set to our class var and count rows
 					$this->result = $this->cache['result'];
 					$this->rows = count($this->cache['result']);
@@ -176,7 +176,7 @@ class OData extends DBD implements DBI {
 			$url = $this->prepareUrl(func_get_args());
 			
 			// Query and store to result
-			echo("HTTP request\n");
+			if ($this->myDebug) {echo("HTTP request\n");}
 			$this->result = $this->queryOData($url, $this->dsn, $this->dataKey);
 			
 			$this->storeResultToache();
@@ -293,13 +293,27 @@ class OData extends DBD implements DBI {
 		if ($httpcode>=200 && $httpcode<300) {
 			$json = json_decode($body,true);
 			if ($key) {
-				return $json[$key];
+				return $this->doReplacements($json[$key]);
 			} else {
-				return $json;
+				return $this->doReplacements($json);
 			}
 		} else {
 			throw new Exception("Error code: {$httpcode}<br>\n$url".self::prettyPrint($body));
 		}
+	}
+
+	private function doReplacements($data) {
+		if (count($this->replacements)) {
+			foreach ($data as &$value) {
+				foreach ($value as $key => $val) {
+					if (array_key_exists($key,$this->replacements)) {
+						$value[$this->replacements[$key]] = $val;
+						unset($value[$key]);
+					}
+				}
+			}
+		}
+		return $data;
 	}
 	
 	private function myUrlEncode($string) {

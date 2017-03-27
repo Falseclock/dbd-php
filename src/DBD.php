@@ -28,6 +28,7 @@ namespace DBD;
 use Exception;
 
 abstract class DBD {
+	protected $myDebug = false;
 	
 	protected $dsn			= null;
 	protected $username		= null;

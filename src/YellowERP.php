@@ -27,6 +27,7 @@
  use Exception;
  
  final class YellowERP extends OData {
+
 	private static $retry = 0;
 	private static $ibsession = null;
 	
@@ -38,7 +39,7 @@
 	//FIXME: initiate session establishment with execute
 	// to avoid unnecessary url request
 	public function connect() {
-//		echo("YellowERP connector\n");
+		if ($this->myDebug) {echo("YellowERP connector\n");}
 		$ch = curl_init();
 		curl_setopt($ch, CURLOPT_URL, $this->dsn);
 		curl_setopt($ch, CURLOPT_USERAGENT, 'DBD\YellowERP driver');
@@ -53,9 +54,13 @@
 		
 		if ($this->reuseSessions) {
 			self::$retry++;
+			if (!file_exists('YellowERP.ses') ) {
+				touch('YellowERP.ses');
+			}
+			$IBSession = file_get_contents('YellowERP.ses');
 			
-			if (isset($_COOKIE['IBSession']) && trim($_COOKIE['IBSession']) && self::$retry == 1) {
-				self::$ibsession = urldecode($_COOKIE['IBSession']);
+			if ($IBSession && self::$retry == 1) {
+				self::$ibsession = $IBSession;
 			}
 			
 			if (self::$retry > $this->maxRetries) {
@@ -64,10 +69,10 @@
 			
 			if (self::$ibsession) {
 				curl_setopt($ch, CURLOPT_COOKIE, "ibsession=".self::$ibsession);
-//				echo("Reusing session: ".self::$ibsession."\n");
+				if ($this->myDebug) {echo("Reusing session: ".self::$ibsession."\n");}
 			} else {
 				curl_setopt($ch, CURLOPT_HTTPHEADER, array('IBSession: start'));
-//				echo("Starting session\n");
+				if ($this->myDebug) {echo("Starting session\n");}
 			}
 		}
 		
@@ -90,14 +95,15 @@
 				$cookies = array_merge($cookies, $cookie);
 			}
 			if ($cookies['ibsession']) {
-//				echo("Cookie: ".$cookies['ibsession']."\n");
 				self::$ibsession = $cookies['ibsession'];
-				@setcookie('IBSession', $cookies['ibsession'], time() + 60*60*24, '/');
+				if ($this->myDebug) {echo("Writing to YellowERP.ses: ".$cookies['ibsession']."\n");}
+				file_put_contents('YellowERP.ses',$cookies['ibsession']);
 			}
 			self::$retry = 0;
 		}
 		
 		if ($httpcode>=200 && $httpcode<300) {
+			@setcookie('IBSession', self::$ibsession, time() + 60*60*24, '/');
 			$this->dbh = $ch;
 			return $this;
 		} else {
@@ -114,7 +120,7 @@
 			// If not found in cache, then let's get via HTTP request
 			if ($this->result === null) {
 
-//				echo("HTTP request\n");
+				if ($this->myDebug) {echo("HTTP request\n");}
 				$this->result = $this->queryOData($this->servicesURL, $this->httpServices, null);
 				
 				$this->storeResultToache();
@@ -127,7 +133,7 @@
 			
 			return $this->result;
 		} else {
-			return parent::execute();
+			return parent::execute(func_get_args());
 		}
 	}
 	
@@ -139,6 +145,7 @@
 			curl_setopt($this->dbh, CURLOPT_HTTPHEADER, array('IBSession: finish'));
 			curl_exec($this->dbh);
 		}
+		file_put_contents('YellowERP.ses',null);
 		self::$ibsession = null;
 		return $this;
 	}
