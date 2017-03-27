@@ -85,6 +85,10 @@ class OData extends DBD implements DBI {
 	
 	public function prepare($statement) {
 		
+		if (!$this->isConnected()) {
+			$this->connect();
+		}
+		
 		// This is not SQL driver, so we can't make several instances with prepare
 		// and let's allow only one by one requests per driver
 		if ($this->query) {
@@ -99,10 +103,8 @@ class OData extends DBD implements DBI {
 		return $this;
 	}
 	
-	public function execute() {
-
-		$this->result = null;
-		
+	protected function tryGetFromCache()
+	{
 		// If we have cache driver
 		if ($this->options['CacheDriver']) {
 			// we set cache via $sth->cache('blabla');
@@ -112,7 +114,7 @@ class OData extends DBD implements DBI {
 				
 				// Cache not empty?
 				if ($this->cache['result'] && $this->cache['result'] !== false) {
-					echo("Cache data\n");
+//					echo("Cache data\n");
 					// set to our class var and count rows
 					$this->result = $this->cache['result'];
 					$this->rows = count($this->cache['result']);
@@ -120,45 +122,64 @@ class OData extends DBD implements DBI {
 			}
 		}
 		
-		// If not found in cache, then let's get via HTTP request
-		if ($this->result === null) {
-			// Check and prepare args
-			$binds	= substr_count($this->query,"?");
-			$args	= $this->parse_args(func_get_args());
-			$numargs = count($args);
-			$query	= $this->query;
-			
-			if ($binds != $numargs) {
-				$caller = $this->caller();
-				trigger_error (
-					"Query failed: called with 
-					$numargs bind variables when $binds are needed at 
-					{$caller[0]['file']} line {$caller[0]['line']}",
-					E_USER_ERROR
+		return $this;
+	}
+	
+	protected function storeResultToache()
+	{
+		if ( $this->result )  {
+			$this->rows = count($this->result);
+			// If we want to store to the cache
+			if ($this->cache['key'] !== null) {
+				// Setting up our cache
+				$this->options['CacheDriver']->set
+				(
+					$this->cache['key'],
+					$this->result,
+					$this->cache['expire']
 				);
 			}
-			// Make url and put arguments
-			$url = $this->buildUrlFromQuery($this->query,$args);
+		}
+		return $this;
+	}
+	
+	private function prepareUrl($ARGS) {
+		// Check and prepare args
+		$binds	= substr_count($this->query,"?");
+		$args	= $this->parse_args($ARGS);
+		$numargs = count($args);
+		$query	= $this->query;
+		
+		if ($binds != $numargs) {
+			$caller = $this->caller();
+			trigger_error (
+				"Query failed: called with 
+				$numargs bind variables when $binds are needed at 
+				{$caller[0]['file']} line {$caller[0]['line']}",
+				E_USER_ERROR
+			);
+		}
+		// Make url and put arguments
+		return $this->buildUrlFromQuery($this->query,$args);
+	}
+	
+	// TODO: если у нас ошибка 500 или еще какая, то ошибки не выводить там
+	// а выводить через хендлер и возвращать null
+	public function execute(){
+		$this->result = null;
+		
+		$this->tryGetFromCache();
+		
+		// If not found in cache, then let's get via HTTP request
+		if ($this->result === null) {
+
+			$url = $this->prepareUrl(func_get_args());
 			
 			// Query and store to result
-			// TODO: если у нас ошибка 500 или еще какая, то ошибки не выводить там
-			// а выводить через хендлер и возвращать null
 			echo("HTTP request\n");
-			$this->result = $this->queryOData($url);
+			$this->result = $this->queryOData($url, $this->dsn, $this->dataKey);
 			
-			if ( $this->result )  {
-				$this->rows = count($this->result);
-				// If we want to store to the cache
-				if ($this->cache['key'] !== null) {
-					// Setting up our cache
-					$this->options['CacheDriver']->set
-					(
-						$this->cache['key'],
-						$this->result,
-						$this->cache['expire']
-					);
-				}
-			}
+			$this->storeResultToache();
 		}
 		
 		if ( $this->result === null)  {
@@ -257,8 +278,8 @@ class OData extends DBD implements DBI {
 		return $url;
 	}
 	
-	private function queryOData($query) {
-		$url = $this->myUrlEncode($this->dsn.$query);
+	protected function queryOData($query, $dsn, $key) {
+		$url = $this->myUrlEncode($dsn.$query);
 		
 		curl_setopt($this->dbh, CURLOPT_URL, $url);
 		
@@ -271,8 +292,11 @@ class OData extends DBD implements DBI {
 		
 		if ($httpcode>=200 && $httpcode<300) {
 			$json = json_decode($body,true);
-			return $json[$this->dataKey];
-			
+			if ($key) {
+				return $json[$key];
+			} else {
+				return $json;
+			}
 		} else {
 			throw new Exception("Error code: {$httpcode}<br>\n$url".self::prettyPrint($body));
 		}
@@ -286,7 +310,7 @@ class OData extends DBD implements DBI {
 		return $string;
 	}
 	
-	private function dropVars()
+	protected function dropVars()
 	{
 		$this->cache =
 			[

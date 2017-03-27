@@ -32,7 +32,11 @@
 	
 	protected $reuseSessions = false;
 	protected $maxRetries = 3;
+	protected $httpServices = null;
+	protected $servicesURL = null;
 	
+	//FIXME: initiate session establishment with execute
+	// to avoid unnecessary url request
 	public function connect() {
 //		echo("YellowERP connector\n");
 		$ch = curl_init();
@@ -101,6 +105,32 @@
 		}
 	}
 	
+	public function execute(){
+		if ($this->servicesURL) {
+			$this->result = null;
+			
+			$this->tryGetFromCache();
+			
+			// If not found in cache, then let's get via HTTP request
+			if ($this->result === null) {
+
+//				echo("HTTP request\n");
+				$this->result = $this->queryOData($this->servicesURL, $this->httpServices, null);
+				
+				$this->storeResultToache();
+			}
+			
+			if ( $this->result === null)  {
+				new ErrorHandler ("error happen"); //FIXME:
+			}
+			$this->servicesURL = null;
+			
+			return $this->result;
+		} else {
+			return parent::execute();
+		}
+	}
+	
 	public function finish()
 	{
 		if ($this->dbh && self::$ibsession) {
@@ -113,10 +143,31 @@
 		return $this;
 	}
 	
-	public function reuseSessions($maxRetries = 3) {
+	public function reuseSessions($use = true, $maxRetries = 3) {
 		$this->reuseSessions = true;
 		$this->maxRetries = $maxRetries;
 		
+		return $this;
+	}
+	
+	public function service($url) {
+
+		if (!$this->isConnected()) {
+			$this->connect();
+		}
+		
+		$this->dropVars();
+		
+		$this->servicesURL = $url;
+
+		$this->query = "SELECT"; // We have to fake, otherwise DBD will issue exception on cache for non select query
+		
+		return $this;
+	}
+	
+	public function httpServices($httpServices)
+	{
+		$this->httpServices = $httpServices;
 		return $this;
 	}
  }
