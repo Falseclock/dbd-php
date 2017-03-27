@@ -1,7 +1,7 @@
 {
     "name": "falseclock/dbd-php",
     "type": "library",
-    "description": "Database driver for PHP",
+    "description": "Database driver for PHP (PostgreSQL, OData, YellowERP, 1С)",
     "keywords": ["dbd", "dbi", "sql", "cache", "driver", "postgres", "postgresql", "odata", "1С", "1C", "YellowERP", "Yellow ERP"],
     "license": "MIT",
     "authors": [ { "name": "Nurlan Mukhanov", "email": "nurike@gmail.com" } ],
