@@ -2,7 +2,7 @@
     "name": "falseclock/dbd-php",
     "type": "library",
     "description": "Database driver for PHP",
-    "keywords": ["dbd", "dbi", "sql", "cache", "driver", "postgres", "postgresql"],
+    "keywords": ["dbd", "dbi", "sql", "cache", "driver", "postgres", "postgresql", "odata", "1Ñ", "1C", "YellowERP", "Yellow ERP"],
     "license": "MIT",
     "authors": [ { "name": "Nurlan Mukhanov", "email": "nurike@gmail.com" } ],
     "require": {
