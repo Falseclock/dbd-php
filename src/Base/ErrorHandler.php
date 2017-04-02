@@ -72,9 +72,9 @@ class ErrorHandler extends Exception
 		$error['error_statement'] = $query;
 		$error['error_message'] = $errstr;
 		$error['error_string'] = $errstr;
-		$error['error_string'] = preg_replace("/\r/","",$error['error_string']);
-		$error['error_string'] = preg_replace("/\n/","<br/>",$error['error_string']);
-		$error['error_string'] = preg_replace("/ /","&nbsp;",$error['error_string']);
+		$error['error_string'] = preg_replace("/\r/s","",$error['error_string']);
+		$error['error_string'] = preg_replace("/\n/s",'<br/>',$error['error_string']);
+		$error['error_string'] = preg_replace("/ /s","&nbsp;",$error['error_string']);
 		
 		$lines = explode("\n", $query);
 		foreach ($lines as $buffer) {
@@ -146,7 +146,7 @@ class ErrorHandler extends Exception
 		$return .= sprintf ( "  </tr>                                                                        \n" );
 		$return .= sprintf ( "  <tr>                                                                         \n" );
 		$return .= sprintf ( "    <td><strong>error string: </strong>&nbsp;</td>                             \n" );
-		$return .= sprintf ( "    <td><span class='dberror'>{$data['error_string']}</span></td>              \n" );
+		$return .= sprintf ( "    <td><span class='dberror'>%s</span></td>                                   \n", $data['error_string'] );
 		$return .= sprintf ( "  </tr>                                                                        \n" );
 		
 		if ($options['ShowErrorStatement']) {
@@ -159,9 +159,13 @@ class ErrorHandler extends Exception
 			$return .= sprintf ( "      </tr>                                                                \n" );
 
 			foreach ($data['context'] as $context) {
-				$context = $this->SQLhighlight($context);
+				$hl = $context;
+				try{
+					$hl = $this->SQLhighlight($context);
+				} catch (Exception $e) {}
+
 				$return .= sprintf ( "      <tr>                                                             \n" );
-				$return .= sprintf ( "        <td>{$context}</td>                                            \n" );
+				$return .= sprintf ( "        <td>%s</td>                                                    \n", $hl );
 				$return .= sprintf ( "      </tr>                                                            \n" );
 			}
 			

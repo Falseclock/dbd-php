@@ -506,7 +506,7 @@ final class PgExtend extends Pg implements DBI {
 	
 	private function quote($arg)
 	{
-		if ( !isset($arg) or $arg == NULL) {
+		if ( !isset($arg) or $arg === NULL) {
 			return "NULL";
 		}
 		$str = pg_escape_string($arg);

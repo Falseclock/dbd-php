@@ -28,7 +28,7 @@ namespace DBD;
 use Exception;
 
 abstract class DBD {
-	protected $myDebug = false;
+	protected $myDebug = true;
 	
 	protected $dsn			= null;
 	protected $username		= null;
@@ -216,7 +216,8 @@ abstract class DBD {
 			trigger_error("caching failed: key is not set or empty", E_USER_ERROR);
 		}
 		if ($this->options['CacheDriver'] == null) {
-			trigger_error("CacheDriver not initialized", E_USER_ERROR);
+			return;
+			//trigger_error("CacheDriver not initialized", E_USER_ERROR);
 		}
 		if ( preg_match("/^[\s\t\r\n]*select/i", $this->query) ) {
 			// set hash key
@@ -264,12 +265,14 @@ abstract class DBD {
 		$myFilename = str_replace(DIRECTORY_SEPARATOR,"/",$myFilename);
 		$myFilename = str_replace($wd,'',$myFilename);
 		
+		$child = (new \ReflectionClass($this))->getShortName();
+
 		foreach ($debug as $ind => $call) {
 			// our filename
 			$call['file'] = str_replace(DIRECTORY_SEPARATOR,"/",$call['file']);
 			$call['file'] = str_replace($wd,'',$call['file']);
 			
-			if ( $myFilename != $call['file'] ) {
+			if ( $myFilename != $call['file'] && !preg_match('/'.$child.'\.\w+$/', $call['file'])) {
 				$return[] =  array('file' => $call['file'], 'line' => $call['line'], 'function' => $call['function']);
 			}
 		}
