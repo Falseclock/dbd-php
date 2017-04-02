@@ -1,17 +1,18 @@
 {
-    "name": "falseclock/dbd-php",
-    "type": "library",
-    "description": "Database driver for PHP (PostgreSQL, OData, YellowERP, 1С)",
-    "keywords": ["dbd", "dbi", "sql", "cache", "driver", "postgres", "postgresql", "odata", "1С", "1C", "YellowERP", "Yellow ERP"],
-    "license": "MIT",
-    "authors": [ { "name": "Nurlan Mukhanov", "email": "nurike@gmail.com" } ],
-    "require": {
-        "php": "^5.3.3 || ^7.0",
-        "ext-memcache": "*"
-    },
-    "autoload": {
-        "psr-4": {
-            "DBD\\": "src/"
-        }
-    }
+	"name": "falseclock/dbd-php",
+	"type": "library",
+	"description": "Database driver for PHP (PostgreSQL, OData, YellowERP, 1С)",
+	"keywords": ["dbd", "dbi", "sql", "cache", "driver", "postgres", "postgresql", "odata", "1С", "1C", "YellowERP", "Yellow ERP"],
+	"license": "MIT",
+	"authors": [ { "name": "Nurlan Mukhanov", "email": "nurike@gmail.com" } ],
+	"require": {
+		"php": "^5.3.3 || ^7.0",
+		"ext-memcache": "*",
+		"openlss/lib-array2xml": "0.5.*"
+	},
+	"autoload": {
+		"psr-4": {
+			"DBD\\": "src/"
+		}
+	}
 }
