@@ -11,6 +11,7 @@
 
 namespace DBD\Base;
 
-interface Instantiatable {
-	public static function me();
+interface Instantiatable
+{
+    public static function me();
 }
