@@ -29,14 +29,15 @@ use Exception;
 
 final class YellowERP extends OData
 {
-    private static $retry        = 0;
-    private static $ibsession    = null;
-    private static $sessionExist = false;
-    protected $reuseSessions = false;
-    protected $maxRetries    = 3;
-    protected $sessionFile   = null;
-    protected $httpServices = null;
-    protected $servicesURL  = null;
+    private static $retry         = 0;
+    private static $ibsession     = null;
+    private static $sessionExist  = false;
+    protected      $reuseSessions = false;
+    protected      $maxRetries    = 3;
+    protected      $sessionFile   = null;
+    protected      $httpServices  = null;
+    protected      $servicesURL   = null;
+    protected      $timeOutLimit  = 30;
 
     public function connect()
     {
@@ -76,7 +77,7 @@ final class YellowERP extends OData
             }
         }
 
-        curl_setopt($this->dbh, CURLOPT_TIMEOUT, 25);
+        curl_setopt($this->dbh, CURLOPT_TIMEOUT, $this->timeOutLimit);
 
         $response    = curl_exec($this->dbh);
         $header_size = curl_getinfo($this->dbh, CURLINFO_HEADER_SIZE);
