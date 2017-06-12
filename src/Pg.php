@@ -54,8 +54,10 @@ class Pg extends DBD
         }
 
         $this->dsn = $dsn;
-
-        $this->doConnection();
+        if($this->options['OnDemand'] == false)
+        {
+            $this->doConnection();
+        }
 
         return new PgExtend($this);
     }
@@ -67,19 +69,16 @@ class Pg extends DBD
      */
     protected function doConnection()
     {
-        if($this->options['OnDemand'] == false)
+        if($this->options['Persistent'])
         {
-            if($this->options['Persistent'])
-            {
-                $this->dbh = pg_pconnect($this->dsn);
-            }
-            else
-            {
-                $this->dbh = pg_connect($this->dsn);
-            }
-            if(!$this->dbh)
-                trigger_error("Can not connect to PostgreSQL server: " . pg_errormessage(), E_USER_ERROR);
+            $this->dbh = pg_pconnect($this->dsn);
         }
+        else
+        {
+            $this->dbh = pg_connect($this->dsn);
+        }
+        if(!$this->dbh)
+            trigger_error("Can not connect to PostgreSQL server: " . pg_errormessage(), E_USER_ERROR);
 
         return $this;
     }
