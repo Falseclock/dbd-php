@@ -134,6 +134,11 @@ class OData extends DBD implements DBI
         return $this;
     }
 
+    protected function doConnection()
+    {
+
+    }
+
     /*--------------------------------------------------------------*/
     protected function parseError()
     {

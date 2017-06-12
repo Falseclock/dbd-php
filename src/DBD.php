@@ -44,6 +44,7 @@ abstract class DBD
         'expire'   => null,
     ];
     protected $options     = [
+        'OnDemand'           => false,
         'PrintError'         => true,
         'RaiseError'         => true,
         'ShowErrorStatement' => false,
@@ -58,6 +59,8 @@ abstract class DBD
     protected $transaction = false;
 
     abstract public function connect();
+
+    abstract protected function doConnection();
 
     abstract public function disconnect();
 
@@ -281,21 +284,22 @@ abstract class DBD
 
         return;
     }
-/*
-    public function replace($key)
-    {
-        if($this->cacheDriver() != null)
-        {
-            $this->cacheDriver()->replace($key);
-        }
-        else
-        {
-            trigger_error("CacheDriver not initialized", E_USER_ERROR);
-        }
 
-        return;
-    }
-*/
+    /*
+        public function replace($key)
+        {
+            if($this->cacheDriver() != null)
+            {
+                $this->cacheDriver()->replace($key);
+            }
+            else
+            {
+                trigger_error("CacheDriver not initialized", E_USER_ERROR);
+            }
+
+            return;
+        }
+    */
     protected function caller()
     {
         $return = [];

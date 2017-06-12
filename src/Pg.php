@@ -28,6 +28,11 @@ namespace DBD;
 use DBD\Base\Debug as Debug;
 use DBD\Base\ErrorHandler as ErrorHandler;
 
+/**
+ * Class Pg
+ *
+ * @package DBD
+ */
 class Pg extends DBD
 {
     /**
@@ -47,28 +52,63 @@ class Pg extends DBD
         {
             $dsn .= "{$key}={$value} ";
         }
-        //--------------------------
-        // Connect
-        //--------------------------
-        if($this->options['Persistent'])
-            $this->dbh = pg_pconnect($dsn);
-        else
-            $this->dbh = pg_connect($dsn);
 
-        if(!$this->dbh)
-            trigger_error("Can not connect to PostgreSQL server: " . pg_errormessage(), E_USER_ERROR);
+        $this->dsn = $dsn;
+
+        $this->doConnection();
 
         return new PgExtend($this);
     }
 
+    /**
+     * Do real connection. Can be invoked if OnDemand is set to TRUE
+     *
+     * @return $this
+     */
+    protected function doConnection()
+    {
+        if($this->options['OnDemand'] == false)
+        {
+            if($this->options['Persistent'])
+            {
+                $this->dbh = pg_pconnect($this->dsn);
+            }
+            else
+            {
+                $this->dbh = pg_connect($this->dsn);
+            }
+            if(!$this->dbh)
+                trigger_error("Can not connect to PostgreSQL server: " . pg_errormessage(), E_USER_ERROR);
+        }
+
+        return $this;
+    }
+
+    protected function connectionPreCheck()
+    {
+        if(!$this->isConnected())
+        {
+            $this->doConnection();
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return $this
+     */
     public function disconnect()
     {
         if($this->isConnected())
         {
             if($this->transaction)
+            {
                 $this->rollback();
+            }
             if(!$this->options['Persistent'])
+            {
                 pg_close($this->dbh);
+            }
         }
         if(is_resource($this->cacheDriver()))
         {
@@ -80,6 +120,7 @@ class Pg extends DBD
 
     public function begin()
     {
+        $this->connectionPreCheck();
         $this->result = @pg_query($this->dbh, "BEGIN;");
         if($this->result === false)
             trigger_error("Can not start transaction " . pg_errormessage(), E_USER_ERROR);
@@ -93,6 +134,7 @@ class Pg extends DBD
     {
         if($this->transaction)
         {
+            $this->connectionPreCheck();
             $this->result = @pg_query($this->dbh, "COMMIT;");
             if($this->result === false)
                 trigger_error("Can not end transaction " . pg_errormessage(), E_USER_ERROR);
@@ -110,6 +152,7 @@ class Pg extends DBD
     {
         if($this->transaction)
         {
+            $this->connectionPreCheck();
             $this->result = @pg_query($this->dbh, "ROLLBACK;");
             if($this->result === false)
                 trigger_error("Can not end transaction " . pg_errormessage(), E_USER_ERROR);
@@ -276,6 +319,7 @@ final class PgExtend extends Pg implements DBI
                 $Debug = new Debug;
                 $Debug->startTimer();
             }
+            $this->connectionPreCheck();
             // Execute query to the database
             $this->result = pg_query($this->dbh, $exec);
 
@@ -341,6 +385,7 @@ final class PgExtend extends Pg implements DBI
 
                             if ( preg_match( "/^[\s\t\r\n]*select/i", $exec ) )
                             {
+                                $this->connectionPreCheck();
                                 $explain = pg_query($this->dbh,"EXPLAIN $exec");
 
                                 while ($row = pg_fetch_row($explain))
@@ -534,6 +579,9 @@ final class PgExtend extends Pg implements DBI
         return $data;
     }
 
+    /**
+     * @return \DBD\PgExtend
+     */
     public function update()
     {
         $binds  = 0;
