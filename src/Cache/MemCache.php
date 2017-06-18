@@ -34,7 +34,7 @@ class MemCache extends Cache implements CacheInterface
     public $link = null;
 
     /**
-     * @return Cache
+     * @return $this
      */
     public function open()
     {
@@ -59,14 +59,21 @@ class MemCache extends Cache implements CacheInterface
         return $this->close();
     }
 
-    public function set($key, $var, $expire = null)
+    /**
+     * @param string $key
+     * @param mixed  $variable
+     * @param null   $expire
+     *
+     * @return mixed
+     */
+    public function set($key, $variable, $expire = null)
     {
         $expire = preg_replace_callback("/(\d+)\s*(.*)?/", function($matches) { return Cache::secCalc($matches); }, $expire);
 
         if(!$expire)
             $expire = $this->EXPIRE;
 
-        return $this->link->set($key, $var, $this->COMPRESS, $expire);
+        return $this->link->set($key, $variable, $this->COMPRESS, $expire);
     }
 
     public function get($key)

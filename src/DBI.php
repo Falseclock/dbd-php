@@ -27,23 +27,5 @@ namespace DBD;
 
 interface DBI
 {
-    public function prepare($statement);
-
-    public function du();
-
-    public function query();
-
-    public function execute();
-
-    public function fetchrow();
-
-    public function fetch();
-
-    public function fetchrowset($key = null);
-
-    public function rows();
-
-    public function update();
-
-    public function insert($table, $values, $return = null);
+    public function __construct($object, $statement="");
 }

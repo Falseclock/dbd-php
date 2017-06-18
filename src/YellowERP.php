@@ -39,39 +39,31 @@ final class YellowERP extends OData
     protected      $servicesURL   = null;
     protected      $timeOutLimit  = 30;
 
-    public function connect()
-    {
-        if(!is_resource($this->dbh))
-        {
+    public function connect() {
+        if(!is_resource($this->dbh)) {
             $this->setupCurl($this->dsn);
         }
 
-        if($this->reuseSessions && !self::$sessionExist)
-        {
+        if($this->reuseSessions && !self::$sessionExist) {
             self::$retry++;
-            if(!file_exists($this->sessionFile))
-            {
+            if(!file_exists($this->sessionFile)) {
                 touch($this->sessionFile);
             }
             $IBSession = file_get_contents($this->sessionFile);
 
-            if($IBSession)
-            {
+            if($IBSession) {
                 self::$ibsession = $IBSession;
             }
 
-            if(self::$retry > $this->maxRetries)
-            {
+            if(self::$retry > $this->maxRetries) {
                 $url = curl_getinfo($this->dbh, CURLINFO_EFFECTIVE_URL);
                 throw new Exception("Too many connection retiries. Can't initiate session. URL: '{$url}'");
             }
 
-            if(self::$ibsession)
-            {
+            if(self::$ibsession) {
                 curl_setopt($this->dbh, CURLOPT_COOKIE, "ibsession=" . self::$ibsession);
             }
-            else
-            {
+            else {
                 curl_setopt($this->dbh, CURLOPT_COOKIE, null);
                 curl_setopt($this->dbh, CURLOPT_HTTPHEADER, [ 'IBSession: start' ]);
             }
@@ -79,24 +71,21 @@ final class YellowERP extends OData
 
         curl_setopt($this->dbh, CURLOPT_TIMEOUT, $this->timeOutLimit);
 
-        $response    = curl_exec($this->dbh);
+        $response = curl_exec($this->dbh);
         $header_size = curl_getinfo($this->dbh, CURLINFO_HEADER_SIZE);
 
-        $this->header   = substr($response, 0, $header_size);
-        $this->body     = substr($response, $header_size);
+        $this->header = substr($response, 0, $header_size);
+        $this->body = substr($response, $header_size);
         $this->httpcode = curl_getinfo($this->dbh, CURLINFO_HTTP_CODE);
         //$url            = curl_getinfo($this->dbh, CURLINFO_EFFECTIVE_URL);
 
-        if($this->reuseSessions && !self::$sessionExist)
-        {
+        if($this->reuseSessions && !self::$sessionExist) {
 
             //if ($this->httpcode  == 0) { throw new Exception("No connection to: '$url', {$this->body}"); }
-            if($this->httpcode == 406)
-            {
+            if($this->httpcode == 406) {
                 throw new Exception("406 Not Acceptable. YellowERP can't initiate new session");
             }
-            if($this->httpcode == 400 || $this->httpcode == 404 || $this->httpcode == 0)
-            {
+            if($this->httpcode == 400 || $this->httpcode == 404 || $this->httpcode == 0) {
                 file_put_contents($this->sessionFile, null);
                 self::$ibsession = null;
 
@@ -106,38 +95,31 @@ final class YellowERP extends OData
             preg_match_all('/^Set-Cookie:\s*([^;]*)/mi', $this->header, $matches);
 
             $cookies = [];
-            foreach($matches[1] as $item)
-            {
+            foreach($matches[1] as $item) {
                 parse_str($item, $cookie);
                 $cookies = array_merge($cookies, $cookie);
             }
-            if($cookies['ibsession'])
-            {
+            if($cookies['ibsession']) {
                 self::$ibsession = $cookies['ibsession'];
                 file_put_contents($this->sessionFile, $cookies['ibsession']);
             }
             self::$retry = 0;
         }
 
-        if($this->httpcode >= 200 && $this->httpcode < 300)
-        {
-            if($this->reuseSessions && !self::$sessionExist)
-            {
+        if($this->httpcode >= 200 && $this->httpcode < 300) {
+            if($this->reuseSessions && !self::$sessionExist) {
                 curl_setopt($this->dbh, CURLOPT_COOKIE, "ibsession=" . self::$ibsession);
                 @setcookie('IBSession', self::$ibsession, time() + 60 * 60 * 24, '/');
                 self::$sessionExist = true;
             }
         }
-        else
-        {
-            if(!$this->reuseSessions && $this->httpcode == 0 && self::$retry < $this->maxRetries)
-            {
+        else {
+            if(!$this->reuseSessions && $this->httpcode == 0 && self::$retry < $this->maxRetries) {
                 self::$retry++;
 
                 return $this->connect();
             }
-            else
-            {
+            else {
                 $this->parseError();
             }
         }
@@ -146,17 +128,14 @@ final class YellowERP extends OData
         return $this;
     }
 
-    public function execute()
-    {
-        if($this->servicesURL)
-        {
+    public function execute() {
+        if($this->servicesURL) {
             $this->result = null;
 
             $this->tryGetFromCache();
 
             // If not found in cache, then let's get via HTTP request
-            if($this->result === null)
-            {
+            if($this->result === null) {
 
                 $this->setupCurl($this->httpServices . $this->servicesURL);
                 $this->connect();
@@ -171,14 +150,12 @@ final class YellowERP extends OData
 
             return $this->result;
         }
-        else
-        {
+        else {
             return parent::execute(func_get_args());
         }
     }
 
-    public function service($url)
-    {
+    public function service($url) {
         $this->dropVars();
 
         $this->servicesURL = $url;
@@ -190,10 +167,8 @@ final class YellowERP extends OData
     }
 
     /*--------------------- reuseSessions="use" --------------------*/
-    public function finish()
-    {
-        if($this->dbh && self::$ibsession)
-        {
+    public function finish() {
+        if($this->dbh && self::$ibsession) {
             curl_setopt($this->dbh, CURLOPT_URL, $this->dsn);
             curl_setopt($this->dbh, CURLOPT_COOKIE, "ibsession=" . self::$ibsession);
             curl_setopt($this->dbh, CURLOPT_HTTPHEADER, [ 'IBSession: finish' ]);
@@ -206,18 +181,16 @@ final class YellowERP extends OData
     }
 
     /*--------------------- reuseSessions="use" --------------------*/
-    public function reuseSessions($use = false, $maxRetries = 3, $file = 'YellowERP.ses')
-    {
+    public function reuseSessions($use = false, $maxRetries = 3, $file = 'YellowERP.ses') {
         $this->reuseSessions = $use;
-        $this->maxRetries    = $maxRetries;
-        $this->sessionFile   = $file;
+        $this->maxRetries = $maxRetries;
+        $this->sessionFile = $file;
 
         return $this;
     }
 
     /*------------------- Set's HTTP service URL -------------------*/
-    public function httpServices($httpServices)
-    {
+    public function httpServices($httpServices) {
         $this->httpServices = $httpServices;
 
         return $this;

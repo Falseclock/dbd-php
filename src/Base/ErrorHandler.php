@@ -37,9 +37,9 @@ class ErrorHandler extends Exception
      * ErrorHandler constructor.
      *
      * @param string $query
-     * @param int $error
-     * @param array $caller
-     * @param array $options
+     * @param int    $error
+     * @param array  $caller
+     * @param array  $options
      *
      * @throws \Exception
      */
@@ -58,9 +58,11 @@ class ErrorHandler extends Exception
 
             if($options['RaiseError'])
             {
-
                 $header = (php_sapi_name() != 'cgi') ? 'HTTP/1.1 ' : 'HTTP/1.1: ';
-                header($header . "500 Internal Server Error", true, 500);
+                if(php_sapi_name() != 'cli')
+                {
+                    header($header . "500 Internal Server Error", true, 500);
+                }
                 if($options['PrintError'])
                 {
                     echo($print);
@@ -104,11 +106,14 @@ class ErrorHandler extends Exception
                 'function' => $debug['function']
             ];
         }
-        $error['useragent'] = $_SERVER['HTTP_USER_AGENT'];
-        $error['error_url'] = $_SERVER["REQUEST_SCHEME"] . "://" . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'];
-        $error['referer']   = $_SERVER['HTTP_REFERER'];
-        $error['post_vars'] = serialize($_POST);
-        $error['get_vars']  = serialize($_GET);
+        if(php_sapi_name() != 'cli')
+        {
+            $error['useragent'] = $_SERVER['HTTP_USER_AGENT'];
+            $error['error_url'] = $_SERVER["REQUEST_SCHEME"] . "://" . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'];
+            $error['referer']   = $_SERVER['HTTP_REFERER'];
+            $error['post_vars'] = serialize($_POST);
+            $error['get_vars']  = serialize($_GET);
+        }
 
         return $error;
     }
@@ -120,7 +125,7 @@ class ErrorHandler extends Exception
         $return = "";
         $return .= sprintf("%s\n", $data['error_message']);
         $return .= sprintf("File: %s, line: %d, method: %s\n", $data['error_file'], $data['error_line'], $data['error_method']);
-        $return .= sprintf("Date: %s\n", $data['error_date']);
+        //$return .= sprintf("Date: %s\n", $data['error_date']);
         if($options['ShowErrorStatement'])
         {
             $return .= sprintf("Statement: %s\n", $data['error_statement']);

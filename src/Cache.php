@@ -37,88 +37,89 @@ abstract class Cache extends Singleton implements Instantiatable
     protected $SERVERS  = null;
 
     abstract public function open();
+
     abstract public function get($key);
+
     abstract public function delete($key);
+
     abstract public function replace($key, $var, $expire);
-    abstract public function set($key,$var,$expire);
+
+    abstract public function set($key, $var, $expire);
+
     abstract public function close();
 
-    public static function me()
-    {
+    /**
+     * @return $this
+     */
+    public static function me() {
         return Singleton::getInstance(get_called_class());
     }
 
     /**
      * @param array $servers
-     * @param bool $compress
-     * @param int $expire
+     * @param bool  $compress
+     * @param int   $expire
      *
-     * @return Cache
+     * @return $this
      */
-    public function create($servers = [], $compress = false, $expire = 300)
-    {
+    public function create($servers = [], $compress = false, $expire = 300) {
         $this->SERVERS  = $servers;
         $this->COMPRESS = $compress;
-        $this->EXPIRE  = $expire;
+        $this->EXPIRE   = $expire;
 
         return $this;
     }
 
-    public function getExpire()
-    {
+    public function getExpire() {
         return $this->EXPIRE;
     }
 
-    public static function secCalc($matches)
-    {
-        if(!$matches || !$matches[1])
-        {
+    public static function secCalc($matches) {
+        if(!$matches || !$matches[1]) {
             return Cache::getExpire();
         }
 
         $val  = $matches[1];
         $mult = $matches[2];
 
-        if($mult)
-        {
-            switch(strtolower($mult))
-            {
+        if($mult) {
+            switch(strtolower($mult)) {
                 case 'm':
                 case 'min':
                 case 'mins':
                 case 'minutes':
                     $val = $val * 60;
-                break;
+                    break;
 
                 case 'h':
                 case 'hr':
                 case 'hour':
                 case 'hours':
                     $val = $val * 60 * 60;
-                break;
+                    break;
 
                 case 'd':
                 case 'day':
                 case 'days':
                     $val = $val * 60 * 60 * 24;
-                break;
+                    break;
 
                 case 'w':
                 case 'week':
                 case 'weeks':
                     $val = $val * 60 * 60 * 24 * 7;
-                break;
+                    break;
 
                 case 'month':
                 case 'monthes':
                     $val = $val * 60 * 60 * 24 * 30;
-                break;
+                    break;
 
                 case 'y':
                 case 'year':
                 case 'years':
                     $val = $val * 60 * 60 * 24 * 365;
-                break;
+                    break;
 
                 default:
                 case 's':

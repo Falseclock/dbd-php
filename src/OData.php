@@ -28,7 +28,7 @@ namespace DBD;
 use DBD\Base\ErrorHandler as ErrorHandler;
 use LSS\XML2Array;
 
-class OData extends DBD implements DBI
+class OData extends DBD
 {
     protected $replacements = null;
     protected $dataKey      = null;
@@ -37,25 +37,34 @@ class OData extends DBD implements DBI
     protected $httpcode     = null;
     protected $header       = null;
     protected $body         = null;
-    private   $rows;
 
-    public function begin() { trigger_error("BEGIN not supported by OData", E_USER_ERROR); }
+    public function begin() {
+        trigger_error("BEGIN not supported by OData", E_USER_ERROR);
+    }
 
-    public function commit() { trigger_error("COMMIT not supported by OData", E_USER_ERROR); }
+    public function commit() {
+        trigger_error("COMMIT not supported by OData", E_USER_ERROR);
+    }
 
-    public function rollback() { trigger_error("ROLLBACK not supported by OData", E_USER_ERROR); }
+    public function rollback() {
+        trigger_error("ROLLBACK not supported by OData", E_USER_ERROR);
+    }
 
-    public function du() { return $this; } // TODO:
+    public function du() {
+        return $this;
+    } // TODO:
 
-    public function query() { return $this; } // TODO:
+    public function query() {
+        return $this;
+    } // TODO:
 
-    public function fetch() { return $this; } // TODO:
+    public function fetch() {
+        return $this;
+    } // TODO:
 
     /*--------------------------------------------------------------*/
-    protected function setupCurl($url, $method = "GET", $content = null)
-    {
-        if(!is_resource($this->dbh))
-        {
+    protected function setupCurl($url, $method = "GET", $content = null) {
+        if(!is_resource($this->dbh)) {
             $this->dbh = curl_init();
         }
         curl_setopt($this->dbh, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_V4);
@@ -64,42 +73,39 @@ class OData extends DBD implements DBI
         curl_setopt($this->dbh, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($this->dbh, CURLOPT_HEADER, 1);
 
-        if($this->username && $this->password)
-        {
+        if($this->username && $this->password) {
             curl_setopt($this->dbh, CURLOPT_HTTPAUTH, CURLAUTH_BASIC);
             curl_setopt($this->dbh, CURLOPT_USERPWD, $this->username . ":" . $this->password);
         }
-        switch($method)
-        {
+        switch($method) {
             case "POST":
                 curl_setopt($this->dbh, CURLOPT_POST, true);
                 curl_setopt($this->dbh, CURLOPT_HTTPGET, false);
                 curl_setopt($this->dbh, CURLOPT_CUSTOMREQUEST, null);
-            break;
+                break;
             case "PATCH":
                 curl_setopt($this->dbh, CURLOPT_POST, false);
                 curl_setopt($this->dbh, CURLOPT_HTTPGET, false);
                 curl_setopt($this->dbh, CURLOPT_CUSTOMREQUEST, 'PATCH');
-            break;
+                break;
             case "PUT":
                 curl_setopt($this->dbh, CURLOPT_POST, false);
                 curl_setopt($this->dbh, CURLOPT_HTTPGET, false);
                 curl_setopt($this->dbh, CURLOPT_CUSTOMREQUEST, 'PUT');
-            break;
+                break;
             case "DELETE":
                 curl_setopt($this->dbh, CURLOPT_POST, false);
                 curl_setopt($this->dbh, CURLOPT_HTTPGET, false);
                 curl_setopt($this->dbh, CURLOPT_CUSTOMREQUEST, 'DELETE');
-            break;
+                break;
             case "GET":
             default:
                 curl_setopt($this->dbh, CURLOPT_POST, false);
                 curl_setopt($this->dbh, CURLOPT_HTTPGET, true);
                 curl_setopt($this->dbh, CURLOPT_CUSTOMREQUEST, null);
-            break;
+                break;
         }
-        if($content)
-        {
+        if($content) {
             curl_setopt($this->dbh, CURLOPT_POSTFIELDS, $content);
         }
 
@@ -107,57 +113,49 @@ class OData extends DBD implements DBI
     }
 
     /*--------------------------------------------------------------*/
-    public function connect()
-    {
-
+    public function connect() {
         // if we never invoke connect and did not setup it, just call setup with DSN url
-        if(!is_resource($this->dbh))
-        {
+        if(!is_resource($this->dbh)) {
             $this->setupCurl($this->dsn);
         }
         // TODO: read keep-alive header and reset handler if not exist
-        $response       = curl_exec($this->dbh);
-        $header_size    = curl_getinfo($this->dbh, CURLINFO_HEADER_SIZE);
-        $this->header   = trim(substr($response, 0, $header_size));
-        $this->body     = preg_replace("/\xEF\xBB\xBF/", "", substr($response, $header_size));
+        $response = curl_exec($this->dbh);
+        $header_size = curl_getinfo($this->dbh, CURLINFO_HEADER_SIZE);
+        $this->header = trim(substr($response, 0, $header_size));
+        $this->body = preg_replace("/\xEF\xBB\xBF/", "", substr($response, $header_size));
         $this->httpcode = curl_getinfo($this->dbh, CURLINFO_HTTP_CODE);
 
-        if($this->httpcode >= 200 && $this->httpcode < 300)
-        {
+        if($this->httpcode >= 200 && $this->httpcode < 300) {
             // do nothing
         }
-        else
-        {
+        else {
             $this->parseError();
         }
 
-        return $this;
+        return new OdataExtend($this);
     }
 
-    protected function doConnection()
-    {
-
+    protected function doConnection() {
     }
 
     /*--------------------------------------------------------------*/
-    protected function parseError()
-    {
+    protected function parseError() {
         $fail = $this->urlDecode(curl_getinfo($this->dbh, CURLINFO_EFFECTIVE_URL));
-        if($this->body)
-        {
+        if($this->body) {
             $error = json_decode($this->body, true);
-            if($error && isset($error['odata.error']['message']['value']))
-            {
+            if($error && isset($error['odata.error']['message']['value'])) {
                 new ErrorHandler ($this->query, "URL: {$fail}\n" . $error['odata.error']['message']['value'], $this->caller(), $this->options);
             }
-            else
-            {
-                $this->body = str_replace([ "\\r\\n", "\\n", "\\r" ], "\n", $this->body);
+            else {
+                $this->body = str_replace([
+                    "\\r\\n",
+                    "\\n",
+                    "\\r"
+                ], "\n", $this->body);
                 new ErrorHandler ($this->query, "HEADER: {$this->header}\nURL: {$fail}\nBODY: {$this->body}\n", $this->caller(), $this->options);
             }
         }
-        else
-        {
+        else {
             new ErrorHandler ($this->query, "HTTP STATUS: {$this->httpcode}\n" . strtok($this->header, "\n"), $this->caller(), $this->options);
         }
     }
@@ -166,53 +164,46 @@ class OData extends DBD implements DBI
     /**
      * @return $this
      */
-    public function disconnect()
-    {
-        if($this->isConnected())
-        {
+    public function disconnect() {
+        if($this->isConnected()) {
             curl_close($this->dbh);
         }
-        if(is_resource($this->cacheDriver()))
-        {
-            $this->cacheDriver()->close();
+        if(is_resource($this->cacheDriver())) {
+            $this->cacheDriver()
+                 ->close()
+            ;
         }
 
         return $this;
     }
 
     /*--------------------------------------------------------------*/
-    public function setDataKey($dataKey)
-    {
+    public function setDataKey($dataKey) {
         $this->dataKey = $dataKey;
 
         return $this;
     }
 
     /*--------------------------------------------------------------*/
-    public function update()
-    {
-        $binds  = 0;
-        $where  = null;
+    public function update() {
+        $binds = 0;
+        $where = null;
         $return = null;
-        $ARGS   = func_get_args();
-        $table  = $ARGS[0];
+        $ARGS = func_get_args();
+        $table = $ARGS[0];
         $values = $ARGS[1];
-        $args   = [];
+        $args = [];
 
-        if(func_num_args() > 2)
-        {
+        if(func_num_args() > 2) {
             $where = $ARGS[2];
             $binds = substr_count($where, "?");
         }
         // If we set $where with placeholders or we set $return
-        if(func_num_args() > 3)
-        {
-            for($i = 3; $i < $binds + 3; $i++)
-            {
-                $args[] = $ARGS[ $i ];
+        if(func_num_args() > 3) {
+            for($i = 3; $i < $binds + 3; $i++) {
+                $args[] = $ARGS[$i];
             }
-            if(func_num_args() > $binds + 3)
-            {
+            if(func_num_args() > $binds + 3) {
                 // FIXME: закоментарил, потому что варнило
                 //$return = $ARGS[ func_num_args() - 1 ];
             }
@@ -220,15 +211,12 @@ class OData extends DBD implements DBI
 
         $url = $table . ($where ? $where : "");
 
-        if(count($args))
-        {
+        if(count($args)) {
             $request = str_split($url);
 
-            foreach($request as $ind => $str)
-            {
-                if($str == '?')
-                {
-                    $request[ $ind ] = "'" . array_shift($args) . "'";
+            foreach($request as $ind => $str) {
+                if($str == '?') {
+                    $request[$ind] = "'" . array_shift($args) . "'";
                 }
             }
             $url = implode("", $request);
@@ -241,13 +229,11 @@ class OData extends DBD implements DBI
     }
 
     /*--------------------------------------------------------------*/
-    public function prepare($statement)
-    {
+    public function prepare($statement) {
 
         // This is not SQL driver, so we can't make several instances with prepare
         // and let's allow only one by one requests per driver
-        if($this->query)
-        {
+        if($this->query) {
             new ErrorHandler ($this->query, "You have an unexecuted query", $this->caller(), $this->options);
         }
         // Drop current proteced vars to do not mix up
@@ -260,14 +246,12 @@ class OData extends DBD implements DBI
     }
 
     /*--------------------------------------------------------------*/
-    public function execute()
-    {
+    public function execute() {
 
         $this->tryGetFromCache();
 
         // If not found in cache or we dont use it, then let's get via HTTP request
-        if($this->result === null)
-        {
+        if($this->result === null) {
 
             $this->prepareUrl(func_get_args());
 
@@ -279,19 +263,15 @@ class OData extends DBD implements DBI
             // Will return NULL in case of failure
             $json = json_decode($this->body, true);
 
-            if($this->dataKey)
-            {
-                if($json[ $this->dataKey ])
-                {
-                    $this->result = $this->doReplacements($json[ $this->dataKey ]);
+            if($this->dataKey) {
+                if($json[$this->dataKey]) {
+                    $this->result = $this->doReplacements($json[$this->dataKey]);
                 }
-                else
-                {
+                else {
                     $this->result = $json;
                 }
             }
-            else
-            {
+            else {
                 $this->result = $this->doReplacements($json);
             }
 
@@ -303,8 +283,7 @@ class OData extends DBD implements DBI
     }
 
     /*--------------------------------------------------------------*/
-    public function insert($table, $content, $return = null)
-    {
+    public function insert($table, $content, $return = null) {
         $this->dropVars();
 
         /*
@@ -347,26 +326,24 @@ class OData extends DBD implements DBI
     }
 
     /*--------------------------------------------------------------*/
-    public function metadata($key = null, $expire = null)
-    {
+    public function metadata($key = null, $expire = null) {
         // If we already got metadata
-        if($this->metadata)
-        {
+        if($this->metadata) {
             if($key)
-                return $this->metadata[ $key ];
+                return $this->metadata[$key];
             else
                 return $this->metadata;
         }
 
         // Let's get from cache
-        if($this->cacheDriver())
-        {
-            $metadata = $this->cacheDriver()->get(__CLASS__ . ':metadata');
-            if($metadata && $metadata !== false)
-            {
+        if($this->cacheDriver()) {
+            $metadata = $this->cacheDriver()
+                             ->get(__CLASS__ . ':metadata')
+            ;
+            if($metadata && $metadata !== false) {
                 $this->metadata = $metadata;
                 if($key)
-                    return $this->metadata[ $key ];
+                    return $this->metadata[$key];
                 else
                     return $this->metadata;
             }
@@ -380,57 +357,50 @@ class OData extends DBD implements DBI
 
         $metadata = [];
 
-        foreach($array['edmx:Edmx']['edmx:DataServices']['Schema']['EntityType'] as $EntityType)
-        {
+        foreach($array['edmx:Edmx']['edmx:DataServices']['Schema']['EntityType'] as $EntityType) {
 
             $object = [];
 
-            foreach($EntityType['Property'] as $Property)
-            {
-                if(preg_match('/Collection\(StandardODATA\.(.+)\)/', $Property['@attributes']['Type'], $matches))
-                {
+            foreach($EntityType['Property'] as $Property) {
+                if(preg_match('/Collection\(StandardODATA\.(.+)\)/', $Property['@attributes']['Type'], $matches)) {
 
-                    $object[ $Property['@attributes']['Name'] ] = [];
+                    $object[$Property['@attributes']['Name']] = [];
 
                     $ComplexType = $this->findComplexTypeByName($array, $matches[1]);
-                    foreach($ComplexType['Property'] as $prop)
-                    {
-                        $object[ $Property['@attributes']['Name'] ][0][ $prop['@attributes']['Name'] ] = [
+                    foreach($ComplexType['Property'] as $prop) {
+                        $object[$Property['@attributes']['Name']][0][$prop['@attributes']['Name']] = [
                             'Type'     => $prop['@attributes']['Type'],
                             'Nullable' => $prop['@attributes']['Nullable']
                         ];
                     }
                 }
-                else
-                {
-                    $object[ $Property['@attributes']['Name'] ] = [
+                else {
+                    $object[$Property['@attributes']['Name']] = [
                         'Type'     => $Property['@attributes']['Type'],
                         'Nullable' => $Property['@attributes']['Nullable']
                     ];;
                 }
             }
-            $metadata[ $EntityType['@attributes']['Name'] ] = $object;
+            $metadata[$EntityType['@attributes']['Name']] = $object;
         }
 
-        if($this->cacheDriver())
-        {
-            $this->cacheDriver()->set(__CLASS__ . ':metadata', $metadata, $expire ? $expire : $this->cache['expire']);
+        if($this->cacheDriver()) {
+            $this->cacheDriver()
+                 ->set(__CLASS__ . ':metadata', $metadata, $expire ? $expire : $this->cache['expire'])
+            ;
         }
         $this->metadata = $metadata;
 
         if($key)
-            return $this->metadata[ $key ];
+            return $this->metadata[$key];
         else
             return $this->metadata;
     }
 
     /*--------------------------------------------------------------*/
-    protected function findComplexTypeByName($array, $name)
-    {
-        foreach($array['edmx:Edmx']['edmx:DataServices']['Schema']['ComplexType'] as $ComplexType)
-        {
-            if($ComplexType['@attributes']['Name'] == $name)
-            {
+    protected function findComplexTypeByName($array, $name) {
+        foreach($array['edmx:Edmx']['edmx:DataServices']['Schema']['ComplexType'] as $ComplexType) {
+            if($ComplexType['@attributes']['Name'] == $name) {
                 return $ComplexType;
             }
         }
@@ -439,18 +409,13 @@ class OData extends DBD implements DBI
     }
 
     /*--------------------------------------------------------------*/
-    protected function doReplacements($data)
-    {
-        if(count($this->replacements) && $data != null)
-        {
-            foreach($data as &$value)
-            {
-                foreach($value as $key => $val)
-                {
-                    if(array_key_exists($key, $this->replacements))
-                    {
-                        $value[ $this->replacements[ $key ] ] = $val;
-                        unset($value[ $key ]);
+    protected function doReplacements($data) {
+        if(count($this->replacements) && $data != null) {
+            foreach($data as &$value) {
+                foreach($value as $key => $val) {
+                    if(array_key_exists($key, $this->replacements)) {
+                        $value[$this->replacements[$key]] = $val;
+                        unset($value[$key]);
                     }
                 }
             }
@@ -460,16 +425,15 @@ class OData extends DBD implements DBI
     }
 
     /*--------------------------------------------------------------*/
-    protected function storeResultToache()
-    {
-        if($this->result)
-        {
+    protected function storeResultToache() {
+        if($this->result) {
             $this->rows = count($this->result);
             // If we want to store to the cache
-            if($this->cache['key'] !== null)
-            {
+            if($this->cache['key'] !== null) {
                 // Setting up our cache
-                $this->cacheDriver()->set($this->cache['key'], $this->result, $this->cache['expire']);
+                $this->cacheDriver()
+                     ->set($this->cache['key'], $this->result, $this->cache['expire'])
+                ;
             }
         }
 
@@ -477,23 +441,21 @@ class OData extends DBD implements DBI
     }
 
     /*--------------------------------------------------------------*/
-    protected function tryGetFromCache()
-    {
+    protected function tryGetFromCache() {
         // If we have cache driver
-        if($this->cacheDriver())
-        {
+        if($this->cacheDriver()) {
             // we set cache via $sth->cache('blabla');
-            if($this->cache['key'] !== null)
-            {
+            if($this->cache['key'] !== null) {
                 // getting result
-                $this->cache['result'] = $this->cacheDriver()->get($this->cache['key']);
+                $this->cache['result'] = $this->cacheDriver()
+                                              ->get($this->cache['key'])
+                ;
 
                 // Cache not empty?
-                if($this->cache['result'] && $this->cache['result'] !== false)
-                {
+                if($this->cache['result'] && $this->cache['result'] !== false) {
                     // set to our class var and count rows
                     $this->result = $this->cache['result'];
-                    $this->rows   = count($this->cache['result']);
+                    $this->rows = count($this->cache['result']);
                 }
             }
         }
@@ -502,15 +464,13 @@ class OData extends DBD implements DBI
     }
 
     /*--------------------------------------------------------------*/
-    protected function prepareUrl($ARGS)
-    {
+    protected function prepareUrl($ARGS) {
         // Check and prepare args
-        $binds   = substr_count($this->query, "?");
-        $args    = $this->parse_args($ARGS);
+        $binds = substr_count($this->query, "?");
+        $args = $this->parseArgs($ARGS);
         $numargs = count($args);
 
-        if($binds != $numargs)
-        {
+        if($binds != $numargs) {
             $caller = $this->caller();
             trigger_error("Query failed: called with 
 				$numargs bind variables when $binds are needed at 
@@ -522,15 +482,12 @@ class OData extends DBD implements DBI
         //protected function buildUrlFromQuery($query,$args)
 
         // Replace placeholders with values
-        if(count($args))
-        {
+        if(count($args)) {
             $request = str_split($this->query);
 
-            foreach($request as $ind => $str)
-            {
-                if($str == '?')
-                {
-                    $request[ $ind ] = "'" . array_shift($args) . "'";
+            foreach($request as $ind => $str) {
+                if($str == '?') {
+                    $request[$ind] = "'" . array_shift($args) . "'";
                 }
             }
             $this->query = implode("", $request);
@@ -550,10 +507,9 @@ class OData extends DBD implements DBI
         $pieces = preg_split('/(?=(SELECT|FROM|WHERE|ORDER BY|LIMIT|EXPAND).+?)/', $query);
         $struct = [];
 
-        foreach($pieces as $piece)
-        {
+        foreach($pieces as $piece) {
             preg_match('/(SELECT|FROM|WHERE|ORDER BY|LIMIT|EXPAND)(.+)/', $piece, $matches);
-            $struct[ trim($matches[1]) ] = trim($matches[2]);
+            $struct[trim($matches[1])] = trim($matches[2]);
         }
 
         // Start URL build
@@ -562,40 +518,33 @@ class OData extends DBD implements DBI
         // Let's identify we want to select some columns with diff names
         $fields = explode(",", $struct['SELECT']);
 
-        if(count($fields) && $fields[0] != '*')
-        {
+        if(count($fields) && $fields[0] != '*') {
             $this->replacements = [];
 
-            foreach($fields as &$field)
-            {
+            foreach($fields as &$field) {
                 $keywords = preg_split("/AS/i", $field);
-                if($keywords[1])
-                {
-                    $this->replacements[ trim($keywords[0]) ] = trim($keywords[1]);
-                    $field                                    = trim($keywords[0]);
+                if($keywords[1]) {
+                    $this->replacements[trim($keywords[0])] = trim($keywords[1]);
+                    $field = trim($keywords[0]);
                 }
                 $field = trim($field);
             }
             $this->requestUrl .= '$select=' . implode(",", $fields) . '&';
         }
 
-        if($struct['EXPAND'])
-        {
+        if($struct['EXPAND']) {
             $this->requestUrl .= '$expand=' . $struct['EXPAND'] . '&';
         }
 
-        if($struct['WHERE'])
-        {
+        if($struct['WHERE']) {
             $this->requestUrl .= '$filter=' . $struct['WHERE'] . '&';
         }
 
-        if($struct['ORDER BY'])
-        {
+        if($struct['ORDER BY']) {
             $this->requestUrl .= '$orderby=' . $struct['ORDER BY'] . '&';
         }
 
-        if($struct['LIMIT'])
-        {
+        if($struct['LIMIT']) {
             $this->requestUrl .= '$top=' . $struct['LIMIT'] . '&';
         }
 
@@ -603,24 +552,19 @@ class OData extends DBD implements DBI
     }
 
     /*--------------------------------------------------------------*/
-    public function fetchrow()
-    {
+    public function fetchrow() {
         return array_shift($this->result);
     }
 
     /*--------------------------------------------------------------*/
-    public function fetchrowset($key = null)
-    {
+    public function fetchrowset($key = null) {
 
         $array = [];
-        while($row = $this->fetchrow())
-        {
-            if($key)
-            {
-                $array[ $row[ $key ] ] = $row;
+        while($row = $this->fetchrow()) {
+            if($key) {
+                $array[$row[$key]] = $row;
             }
-            else
-            {
+            else {
                 $array[] = $row;
             }
         }
@@ -629,34 +573,42 @@ class OData extends DBD implements DBI
     }
 
     /*--------------------------------------------------------------*/
-    public function rows()
-    {
+    public function rows() {
         return count($this->result);
     }
 
     /*--------------------------------------------------------------*/
-    protected function urlEncode($string)
-    {
-        $entities     = [ '%20', '%27' ];
-        $replacements = [ ' ', "'" ];
-        $string       = str_replace($replacements, $entities, $string);
+    protected function urlEncode($string) {
+        $entities = [
+            '%20',
+            '%27'
+        ];
+        $replacements = [
+            ' ',
+            "'"
+        ];
+        $string = str_replace($replacements, $entities, $string);
 
         return $string;
     }
 
     /*--------------------------------------------------------------*/
-    protected function urlDecode($string)
-    {
-        $replacements = [ '%20', '%27' ];
-        $entities     = [ ' ', "'" ];
-        $string       = str_replace($replacements, $entities, $string);
+    protected function urlDecode($string) {
+        $replacements = [
+            '%20',
+            '%27'
+        ];
+        $entities = [
+            ' ',
+            "'"
+        ];
+        $string = str_replace($replacements, $entities, $string);
 
         return $string;
     }
 
     /*--------------------------------------------------------------*/
-    protected function dropVars()
-    {
+    protected function dropVars() {
         $this->cache = [
             'key'      => null,
             'result'   => null,
@@ -664,12 +616,83 @@ class OData extends DBD implements DBI
             'expire'   => null,
         ];
 
-        $this->query        = null;
+        $this->query = null;
         $this->replacements = null;
-        $this->result       = null;
-        $this->requestUrl   = null;
-        $this->httpcode     = null;
-        $this->header       = null;
-        $this->body         = null;
+        $this->result = null;
+        $this->requestUrl = null;
+        $this->httpcode = null;
+        $this->header = null;
+        $this->body = null;
+    }
+
+    protected function _connect() {
+        // TODO: Implement _connect() method.
+    }
+
+    protected function _disconnect() {
+        // TODO: Implement _disconnect() method.
+    }
+
+    protected function _begin() {
+        // TODO: Implement _begin() method.
+    }
+
+    protected function _commit() {
+        // TODO: Implement _commit() method.
+    }
+
+    protected function _rollback() {
+        // TODO: Implement _rollback() method.
+    }
+
+    protected function _query($statement) {
+        // TODO: Implement _query() method.
+    }
+
+    protected function _numRows() {
+        // TODO: Implement _numRows() method.
+    }
+
+    protected function _affectedRows() {
+        // TODO: Implement _affectedRows() method.
+    }
+
+    protected function _fetchAssoc() {
+        // TODO: Implement _fetchAssoc() method.
+    }
+
+    protected function _fetchArray() {
+        // TODO: Implement _fetchArray() method.
+    }
+
+    protected function _escape($string) {
+        // TODO: Implement _escape() method.
+    }
+
+    protected function _errorMessage() {
+        // TODO: Implement _errorMessage() method.
+    }
+
+    protected function _convertIntFloat(&$data, $type) {
+        // TODO: Implement _convertIntFloat() method.
+    }
+
+    protected function _queryExplain($statement) {
+        // TODO: Implement _queryExplain() method.
+    }
+
+    protected function _compileInsert($table, $params, $return = "") {
+        // TODO: Implement _compileInsert() method.
+    }
+
+    protected function _compileUpdate($table, $params, $where, $return = "") {
+        // TODO: Implement _compileUpdate() method.
+    }
+}
+
+final class OdataExtend extends OData implements DBI
+{
+    public function __construct($object, $statement = "") {
+        parent::extendMe($object, $statement);
     }
 }
