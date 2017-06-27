@@ -40,22 +40,18 @@ abstract class DBD
 {
     public $rows = 0;
     //private $affected = 0;
-    protected $fetch       = "UNDEF";
-    protected $myDebug     = true;
-    protected $dsn         = null;
-    protected $database    = null;
-    protected $username    = null;
-    protected $password    = null;
-    protected $dbh         = null;
-    protected $query       = "";
-    protected $result      = null;
-    protected $debug       = null;
     protected $cache       = [
         'key'      => null,
         'result'   => null,
         'compress' => null,
         'expire'   => null,
     ];
+    protected $database    = null;
+    protected $dbh         = null;
+    protected $debug       = null;
+    protected $dsn         = null;
+    protected $fetch       = "UNDEF";
+    protected $myDebug     = true;
     protected $options     = [
         'OnDemand'           => false,
         'PrintError'         => true,
@@ -68,74 +64,49 @@ abstract class DBD
         /** @var \DBD\Cache CacheDriver */
         'CacheDriver'        => null,
     ];
+    protected $password    = null;
+    protected $port        = null;
+    protected $query       = "";
+    protected $result      = null;
     protected $transaction = false;
+    protected $username    = null;
 
-    // ----------- PUBLIC ------------------
- 
-    /**
-     * @param string $dsn
-     * @param string $database
-     * @param string $username
-     * @param string $password
-     * @param array  $options
-     *
-     * @return $this
-     */
-    public function create($dsn, $database, $username, $password, $options = []) {
-        $driver = get_class($this);
+    abstract protected function _affectedRows();
 
-        /** @var \DBD\DBD $db */
-        $db = new $driver;
+    abstract protected function _begin();
 
-        return $db->setDsn($dsn)
-                  ->setDatabase($database)
-                  ->setUsername($username)
-                  ->setPassword($password)
-                  ->setOptions($options)
-            ;
-    }
+    abstract protected function _commit();
 
-    /**
-     * Closes a database connection
-     *
-     * @return $this
-     */
-    public function disconnect() {
-        if($this->isConnected()) {
-            if($this->transaction) {
-                $this->rollback();
-            }
-            if(!$this->options['Persistent']) {
-                $this->_disconnect();
-            }
-        }
-        if(is_resource($this->cacheDriver())) {
-            $this->cacheDriver()
-                 ->close()
-            ;
-        }
+    abstract protected function _compileInsert($table, $params, $return = "");
 
-        return $this;
-    }
+    abstract protected function _compileUpdate($table, $params, $where, $return = "");
 
-    /**
-     * Rolls back a transaction that was begun
-     *
-     * @return $this
-     */
-    public function rollback() {
-        if($this->transaction) {
-            $this->connectionPreCheck();
-            $this->result = $this->_rollback();
-            if($this->result === false)
-                trigger_error("Can not end transaction " . pg_errormessage(), E_USER_ERROR);
-        }
-        else {
-            trigger_error("No transaction to rollback", E_USER_ERROR);
-        }
-        $this->transaction = false;
+    abstract protected function _connect();
 
-        return $this;
+    abstract protected function _convertIntFloat(&$data, $type);
+
+    abstract protected function _disconnect();
+
+    abstract protected function _errorMessage();
+
+    abstract protected function _escape($string);
+
+    abstract protected function _fetchArray();
+
+    abstract protected function _fetchAssoc();
+
+    abstract protected function _numRows();
+
+    abstract protected function _query($statement);
+
+    abstract protected function _queryExplain($statement);
+
+    abstract protected function _rollback();
+
+    abstract protected function connect();
+
+    public function affected() {
+        return $this->_affectedRows();
     }
 
     /**
@@ -152,6 +123,31 @@ abstract class DBD
         $this->transaction = true;
 
         return $this;
+    }
+
+    public function cache($key, $expire = null, $compress = null) {
+        if(!isset($key) or !$key) {
+            trigger_error("caching failed: key is not set or empty", E_USER_ERROR);
+        }
+        if($this->cacheDriver() == null) {
+            return;
+            //trigger_error("CacheDriver not initialized", E_USER_ERROR);
+        }
+        if(preg_match("/^[\s\t\r\n]*select/i", $this->query)) {
+            // set hash key
+            $this->cache['key'] = $key;
+
+            if($compress !== null)
+                $this->cache['compress'] = $compress;
+
+            if($expire !== null)
+                $this->cache['expire'] = $expire;
+        }
+        else {
+            trigger_error("caching failed: current query is not of SELECT type", E_USER_ERROR);
+        }
+
+        return;
     }
 
     /**
@@ -175,11 +171,60 @@ abstract class DBD
     }
 
     /**
-     * @deprecated
+     * @param string $dsn
+     * @param string $port
+     * @param string $database
+     * @param string $username
+     * @param string $password
+     * @param array  $options
+     *
+     * @return $this
      */
-    public function du() {
-        return $this->do(func_get_args());
+    public function create($dsn, $port, $database, $username, $password, $options = []) {
+        $driver = get_class($this);
+
+        /** @var \DBD\DBD $db */
+        $db = new $driver;
+
+        return $db->setDsn($dsn)->setDatabase($database)->setPort($port)->setUsername($username)->setPassword($password)->setOptions($options);
     }
+
+    /**
+     * Closes a database connection
+     *
+     * @return $this
+     */
+    public function disconnect() {
+        if($this->isConnected()) {
+            if($this->transaction) {
+                $this->rollback();
+            }
+            if(!$this->options['Persistent']) {
+                $this->_disconnect();
+            }
+        }
+        if(is_resource($this->cacheDriver())) {
+            $this->cacheDriver()->close();
+        }
+
+        return $this;
+    }
+
+    /*
+        public function replace($key)
+        {
+            if($this->cacheDriver() != null)
+            {
+                $this->cacheDriver()->replace($key);
+            }
+            else
+            {
+                trigger_error("CacheDriver not initialized", E_USER_ERROR);
+            }
+
+            return;
+        }
+    */
 
     public function do() {
         if(!func_num_args())
@@ -192,38 +237,22 @@ abstract class DBD
         return $sth->rows;
     }
 
-    public function query() {
-        if(!func_num_args())
-            trigger_error("query failed: statement is not set or empty", E_USER_ERROR);
-
-        list ($statement, $args) = $this->prepareArgs(func_get_args());
-
-        $sth = $this->prepare($statement);
-
-        if(is_array($args)) {
-            $sth->execute($args);
+    public function drop($key) {
+        if($this->cacheDriver() != null) {
+            $this->cacheDriver()->delete($key);
         }
         else {
-            $sth->execute();
+            trigger_error("CacheDriver not initialized", E_USER_ERROR);
         }
 
-        return $sth;
+        return;
     }
 
     /**
-     * Creates a prepared statement for later execution
-     *
-     * @param string $statement
-     *
-     * @return DBD
+     * @deprecated
      */
-    public function prepare($statement) {
-        if(!isset($statement) or empty($statement))
-            trigger_error("prepare failed: statement is not set or empty", E_USER_ERROR);
-
-        $className = get_class($this);
-
-        return new $className($this, $statement);
+    public function du() {
+        return $this->do(func_get_args());
     }
 
     /**
@@ -242,9 +271,7 @@ abstract class DBD
         if($this->cacheDriver()) {
             if($this->cache['key'] !== null) {
                 // Get data from cache
-                $this->cache['result'] = $this->cacheDriver()
-                                              ->get($this->cache['key'])
-                ;
+                $this->cache['result'] = $this->cacheDriver()->get($this->cache['key']);
 
                 // Cache not empty?
                 if($this->cache['result'] && $this->cache['result'] !== false) {
@@ -307,7 +334,7 @@ abstract class DBD
             $this->result = $this->_query($exec);
 
             if($this->result !== false) {
-                $this->rows = $this->_affectedRows();
+                $this->rows = $this->_numRows();
             }
 
             // If query from cache
@@ -333,9 +360,7 @@ abstract class DBD
                 $this->cache['key'] = $storedKey;
 
                 // Setting up our cache
-                $this->cacheDriver()
-                     ->set($this->cache['key'], $this->cache['result'], $this->cache['expire'])
-                ;
+                $this->cacheDriver()->set($this->cache['key'], $this->cache['result'], $this->cache['expire']);
             }
         }
         if($this->result === false) {
@@ -382,26 +407,44 @@ abstract class DBD
         return $this->result;
     }
 
-    /**
-     * Will return the number of rows in a database result resource.
-     *
-     * @return int
-     */
-    public function rows() {
-        if($this->cache['key'] === null) {
-            if(preg_match('/^(\s*?)select\s*?.*?\s*?from/i', $this->query)) {
-                return $this->_numRows();
-            }
+    public function fetch() {
+        if($this->fetch == "UNDEF") {
 
-            return $this->_affectedRows();
+            if($this->cache['key'] === null) {
+
+                $return = $this->_fetchArray();
+
+                if($this->options['ConvertNumeric']) {
+
+                    $return = $this->_convertIntFloat($return, 'row');
+                }
+
+                $this->fetch = $return;
+            }
+            else {
+                $this->fetch = array_shift($this->cache['result']);
+            }
         }
-        else {
-            return count($this->cache['result']);
+        if(!count($this->fetch)) {
+            return false;
         }
+
+        return array_shift($this->fetch);
     }
 
-    public function affected() {
-        return $this->_affectedRows();
+    public function fetchrow() {
+        if($this->cache['key'] === null) {
+            $return = $this->_fetchAssoc();
+
+            if($this->options['ConvertNumeric']) {
+                return $this->_convertIntFloat($return, 'row');
+            }
+
+            return $return;
+        }
+        else {
+            return array_shift($this->cache['result']);
+        }
     }
 
     public function fetchrowset($key = null) {
@@ -434,18 +477,102 @@ abstract class DBD
         return $array;
     }
 
-    public function fetchrow() {
-        if($this->cache['key'] === null) {
-            $return = $this->_fetchAssoc();
-
-            if($this->options['ConvertNumeric']) {
-                return $this->_convertIntFloat($return, 'row');
-            }
-
-            return $return;
+    public function getOption($key) {
+        if(array_key_exists($key, $this->options)) {
+            return $this->options[$key];
         }
         else {
-            return array_shift($this->cache['result']);
+            throw new Exception("Unknown option provided");
+        }
+    }
+
+    /**
+     * Easy insert operation
+     *
+     * @param string $table
+     * @param array  $args
+     * @param null   $return
+     *
+     * @return \DBD\DBD
+     */
+    public function insert($table, $args, $return = null) {
+        $params = $this->compileInsertArgs($args);
+
+        $sth = $this->prepare($this->_compileInsert($table, $params, $return));
+        $sth->execute($params['ARGS']);
+
+        return $sth;
+    }
+
+    /**
+     * Creates a prepared statement for later execution
+     *
+     * @param string $statement
+     *
+     * @return DBD
+     */
+    public function prepare($statement) {
+        if(!isset($statement) or empty($statement))
+            trigger_error("prepare failed: statement is not set or empty", E_USER_ERROR);
+
+        $className = get_class($this);
+
+        return new $className($this, $statement);
+    }
+
+    public function query() {
+        if(!func_num_args())
+            trigger_error("query failed: statement is not set or empty", E_USER_ERROR);
+
+        list ($statement, $args) = $this->prepareArgs(func_get_args());
+
+        $sth = $this->prepare($statement);
+
+        if(is_array($args)) {
+            $sth->execute($args);
+        }
+        else {
+            $sth->execute();
+        }
+
+        return $sth;
+    }
+
+    /**
+     * Rolls back a transaction that was begun
+     *
+     * @return $this
+     */
+    public function rollback() {
+        if($this->transaction) {
+            $this->connectionPreCheck();
+            $this->result = $this->_rollback();
+            if($this->result === false)
+                trigger_error("Can not end transaction " . pg_errormessage(), E_USER_ERROR);
+        }
+        else {
+            trigger_error("No transaction to rollback", E_USER_ERROR);
+        }
+        $this->transaction = false;
+
+        return $this;
+    }
+
+    /**
+     * Will return the number of rows in a database result resource.
+     *
+     * @return int
+     */
+    public function rows() {
+        if($this->cache['key'] === null) {
+            if(preg_match('/^(\s*?)select\s*?.*?\s*?from/i', $this->query)) {
+                return $this->_numRows();
+            }
+
+            return $this->_affectedRows();
+        }
+        else {
+            return count($this->cache['result']);
         }
     }
 
@@ -457,29 +584,15 @@ abstract class DBD
         return $sth->fetch();
     }
 
-    public function fetch() {
-        if($this->fetch == "UNDEF") {
+    public function setOption($key, $value) {
+        if(array_key_exists($key, $this->options)) {
+            $this->options[$key] = $value;
 
-            if($this->cache['key'] === null) {
-
-                $return = $this->_fetchArray();
-
-                if($this->options['ConvertNumeric']) {
-
-                    $return = $this->_convertIntFloat($return, 'row');
-                }
-
-                $this->fetch = $return;
-            }
-            else {
-                $this->fetch = array_shift($this->cache['result']);
-            }
+            return $value;
         }
-        if(!count($this->fetch)) {
-            return false;
+        else {
+            throw new Exception("Unknown option provided : '{$key}'");
         }
-
-        return array_shift($this->fetch);
     }
 
     public function update() {
@@ -508,141 +621,6 @@ abstract class DBD
         }
 
         return $this->query($this->_compileUpdate($table, $params, $where, $return), $params['ARGS']);
-    }
-
-    /**
-     * Easy insert operation
-     *
-     * @param string $table
-     * @param array  $args
-     * @param null   $return
-     *
-     * @return \DBD\DBD
-     */
-    public function insert($table, $args, $return = null) {
-        $params = $this->compileInsertArgs($args);
-
-        $sth = $this->prepare($this->_compileInsert($table, $params, $return));
-        $sth->execute($params['ARGS']);
-
-        return $sth;
-    }
-
-    public function setOption($key, $value) {
-        if(array_key_exists($key, $this->options)) {
-            $this->options[$key] = $value;
-
-            return $value;
-        }
-        else {
-            throw new Exception("Unknown option provided : '{$key}'");
-        }
-    }
-
-    public function getOption($key) {
-        if(array_key_exists($key, $this->options)) {
-            return $this->options[$key];
-        }
-        else {
-            throw new Exception("Unknown option provided");
-        }
-    }
-
-    public function cache($key, $expire = null, $compress = null) {
-        if(!isset($key) or !$key) {
-            trigger_error("caching failed: key is not set or empty", E_USER_ERROR);
-        }
-        if($this->cacheDriver() == null) {
-            return;
-            //trigger_error("CacheDriver not initialized", E_USER_ERROR);
-        }
-        if(preg_match("/^[\s\t\r\n]*select/i", $this->query)) {
-            // set hash key
-            $this->cache['key'] = $key;
-
-            if($compress !== null)
-                $this->cache['compress'] = $compress;
-
-            if($expire !== null)
-                $this->cache['expire'] = $expire;
-        }
-        else {
-            trigger_error("caching failed: current query is not of SELECT type", E_USER_ERROR);
-        }
-
-        return;
-    }
-
-    public function drop($key) {
-        if($this->cacheDriver() != null) {
-            $this->cacheDriver()
-                 ->delete($key)
-            ;
-        }
-        else {
-            trigger_error("CacheDriver not initialized", E_USER_ERROR);
-        }
-
-        return;
-    }
-
-    //region PROTECTED methods
-
-    /*
-        public function replace($key)
-        {
-            if($this->cacheDriver() != null)
-            {
-                $this->cacheDriver()->replace($key);
-            }
-            else
-            {
-                trigger_error("CacheDriver not initialized", E_USER_ERROR);
-            }
-
-            return;
-        }
-    */
-
-    /**
-     * Copies object variables after extended class construction
-     *
-     * @param        $object
-     * @param string $statement
-     *
-     * @return void
-     */
-    protected function extendMe($object, $statement = "") {
-        foreach(get_object_vars($object) as $key => $value) {
-            $this->$key = $value;
-        }
-        $this->query = $statement;
-
-        if($this->cacheDriver()) {
-            $this->cache['compress'] = $this->cacheDriver()->COMPRESS;
-            $this->cache['expire'] = $this->cacheDriver()->EXPIRE;
-        }
-    }
-
-    protected function parseArgs($ARGS) {
-        $args = [];
-
-        foreach($ARGS as $arg) {
-            if(is_array($arg)) {
-                foreach($arg as $subarg) {
-                    $args[] = $subarg;
-                }
-            }
-            else {
-                $args[] = $arg;
-            }
-        }
-
-        return $args;
-    }
-
-    protected function isConnected() {
-        return is_resource($this->dbh);
     }
 
     /**
@@ -683,26 +661,95 @@ abstract class DBD
         return $return;
     }
 
-    //endregion
+    /**
+     * Copies object variables after extended class construction
+     *
+     * @param        $object
+     * @param string $statement
+     *
+     * @return void
+     */
+    protected function extendMe($object, $statement = "") {
+        foreach(get_object_vars($object) as $key => $value) {
+            $this->$key = $value;
+        }
+        $this->query = $statement;
 
-    //region PRIVATE methods
+        if($this->cacheDriver()) {
+            $this->cache['compress'] = $this->cacheDriver()->COMPRESS;
+            $this->cache['expire'] = $this->cacheDriver()->EXPIRE;
+        }
+    }
 
-    private function setOptions($options) {
-        foreach($options as $key => $value) {
-            if(is_string($key)) {
-                if(array_key_exists($key, $this->options)) {
-                    $this->options[$key] = $value;
-                }
-                else {
-                    throw new Exception("Unknown option provided");
+    protected function isConnected() {
+        return is_resource($this->dbh);
+    }
+
+    protected function parseArgs($ARGS) {
+        $args = [];
+
+        foreach($ARGS as $arg) {
+            if(is_array($arg)) {
+                foreach($arg as $subarg) {
+                    $args[] = $subarg;
                 }
             }
             else {
-                throw new Exception("Option must be a string");
+                $args[] = $arg;
             }
         }
 
-        return $this;
+        return $args;
+    }
+
+    private function compileInsertArgs($data) {
+
+        $columns = "";
+        $values = "";
+        $args = [];
+
+        foreach($data as $c => $v) {
+            $pattern = "/[^\"a-zA-Z0-9_-]/";
+            $c = preg_replace($pattern, "", $c);
+            $columns .= "$c, ";
+            $values .= "?,";
+            if($v === true) {
+                $v = 'true';
+            }
+            if($v === false) {
+                $v = 'false';
+            }
+            $args[] = $v;
+        }
+
+        $columns = preg_replace("/, $/", "", $columns);
+        $values = preg_replace("/,$/", "", $values);
+
+        return [
+            'COLUMNS' => $columns,
+            'VALUES'  => $values,
+            'ARGS'    => $args
+        ];
+    }
+
+    private function compileUpdateArgs($data) {
+
+        $columns = "";
+        $args = [];
+
+        $pattern = "/[^\"a-zA-Z0-9_-]/";
+        foreach($data as $k => $v) {
+            $k = preg_replace($pattern, "", $k);
+            $columns .= "$k = ?, ";
+            $args[] = $v;
+        }
+
+        $columns = preg_replace("/, $/", "", $columns);
+
+        return [
+            'COLUMNS' => $columns,
+            'ARGS'    => $args
+        ];
     }
 
     /**
@@ -728,69 +775,6 @@ abstract class DBD
         ];
     }
 
-    private function compileUpdateArgs($data) {
-
-        $columns = "";
-        $args = [];
-
-        $pattern = "/[^\"a-zA-Z0-9_-]/";
-        foreach($data as $k => $v) {
-            $k = preg_replace($pattern, "", $k);
-            $columns .= "$k = ?, ";
-            $args[] = $v;
-        }
-
-        $columns = preg_replace("/, $/", "", $columns);
-
-        return [
-            'COLUMNS' => $columns,
-            'ARGS'    => $args
-        ];
-    }
-
-    private function compileInsertArgs($data) {
-
-        $columns = "";
-        $values = "";
-        $args = [];
-
-        foreach($data as $c => $v) {
-            $pattern = "/[^\"a-zA-Z0-9_-]/";
-            $c = preg_replace($pattern, "", $c);
-            $columns .= "$c, ";
-            $values .= "?,";
-            if($v === true) {
-                $v = 't';
-            }
-            if($v === false) {
-                $v = 'f';
-            }
-            $args[] = $v;
-        }
-
-        $columns = preg_replace("/, $/", "", $columns);
-        $values = preg_replace("/,$/", "", $values);
-
-        return [
-            'COLUMNS' => $columns,
-            'VALUES'  => $values,
-            'ARGS'    => $args
-        ];
-    }
-
-    private function setPassword($password) {
-        if($password)
-            $this->password = $password;
-
-        return $this;
-    }
-
-    private function setUsername($username) {
-        $this->username = $username;
-
-        return $this;
-    }
-
     private function setDatabase($database) {
         $this->database = $database;
 
@@ -808,42 +792,40 @@ abstract class DBD
         return $this;
     }
 
-    //endregion
+    private function setOptions($options) {
+        foreach($options as $key => $value) {
+            if(is_string($key)) {
+                if(array_key_exists($key, $this->options)) {
+                    $this->options[$key] = $value;
+                }
+                else {
+                    throw new Exception("Unknown option provided");
+                }
+            }
+            else {
+                throw new Exception("Option must be a string");
+            }
+        }
 
-    //region ABSTRACT methods
+        return $this;
+    }
 
-    abstract protected function connect();
+    private function setPassword($password) {
+        if($password)
+            $this->password = $password;
 
-    abstract protected function _connect();
+        return $this;
+    }
 
-    abstract protected function _disconnect();
+    private function setPort($port) {
+        $this->port = $port;
 
-    abstract protected function _begin();
+        return $this;
+    }
 
-    abstract protected function _commit();
+    private function setUsername($username) {
+        $this->username = $username;
 
-    abstract protected function _rollback();
-
-    abstract protected function _query($statement);
-
-    abstract protected function _queryExplain($statement);
-
-    abstract protected function _errorMessage();
-
-    abstract protected function _numRows();
-
-    abstract protected function _escape($string);
-
-    abstract protected function _affectedRows();
-
-    abstract protected function _fetchAssoc();
-
-    abstract protected function _fetchArray();
-
-    abstract protected function _convertIntFloat(&$data, $type);
-
-    abstract protected function _compileInsert($table, $params, $return = "");
-
-    abstract protected function _compileUpdate($table, $params, $where, $return = "");
-    //endregion
+        return $this;
+    }
 }

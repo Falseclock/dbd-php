@@ -27,5 +27,5 @@ namespace DBD;
 
 interface DBI
 {
-    public function __construct($object, $statement="");
+    public function __construct($object, $statement = "");
 }

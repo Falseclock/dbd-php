@@ -25,28 +25,28 @@
 
 namespace DBD;
 
-use DBD\Base\Singleton;
 use DBD\Base\Instantiatable;
+use DBD\Base\Singleton;
 
 abstract class Cache extends Singleton implements Instantiatable
 {
+    public $COMPRESS = [];
+    public $EXPIRE   = 1;
     /** @var Cache $link */
-    public    $link     = null;
-    public    $COMPRESS = [];
-    public    $EXPIRE   = 1;
-    protected $SERVERS  = null;
+    public    $link    = null;
+    protected $SERVERS = null;
 
-    abstract public function open();
+    abstract public function close();
+
+    abstract public function delete($key);
 
     abstract public function get($key);
 
-    abstract public function delete($key);
+    abstract public function open();
 
     abstract public function replace($key, $var, $expire);
 
     abstract public function set($key, $var, $expire);
-
-    abstract public function close();
 
     /**
      * @return $this
@@ -55,31 +55,12 @@ abstract class Cache extends Singleton implements Instantiatable
         return Singleton::getInstance(get_called_class());
     }
 
-    /**
-     * @param array $servers
-     * @param bool  $compress
-     * @param int   $expire
-     *
-     * @return $this
-     */
-    public function create($servers = [], $compress = false, $expire = 300) {
-        $this->SERVERS  = $servers;
-        $this->COMPRESS = $compress;
-        $this->EXPIRE   = $expire;
-
-        return $this;
-    }
-
-    public function getExpire() {
-        return $this->EXPIRE;
-    }
-
     public static function secCalc($matches) {
         if(!$matches || !$matches[1]) {
             return Cache::getExpire();
         }
 
-        $val  = $matches[1];
+        $val = $matches[1];
         $mult = $matches[2];
 
         if($mult) {
@@ -130,5 +111,24 @@ abstract class Cache extends Singleton implements Instantiatable
         }
 
         return $val;
+    }
+
+    /**
+     * @param array $servers
+     * @param bool  $compress
+     * @param int   $expire
+     *
+     * @return $this
+     */
+    public function create($servers = [], $compress = false, $expire = 300) {
+        $this->SERVERS = $servers;
+        $this->COMPRESS = $compress;
+        $this->EXPIRE = $expire;
+
+        return $this;
+    }
+
+    public function getExpire() {
+        return $this->EXPIRE;
     }
 }

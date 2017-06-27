@@ -28,46 +28,30 @@
 namespace DBD;
 
 /**
+ * Class PgExtend
+ *
+ * @package DBD
+ */
+final class PgExtend extends Pg implements DBI
+{
+    /**
+     * PgExtend constructor.
+     *
+     * @param        $object
+     * @param string $statement
+     */
+    public function __construct($object, $statement = "") {
+        parent::extendMe($object, $statement);
+    }
+}
+
+/**
  * Class Pg
  *
  * @package DBD
  */
 class Pg extends DBD
 {
-    /**
-     * Replacement for constructor
-     *
-     * @return \DBD\PgExtend
-     */
-    public function connect() {
-        $dsn = "dbname={$this->database} ";
-        $dsn .= $this->username ? "user={$this->username} " : "";
-        $dsn .= $this->password ? "password={$this->password} " : "";
-        $dsn .= "options='--application_name=DBD-PHP' ";
-
-        /*
-         * Getting array from DSN string like
-         * [['host','localhost'],['port','5432'],['dbname','myDatabase']]
-         */
-        $chunks = array_chunk(preg_split('/(=|;)/', $this->dsn), 2);
-        /*
-         * Now build array like ('host' => 'localhost', 'port' => '5432', 'dbname' => 'myDatabase')
-         */
-        $options = array_combine(array_column($chunks, 0), array_column($chunks, 1));
-
-        foreach($options as $key => $value) {
-            $dsn .= "{$key}={$value} ";
-        }
-
-        $this->dsn = $dsn;
-
-        if($this->options['OnDemand'] == false) {
-            $this->_connect();
-        }
-
-        return new PgExtend($this);
-    }
-
     /**
      * Do real connection. Can be invoked if OnDemand is set to TRUE
      *
@@ -81,21 +65,48 @@ class Pg extends DBD
     }
 
     /**
+     * Replacement for constructor
+     *
+     * @return \DBD\PgExtend
+     */
+    public function connect() {
+        $dsn = "host={$this->dsn} ";
+        $dsn .= "dbname={$this->database} ";
+        $dsn .= $this->username ? "user={$this->username} " : "";
+        $dsn .= $this->password ? "password={$this->password} " : "";
+        $dsn .= $this->port ? "port={$this->port} " : "";
+        $dsn .= "options='--application_name=DBD-PHP' ";
+
+        /*
+         * Getting array from DSN string like
+         * [['host','localhost'],['port','5432'],['dbname','myDatabase']]
+         */
+        #$chunks = array_chunk(preg_split('/(=|;)/', $this->dsn), 2);
+        /*
+         * Now build array like ('host' => 'localhost', 'port' => '5432', 'dbname' => 'myDatabase')
+         */
+        #$options = array_combine(array_column($chunks, 0), array_column($chunks, 1));
+
+        #foreach($options as $key => $value) {
+        #    $dsn .= "{$key}={$value} ";
+        #}
+
+        $this->dsn = $dsn;
+
+        if($this->options['OnDemand'] == false) {
+            $this->_connect();
+        }
+
+        return new PgExtend($this);
+    }
+
+    /**
      * returns the number of tuples (instances/records/rows) affected by INSERT, UPDATE, and DELETE queries.
      *
      * @return int
      */
     protected function _affectedRows() {
         return pg_affected_rows($this->result);
-    }
-
-    /**
-     * Will return the number of rows in a PostgreSQL result resource.
-     *
-     * @return int
-     */
-    protected function _numRows() {
-        return pg_num_rows($this->result);
     }
 
     /**
@@ -117,75 +128,30 @@ class Pg extends DBD
     }
 
     /**
-     * Sends ROLLBACK; command
+     * Compiles INSERT query
      *
-     * @return resource
-     */
-    protected function _rollback() {
-        return $this->_query("ROLLBACK;");
-    }
-
-    /**
-     * Closes the non-persistent connection to a PostgreSQL database associated with the given connection resource
-     *
-     * @return bool
-     */
-    protected function _disconnect() {
-        return pg_close($this->dbh);
-    }
-
-    /**
-     * Returns the last error message for a given connection.
+     * @param string $table
+     * @param array  $params
+     * @param string $return
      *
      * @return string
      */
-    protected function _errorMessage() {
-        return pg_last_error($this->dbh);
+    protected function _compileInsert($table, $params, $return = "") {
+        return "INSERT INTO $table ({$params['COLUMNS']}) VALUES ({$params['VALUES']})" . ($return ? " RETURNING {$return}" : "");
     }
 
     /**
-     * Escapes a string for querying the database.
+     * Compiles UPDATE query
      *
-     * @param $string
+     * @param string $table
+     * @param array  $params
+     * @param string $where
+     * @param string $return
      *
      * @return string
      */
-    protected function _escape($string) {
-        if(!isset($string) or $string === null) {
-            return "NULL";
-        }
-        $str = pg_escape_string($string);
-
-        return "'$str'";
-    }
-
-    /**
-     * Returns an array that corresponds to the fetched row (record).
-     *
-     * @return array
-     */
-    protected function _fetchArray() {
-        return pg_fetch_array($this->result, 0, PGSQL_NUM);
-    }
-
-    /**
-     * Returns an associative array that corresponds to the fetched row (records).
-     *
-     * @return array
-     */
-    protected function _fetchAssoc() {
-        return pg_fetch_assoc($this->result);
-    }
-
-    /**
-     * Executes the query on the specified database connection.
-     *
-     * @param $statement
-     *
-     * @return resource
-     */
-    protected function _query($statement) {
-        return @pg_query($this->dbh, $statement);
+    protected function _compileUpdate($table, $params, $where, $return = "") {
+        return "UPDATE $table SET {$params['COLUMNS']}" . ($where ? " WHERE $where" : "") . ($return ? " RETURNING {$return}" : "");
     }
 
     /**
@@ -268,51 +234,87 @@ class Pg extends DBD
     }
 
     /**
-     * Compiles INSERT query
+     * Closes the non-persistent connection to a PostgreSQL database associated with the given connection resource
      *
-     * @param string $table
-     * @param array  $params
-     * @param string $return
-     *
-     * @return string
+     * @return bool
      */
-    protected function _compileInsert($table, $params, $return = "") {
-        return "INSERT INTO $table ({$params['COLUMNS']}) VALUES ({$params['VALUES']})" . ($return ? " RETURNING {$return}" : "");
+    protected function _disconnect() {
+        return pg_close($this->dbh);
     }
 
     /**
-     * Compiles UPDATE query
-     *
-     * @param string $table
-     * @param array  $params
-     * @param string $where
-     * @param string $return
+     * Returns the last error message for a given connection.
      *
      * @return string
      */
-    protected function _compileUpdate($table, $params, $where, $return = "") {
-        return "UPDATE $table SET {$params['COLUMNS']}" . ($where ? " WHERE $where" : "") . ($return ? " RETURNING {$return}" : "");
+    protected function _errorMessage() {
+        return pg_last_error($this->dbh);
+    }
+
+    /**
+     * Escapes a string for querying the database.
+     *
+     * @param $string
+     *
+     * @return string
+     */
+    protected function _escape($string) {
+        if(!isset($string) or $string === null) {
+            return "NULL";
+        }
+        $str = pg_escape_string($string);
+
+        return "'$str'";
+    }
+
+    /**
+     * Returns an array that corresponds to the fetched row (record).
+     *
+     * @return array
+     */
+    protected function _fetchArray() {
+        return pg_fetch_array($this->result, 0, PGSQL_NUM);
+    }
+
+    /**
+     * Returns an associative array that corresponds to the fetched row (records).
+     *
+     * @return array
+     */
+    protected function _fetchAssoc() {
+        return pg_fetch_assoc($this->result);
+    }
+
+    /**
+     * Will return the number of rows in a PostgreSQL result resource.
+     *
+     * @return int
+     */
+    protected function _numRows() {
+        return pg_affected_rows($this->result);
+    }
+
+    /**
+     * Executes the query on the specified database connection.
+     *
+     * @param $statement
+     *
+     * @return resource
+     */
+    protected function _query($statement) {
+        return @pg_query($this->dbh, $statement);
     }
 
     protected function _queryExplain($statement) {
         return @pg_query($this->dbh, "EXPLAIN $statement");
     }
-}
 
-/**
- * Class PgExtend
- *
- * @package DBD
- */
-final class PgExtend extends Pg implements DBI
-{
     /**
-     * PgExtend constructor.
+     * Sends ROLLBACK; command
      *
-     * @param        $object
-     * @param string $statement
+     * @return resource
      */
-    public function __construct($object, $statement = "") {
-        parent::extendMe($object, $statement);
+    protected function _rollback() {
+        return $this->_query("ROLLBACK;");
     }
 }

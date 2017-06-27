@@ -29,14 +29,14 @@ use Exception;
 
 final class YellowERP extends OData
 {
-    private static $retry         = 0;
     private static $ibsession     = null;
+    private static $retry         = 0;
     private static $sessionExist  = false;
-    protected      $reuseSessions = false;
-    protected      $maxRetries    = 3;
-    protected      $sessionFile   = null;
     protected      $httpServices  = null;
+    protected      $maxRetries    = 3;
+    protected      $reuseSessions = false;
     protected      $servicesURL   = null;
+    protected      $sessionFile   = null;
     protected      $timeOutLimit  = 30;
 
     public function connect() {
@@ -155,18 +155,6 @@ final class YellowERP extends OData
         }
     }
 
-    public function service($url) {
-        $this->dropVars();
-
-        $this->servicesURL = $url;
-
-        // We have to fake, otherwise DBD will issue exception on cache for non select query
-        $this->query = "SELECT * FROM $url";
-
-        return $this;
-    }
-
-    /*--------------------- reuseSessions="use" --------------------*/
     public function finish() {
         if($this->dbh && self::$ibsession) {
             curl_setopt($this->dbh, CURLOPT_URL, $this->dsn);
@@ -181,6 +169,15 @@ final class YellowERP extends OData
     }
 
     /*--------------------- reuseSessions="use" --------------------*/
+
+    public function httpServices($httpServices) {
+        $this->httpServices = $httpServices;
+
+        return $this;
+    }
+
+    /*--------------------- reuseSessions="use" --------------------*/
+
     public function reuseSessions($use = false, $maxRetries = 3, $file = 'YellowERP.ses') {
         $this->reuseSessions = $use;
         $this->maxRetries = $maxRetries;
@@ -190,8 +187,14 @@ final class YellowERP extends OData
     }
 
     /*------------------- Set's HTTP service URL -------------------*/
-    public function httpServices($httpServices) {
-        $this->httpServices = $httpServices;
+
+    public function service($url) {
+        $this->dropVars();
+
+        $this->servicesURL = $url;
+
+        // We have to fake, otherwise DBD will issue exception on cache for non select query
+        $this->query = "SELECT * FROM $url";
 
         return $this;
     }

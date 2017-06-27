@@ -25,8 +25,8 @@
 
 namespace DBD\Base;
 
-use Exception;
 use DateTime;
+use Exception;
 use SqlFormatter;
 
 class ErrorHandler extends Exception
@@ -43,111 +43,83 @@ class ErrorHandler extends Exception
      *
      * @throws \Exception
      */
-    public function __construct($query, $error, $caller, $options = null)
-    {
-        if($options['ErrorHandler'] !== null)
-        {
+    public function __construct($query, $error, $caller, $options = null) {
+        if($options['ErrorHandler'] !== null) {
             new $options['ErrorHandler']($query, $error, $caller, $options);
         }
-        else
-        {
+        else {
             if($options['HTMLError'])
                 $print = $this->composeHTMLError($query, $error, $caller, $options);
             else
                 $print = $this->composeTETXError($query, $error, $caller, $options);
 
-            if($options['RaiseError'])
-            {
+            if($options['RaiseError']) {
                 $header = (php_sapi_name() != 'cgi') ? 'HTTP/1.1 ' : 'HTTP/1.1: ';
-                if(php_sapi_name() != 'cli')
-                {
+                if(php_sapi_name() != 'cli') {
                     header($header . "500 Internal Server Error", true, 500);
                 }
-                if($options['PrintError'])
-                {
+                if($options['PrintError']) {
                     echo($print);
                     exit();
                 }
-                else
-                {
+                else {
                     throw new Exception($error);
                 }
             }
-            if($options['PrintError'])
-            {
+            if($options['PrintError']) {
                 echo($print);
             }
             //throw new Exception($error);
         }
     }
 
-    public function composeData($query, $errstr, $caller)
-    {
-        $error                = [];
+    public function composeData($query, $errstr, $caller) {
+        $error = [];
         $error['error_level'] = self::ERROR_LEVEL;
-        $date                 = new DateTime("now");
+        $date = new DateTime("now");
 
-        $error['error_date']      = date("F j, Y, G:i:s T", $date->getTimestamp());
-        $error['error_file']      = $caller[0]['file'];
-        $error['error_line']      = $caller[0]['line'];
-        $error['error_method']    = $caller[0]['function'];
+        $error['error_date'] = date("F j, Y, G:i:s T", $date->getTimestamp());
+        $error['error_file'] = $caller[0]['file'];
+        $error['error_line'] = $caller[0]['line'];
+        $error['error_method'] = $caller[0]['function'];
         $error['error_statement'] = $query;
-        $error['error_message']   = $errstr;
-        $error['error_string']    = $errstr;
-        $error['error_string']    = preg_replace("/\r/s", "", $error['error_string']);
-        $error['error_string']    = preg_replace("/\n/s", '<br/>', $error['error_string']);
-        $error['error_string']    = preg_replace("/ /s", "&nbsp;", $error['error_string']);
+        $error['error_message'] = $errstr;
+        $error['error_string'] = $errstr;
+        $error['error_string'] = preg_replace("/\r/s", "", $error['error_string']);
+        $error['error_string'] = preg_replace("/\n/s", '<br/>', $error['error_string']);
+        $error['error_string'] = preg_replace("/ /s", "&nbsp;", $error['error_string']);
 
-        foreach($caller as $debug)
-        {
+        foreach($caller as $debug) {
             $error['stack'][] = [
                 'file'     => $debug['file'],
                 'line'     => $debug['line'],
                 'function' => $debug['function']
             ];
         }
-        if(php_sapi_name() != 'cli')
-        {
+        if(php_sapi_name() != 'cli') {
             $error['useragent'] = $_SERVER['HTTP_USER_AGENT'];
             $error['error_url'] = $_SERVER["REQUEST_SCHEME"] . "://" . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'];
-            $error['referer']   = $_SERVER['HTTP_REFERER'];
+            $error['referer'] = $_SERVER['HTTP_REFERER'];
             $error['post_vars'] = serialize($_POST);
-            $error['get_vars']  = serialize($_GET);
+            $error['get_vars'] = serialize($_GET);
         }
 
         return $error;
     }
 
-    public function composeTETXError($query, $error, $caller, $options)
-    {
+    public function composeHTMLError($query, $error, $caller, $options) {
         $data = $this->composeData($query, $error, $caller);
 
-        $return = "";
-        $return .= sprintf("%s\n", $data['error_message']);
-        $return .= sprintf("File: %s, line: %d, method: %s\n", $data['error_file'], $data['error_line'], $data['error_method']);
-        //$return .= sprintf("Date: %s\n", $data['error_date']);
-        if($options['ShowErrorStatement'])
-        {
-            $return .= sprintf("Statement: %s\n", $data['error_statement']);
-        }
-
-        return $return;
-    }
-
-    public function composeHTMLError($query, $error, $caller, $options)
-    {
-        $data = $this->composeData($query, $error, $caller);
-
-        SqlFormatter::$reserved_attributes       = 'style="color:blue; font-weight:bold;"';
-        SqlFormatter::$pre_attributes            = 'style="color: #505050; "';
-        SqlFormatter::$word_attributes           = 'style="color: #505050;"';
-        SqlFormatter::$quote_attributes          = 'style="color: #9933FF;"';
-        SqlFormatter::$number_attributes         = 'style="color: crimson;"';
+        SqlFormatter::$reserved_attributes = 'style="color:blue; font-weight:bold;"';
+        SqlFormatter::$pre_attributes = 'style="color: #505050; "';
+        SqlFormatter::$word_attributes = 'style="color: #505050;"';
+        SqlFormatter::$quote_attributes = 'style="color: #9933FF;"';
+        SqlFormatter::$number_attributes = 'style="color: crimson;"';
         SqlFormatter::$backtick_quote_attributes = 'style="color: cyan;"';
-        SqlFormatter::$boundary_attributes       = 'style="color: orange; font-weight: bold;"';
-        SqlFormatter::$comment_attributes        = 'style="color: #aaa;"';
-        SqlFormatter::$variable_attributes       = 'style="color: orange;"';
-        SqlFormatter::$use_pre                   = false;
+        SqlFormatter::$boundary_attributes = 'style="color: orange; font-weight: bold;"';
+        SqlFormatter::$comment_attributes = 'style="color: #aaa;"';
+        SqlFormatter::$variable_attributes = 'style="color: orange;"';
+        SqlFormatter::$use_pre = false;
         extract($data);
         extract($options);
         ob_start();
@@ -155,6 +127,20 @@ class ErrorHandler extends Exception
         require(__DIR__ . DIRECTORY_SEPARATOR . 'ErrorHandlerTemplate.php');
         $return = ob_get_contents();
         ob_end_clean();
+
+        return $return;
+    }
+
+    public function composeTETXError($query, $error, $caller, $options) {
+        $data = $this->composeData($query, $error, $caller);
+
+        $return = "";
+        $return .= sprintf("%s\n", $data['error_message']);
+        $return .= sprintf("File: %s, line: %d, method: %s\n", $data['error_file'], $data['error_line'], $data['error_method']);
+        //$return .= sprintf("Date: %s\n", $data['error_date']);
+        if($options['ShowErrorStatement']) {
+            $return .= sprintf("Statement: %s\n", $data['error_statement']);
+        }
 
         return $return;
     }

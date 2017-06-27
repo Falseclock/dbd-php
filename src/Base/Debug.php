@@ -29,34 +29,30 @@ final class Debug extends Singleton implements Instantiatable
 {
     protected static $starttime = null;
 
-    public function __construct()
-    {
+    public function __construct() {
         return $this;
     }
 
-    public static function me()
-    {
+    public static function me() {
         return Singleton::getInstance(__CLASS__);
     }
 
-    public function startTimer()
-    {
-        $mtime            = microtime();
-        $mtime            = explode(' ', $mtime);
-        $mtime            = $mtime[1] + $mtime[0];
-        Debug::$starttime = $mtime;
-
-        return Debug::$starttime;
-    }
-
-    public function endTimer()
-    {
-        $mtime     = microtime();
-        $mtime     = explode(' ', $mtime);
-        $mtime     = $mtime[1] + $mtime[0];
-        $endtime   = $mtime;
+    public function endTimer() {
+        $mtime = microtime();
+        $mtime = explode(' ', $mtime);
+        $mtime = $mtime[1] + $mtime[0];
+        $endtime = $mtime;
         $totaltime = round(($endtime - Debug::$starttime), 5);
 
         return $totaltime;
+    }
+
+    public function startTimer() {
+        $mtime = microtime();
+        $mtime = explode(' ', $mtime);
+        $mtime = $mtime[1] + $mtime[0];
+        Debug::$starttime = $mtime;
+
+        return Debug::$starttime;
     }
 }

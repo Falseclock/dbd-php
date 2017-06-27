@@ -25,70 +25,56 @@
 
 namespace DBD\Cache;
 
-use DBD\Cache\CacheInterface as CacheInterface;
 use DBD\Cache as Cache;
+use DBD\Cache\CacheInterface as CacheInterface;
 
 class MemCache extends Cache implements CacheInterface
 {
     /** @var \Memcache $link */
     public $link = null;
 
+    public function close() {
+        return $this->link->close();
+    }
+
+    public function delete($key) {
+        return $this->link->delete($key);
+    }
+
+    public function disconnect() {
+        return $this->close();
+    }
+
+    public function exist($key) {
+        return $this->link->get($key) === false ? false : true;
+    }
+
+    public function get($key) {
+        return $this->link->get($key);
+    }
+
+    public function getStats() {
+        return $this->link->getStats();
+    }
+
     /**
      * @return $this
      */
-    public function open()
-    {
+    public function open() {
 
         $this->link = new \Memcache();
 
-        foreach($this->SERVERS as $server)
-        {
+        foreach($this->SERVERS as $server) {
             $this->link->addServer($server['host'], $server['port']);
         }
 
         return $this;
     }
 
-    public function close()
-    {
-        return $this->link->close();
-    }
-
-    public function disconnect()
-    {
-        return $this->close();
-    }
-
-    /**
-     * @param string $key
-     * @param mixed  $variable
-     * @param null   $expire
-     *
-     * @return mixed
-     */
-    public function set($key, $variable, $expire = null)
-    {
-        $expire = preg_replace_callback("/(\d+)\s*(.*)?/", function($matches) { return Cache::secCalc($matches); }, $expire);
-
-        if(!$expire)
-            $expire = $this->EXPIRE;
-
-        return $this->link->set($key, $variable, $this->COMPRESS, $expire);
-    }
-
-    public function get($key)
-    {
-        return $this->link->get($key);
-    }
-
-    public function exist($key)
-    {
-        return $this->link->get($key) === false ? false : true;
-    }
-
-    public function replace($key, $var, $expire = null)
-    {
-        $expire = preg_replace_callback("/(\d+)\s*(.*)?/", function($matches) { return Cache::secCalc($matches); }, $expire);
+    public function replace($key, $var, $expire = null) {
+        $expire = preg_replace_callback("/(\d+)\s*(.*)?/", function($matches) {
+            return Cache::secCalc($matches);
+        }, $expire);
 
         if(!$expire)
             $expire = $this->EXPIRE;
@@ -98,13 +84,21 @@ class MemCache extends Cache implements CacheInterface
             $this->set($key, $var, $expire);
     }
 
-    public function delete($key)
-    {
-        return $this->link->delete($key);
-    }
+    /**
+     * @param string $key
+     * @param mixed  $variable
+     * @param null   $expire
+     *
+     * @return mixed
+     */
+    public function set($key, $variable, $expire = null) {
+        $expire = preg_replace_callback("/(\d+)\s*(.*)?/", function($matches) {
+            return Cache::secCalc($matches);
+        }, $expire);
 
-    public function getStats()
-    {
-        return $this->link->getStats();
+        if(!$expire)
+            $expire = $this->EXPIRE;
+
+        return $this->link->set($key, $variable, $this->COMPRESS, $expire);
     }
 }

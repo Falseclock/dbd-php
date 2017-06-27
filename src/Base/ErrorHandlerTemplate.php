@@ -79,8 +79,7 @@
       <td><span class='dberror'><?=$data['error_string']?></span></td>
     </tr>
       <?php
-      if($options['ShowErrorStatement'])
-      {
+      if($options['ShowErrorStatement']) {
           ?>
         <tr>
           <td><strong>faled query: </strong>&nbsp;</td>
@@ -108,8 +107,7 @@
       <td>
         <table class='stack' cellpadding='0' cellspacing='0'>
             <?php
-            foreach($data['stack'] as $stack)
-            {
+            foreach($data['stack'] as $stack) {
                 ?>
               <tr>
                 <td valign='top'><?=$stack['file']?></td>
