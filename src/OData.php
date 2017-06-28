@@ -28,13 +28,6 @@ namespace DBD;
 use DBD\Base\ErrorHandler as ErrorHandler;
 use LSS\XML2Array;
 
-final class OdataExtend extends OData implements DBI
-{
-    public function __construct($object, $statement = "") {
-        parent::extendMe($object, $statement);
-    }
-}
-
 class OData extends DBD
 {
     protected $body         = null;
@@ -75,7 +68,7 @@ class OData extends DBD
         return new OdataExtend($this);
     }
 
-        /**
+    /**
      * @return $this
      */
     public function disconnect() {
@@ -89,11 +82,11 @@ class OData extends DBD
         return $this;
     } // TODO:
 
-        public function du() {
+    public function du() {
         return $this;
     } // TODO:
 
-        public function execute() {
+    public function execute() {
 
         $this->tryGetFromCache();
 
@@ -360,19 +353,19 @@ class OData extends DBD
 
     /*--------------------------------------------------------------*/
 
-protected function _affectedRows() {
+    protected function _affectedRows() {
         // TODO: Implement _affectedRows() method.
     }
 
     /*--------------------------------------------------------------*/
 
-protected function _begin() {
+    protected function _begin() {
         // TODO: Implement _begin() method.
     }
 
     /*--------------------------------------------------------------*/
 
-protected function _commit() {
+    protected function _commit() {
         // TODO: Implement _commit() method.
     }
 
@@ -705,5 +698,12 @@ protected function _commit() {
         $string = str_replace($replacements, $entities, $string);
 
         return $string;
+    }
+}
+
+final class OdataExtend extends OData implements DBI
+{
+    public function __construct($object, $statement = "") {
+        parent::extendMe($object, $statement);
     }
 }

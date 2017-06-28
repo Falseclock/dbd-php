@@ -1,5 +1,5 @@
 <?php
-//require_once(join(DIRECTORY_SEPARATOR, [ 'common', 'global.php' ]));
+require_once('/var/www/crm.virtex.kz/lib/vendor/autoload.php');
 
 /** @var array $TEST */
 $TEST = [
@@ -31,9 +31,9 @@ $TEST = [
 
         [
             'type'     => 'Pg',
-            'database' => 'virtex',
-            'user'     => 'virtex',
-            'password' => 'PSQLVirtex2@',
+            'database' => 'dar',
+            'user'     => 'dar',
+            'password' => 'dar2dar',
             'host'     => 'localhost',
             'port'     => '5432',
             'cache'    => true,
@@ -50,9 +50,9 @@ $TEST = [
     ],
 ];
 
-$loader = new Psr4AutoloaderClass;
-$loader->register();
-$loader->addNamespace('DBD', '/var/www/crm.virtex.kz/lib/vendor/falseclock/dbd-php/src');
+//$loader = new Psr4AutoloaderClass;
+//$loader->register();
+//$loader->addNamespace('DBD', '/var/www/crm.virtex.kz/lib/vendor/falseclock/dbd-php/src');
 
 $cache = null;
 if($TEST['memcache']) {
@@ -80,12 +80,26 @@ foreach($TEST['database'] as $database) {
     /** @var \DBD\Pg $dbd */
     $dbd = new $driver();
     $dbh = $dbd->create($database['host'], $database['port'], $database['database'], $database['user'], $database['password'], $database['options']);
-    $db = $dbh->connect();
-    $db->begin();
+    $db  = $dbh->connect();
 
-    (new Tests($db))->TableCreation()->TableInsertion()->TableUpdate()->TableDelete()->TableInsert()->CheckPlaceHolder()->TableDrop();
+    (new Tests($db))->Begin()
+                    ->Commit()
+                    ->Rollback()
+                    ->TableCreation()
+                    //->TableInsertion()
+                    //->TableUpdate()
+                    //->TableDelete()
+                    //->TableInsert()
+                    //->CheckPlaceHolder()
+                    //->CheckFetch()
+                    //->CheckCache()
+                    ->TableDrop()
+    ;
 
     $db->disconnect();
+
+    $debug = $db->getDebug();
+    dump($debug);
 }
 
 $cache->close();
@@ -94,9 +108,9 @@ final class Tests
 {
     private $db      = null;
     private $queries = [
-        'table_create'       => "CREATE TABLE test_purposes (id INT NOT NULL, name VARCHAR(128))",
-        'table_drop'         => "DROP TABLE test_purposes",
-        'table_insert'       => [
+        'table_create'         => "CREATE TABLE test_purposes (id INT NOT NULL, name VARCHAR(128))",
+        'table_drop'           => "DROP TABLE test_purposes",
+        'table_insert'         => [
             "INSERT INTO test_purposes (id,name) VALUES (1 ,'A')",
             "INSERT INTO test_purposes (id,name) VALUES (2 ,'B')",
             "INSERT INTO test_purposes (id,name) VALUES (3 ,'C')",
@@ -150,8 +164,8 @@ final class Tests
             "INSERT INTO test_purposes (id,name) VALUES (51,'y')",
             "INSERT INTO test_purposes (id,name) VALUES (52,'z')",
         ],
-        'table_delete'       => 'DELETE FROM test_purposes',
-        'table_updates'      => [
+        'table_delete'         => 'DELETE FROM test_purposes',
+        'table_updates'        => [
             "UPDATE test_purposes SET name = 'A' WHERE id = 1 ",
             "UPDATE test_purposes SET name = 'B' WHERE id = 2 ",
             "UPDATE test_purposes SET name = 'C' WHERE id = 3 ",
@@ -205,11 +219,12 @@ final class Tests
             "UPDATE test_purposes SET name = 'y' WHERE id = 51",
             "UPDATE test_purposes SET name = 'z' WHERE id = 52",
         ],
-        'table_delete1'      => "DELETE FROM test_purposes WHERE id <= 20",
-        'table_delete2'      => "DELETE FROM test_purposes",
-        'table_select_all'   => "SELECT * FROM test_purposes",
-        'table_select_count' => "SELECT count(*) FROM test_purposes",
-        'table_select_ph'    => "SELECT * FROM test_purposes WHERE id=?",
+        'table_delete1'        => "DELETE FROM test_purposes WHERE id <= 20",
+        'table_delete2'        => "DELETE FROM test_purposes",
+        'table_select_all'     => "SELECT * FROM test_purposes",
+        'table_select_count'   => "SELECT count(*) FROM test_purposes",
+        'table_select_ph'      => "SELECT * FROM test_purposes WHERE id=?",
+        'table_select_ph_char' => "SELECT * FROM test_purposes WHERE lower(name) = lower(?)",
     ];
 
     /**
@@ -224,12 +239,229 @@ final class Tests
         $this->db = $db;
     }
 
-    public function CheckPlaceHolder() {
+    public function CheckCache()
+    {
+        $this->testHeader("Memcache tests");
 
         $db = $this->db;
 
+        $sth = $db->prepare($this->queries['table_select_all']);
+        $sth->cache('test_purposed', '5s');
+        $sth->execute();
+        if ($sth->getResult() != "cached" && $sth->getStorage() != "database") {
+            $this->testFail("cache test1 failed");
+        }
+        $result1 = $sth->fetchrowset();
+
+
+        $sth->execute();
+        if ($sth->getResult() != "cached" && $sth->getStorage() != "cache") {
+            $this->testFail("cache test2 failed");
+        }
+        $result2 = $sth->fetchrowset();
+
+        $sta = $db->prepare($this->queries['table_select_all']);
+        $sta->cache('test_purposed','5s');
+        $sta->execute();
+        if ($sth->getResult() != "cached" && $sth->getStorage() != "cache") {
+            $this->testFail("cache test3 failed");
+        }
+        $result3 = $sta->fetchrowset();
+
+        $result4 = DBD\Cache\MemCache::me()::me()->get('test_purposed');
+
+        if ($result1 !== $result2) {
+            $this->testFail("cache fetchrowset \$result1 != \$result2");
+        }
+        if ($result1 !== $result3) {
+            $this->testFail("cache fetchrowset \$result1 != \$result3");
+        }
+        if ($result1 !== $result4) {
+            $this->testFail("cache fetchrowset \$result1 != \$result4");
+        }
+
+        sleep(6);
+        $result5 = DBD\Cache\MemCache::me()->get('test_purposed');
+
+        if ($result5 !== false) {
+            $this->testFail("cache test5 failed");
+        }
+
+
+
+        $sth = $db->prepare($this->queries['table_select_all']);
+        $sth->cache('test_purposed', '5s');
+        $sth->execute();
+        if ($sth->getResult() != "cached" && $sth->getStorage() != "database") {
+            $this->testFail("cache test6 failed");
+        }
+        $result1 = $sth->fetchrow();
+
+
+        $sth->execute();
+        if ($sth->getResult() != "cached" && $sth->getStorage() != "cache") {
+            $this->testFail("cache test7 failed");
+        }
+        $result2 = $sth->fetchrow();
+
+        $sta = $db->prepare($this->queries['table_select_all']);
+        $sta->cache('test_purposed','5s');
+        $sta->execute();
+        if ($sth->getResult() != "cached" && $sth->getStorage() != "cache") {
+            $this->testFail("cache test8 failed");
+        }
+        $result3 = $sta->fetchrow();
+
+        $result4 = DBD\Cache\MemCache::me()->get('test_purposed')[0];
+
+        if ($result1 !== $result2) {
+            $this->testFail("cache fetchrow \$result1 != \$result2");
+        }
+        if ($result1 !== $result3) {
+            $this->testFail("cache fetchrow \$result1 != \$result3");
+        }
+        if ($result1 !== $result4) {
+            dump($result1);
+            dump($result4);
+            $this->testFail("cache fetchrow \$result1 != \$result4");
+        }
+
+        sleep(6);
+        $result5 = DBD\Cache\MemCache::me()::me()->get('test_purposed');
+
+        if ($result5 !== false) {
+            $this->testFail("cache test9 failed");
+        }
+
+        $this->testPass();
+
+        return $this;
+    }
+
+    public function Begin() {
+
+        $this->testHeader("Transaction BEGIN");
+
+        $this->db->begin();
+
+        $this->testPass();
+
+        return $this;
+    }
+
+    public function CheckFetch() {
+        $this->testHeader("Fetch operations");
+
+        $db = $this->db;
+
+        $sth = $db->prepare($this->queries['table_select_ph_char']);
+        $sth->execute('A');
+
+        $i      = 0;
+        $expect = [ 1, 'A' ];
+        $real   = [];
+        while($row = $sth->fetch()) {
+            $real[] = $row;
+            $i++;
+        }
+        if(count($real) != 2) {
+            $this->testFail("method returned " . count($real) . " instead of 2");
+        }
+
+        if($expect != $real) {
+            $this->testFail("real not equal to expect");
+        }
+
+        $this->testPass();
+
+        return $this;
+    }
+
+    public function CheckPlaceHolder() {
+
+        $this->testHeader("Placholder operations");
+
+        $db = $this->db;
+
+        $db->do($this->queries['table_delete']);
+        foreach($this->queries['table_insert'] as $query) {
+            if($db->do($query) !== 1) {
+                $this->testFail("do method returned not equal 1");
+            }
+        }
+
         $sth = $db->prepare($this->queries['table_select_ph']);
         $sth->execute(1);
+
+        if($sth->rows() != 1) {
+            $this->testFail("prepare method returned " . $sth->rows() . " instead of 1");
+        }
+
+        $sth = $db->prepare($this->queries['table_select_ph_char']);
+        $sth->execute('A');
+
+        if($sth->rows() != 2) {
+            $this->testFail("prepare method returned " . $sth->rows() . " instead of 2");
+        }
+
+        $sth = $db->prepare($this->queries['table_select_ph']);
+        $sth->execute(1);
+
+        if(count($sth->fetchrowset()) != 1) {
+            $this->testFail("fetchrowset-1.0 method returned " . $sth->rows() . " instead of 1");
+        }
+
+        $sth = $db->prepare($this->queries['table_select_ph_char']);
+        $sth->execute('A');
+
+        if(count($sth->fetchrowset()) != 2) {
+            $this->testFail("fetchrowset-1.1 method returned " . $sth->rows() . " instead of 2");
+        }
+
+        $sth = $db->prepare($this->queries['table_select_ph']);
+        $sth->execute(1);
+
+        if(count($sth->fetchrowset('name')) != 1) {
+            $this->testFail("fetchrowset-2.0 method returned " . $sth->rows() . " instead of 1");
+        }
+
+        $sth = $db->prepare($this->queries['table_select_ph_char']);
+        $sth->execute('A');
+
+        if(count($sth->fetchrowset('name')) != 2) {
+            $this->testFail("fetchrowset-2.1 method returned " . $sth->rows() . " instead of 2");
+        }
+
+        $this->testPass();
+
+        return $this;
+    }
+
+    public function Commit() {
+
+        $this->testHeader("Transaction COMMIT");
+
+        $this->db->do($this->queries['table_create']);
+        $this->db->do($this->queries['table_drop']);
+
+        $this->db->commit();
+
+        $this->testPass();
+
+        return $this;
+    }
+
+    public function Rollback() {
+
+        $this->testHeader("Transaction ROLLBACK");
+
+        $this->db->begin();
+        $this->db->do($this->queries['table_create']);
+
+        $this->db->rollback();
+        $this->db->begin();
+
+        $this->testPass();
 
         return $this;
     }
@@ -237,8 +469,6 @@ final class Tests
     public function TableCreation() {
 
         $this->testHeader("Table creation");
-
-        //$this->db->do($this->queries['table_drop']);
 
         //--------------------------------
         // Table creation through prepare
@@ -399,7 +629,7 @@ final class Tests
         // QUERY method ---------------------------------------------
         $i = 0;
         foreach($this->queries['table_insert'] as $query) {
-            $sth = $db->query($query);
+            $sth  = $db->query($query);
             $rows = $sth->rows();
 
             if($rows !== 1) {
@@ -453,7 +683,7 @@ final class Tests
         // QUERY method ---------------------------------------------
         $i = 0;
         foreach($this->queries['table_updates'] as $query) {
-            $sth = $db->query($query);
+            $sth  = $db->query($query);
             $rows = $sth->rows();
 
             if($rows !== 1) {
@@ -462,13 +692,26 @@ final class Tests
             $i++;
         }
 
+        // UPDATE method ---------------------------
+        $sth = $db->prepare($this->queries['table_select_all']);
+        $sth->execute();
+        while($row = $sth->fetchrow()) {
+            $update = [
+                'name' => $row['name'] . "_updated"
+            ];
+            $sta    = $db->update('test_purposes', $update, "id=?", $row['id']);
+            if($sta->rows() !== 1) {
+                $this->testFail("update method returned " . $sta->rows() . ", which is not equal to 1");
+            }
+        }
+
         $this->testPass();
 
         return $this;
     }
 
     private function testFail($error = "") {
-        $this->db->do($this->queries['table_drop']);
+        $this->db->rollback();
         printf("%s\n", (new Colors())->getColoredString("FAIL: $error", "light_red"));
         exit();
     }
@@ -681,30 +924,30 @@ class Colors
 
     public function __construct() {
         // Set up shell colors
-        $this->foreground_colors['black'] = '0;30';
-        $this->foreground_colors['dark_gray'] = '1;30';
-        $this->foreground_colors['blue'] = '0;34';
-        $this->foreground_colors['light_blue'] = '1;34';
-        $this->foreground_colors['green'] = '0;32';
-        $this->foreground_colors['light_green'] = '1;32';
-        $this->foreground_colors['cyan'] = '0;36';
-        $this->foreground_colors['light_cyan'] = '1;36';
-        $this->foreground_colors['red'] = '0;31';
-        $this->foreground_colors['light_red'] = '1;31';
-        $this->foreground_colors['purple'] = '0;35';
+        $this->foreground_colors['black']        = '0;30';
+        $this->foreground_colors['dark_gray']    = '1;30';
+        $this->foreground_colors['blue']         = '0;34';
+        $this->foreground_colors['light_blue']   = '1;34';
+        $this->foreground_colors['green']        = '0;32';
+        $this->foreground_colors['light_green']  = '1;32';
+        $this->foreground_colors['cyan']         = '0;36';
+        $this->foreground_colors['light_cyan']   = '1;36';
+        $this->foreground_colors['red']          = '0;31';
+        $this->foreground_colors['light_red']    = '1;31';
+        $this->foreground_colors['purple']       = '0;35';
         $this->foreground_colors['light_purple'] = '1;35';
-        $this->foreground_colors['brown'] = '0;33';
-        $this->foreground_colors['yellow'] = '1;33';
-        $this->foreground_colors['light_gray'] = '0;37';
-        $this->foreground_colors['white'] = '1;37';
+        $this->foreground_colors['brown']        = '0;33';
+        $this->foreground_colors['yellow']       = '1;33';
+        $this->foreground_colors['light_gray']   = '0;37';
+        $this->foreground_colors['white']        = '1;37';
 
-        $this->background_colors['black'] = '40';
-        $this->background_colors['red'] = '41';
-        $this->background_colors['green'] = '42';
-        $this->background_colors['yellow'] = '43';
-        $this->background_colors['blue'] = '44';
-        $this->background_colors['magenta'] = '45';
-        $this->background_colors['cyan'] = '46';
+        $this->background_colors['black']      = '40';
+        $this->background_colors['red']        = '41';
+        $this->background_colors['green']      = '42';
+        $this->background_colors['yellow']     = '43';
+        $this->background_colors['blue']       = '44';
+        $this->background_colors['magenta']    = '45';
+        $this->background_colors['cyan']       = '46';
         $this->background_colors['light_gray'] = '47';
     }
 

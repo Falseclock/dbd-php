@@ -28,24 +28,6 @@
 namespace DBD;
 
 /**
- * Class PgExtend
- *
- * @package DBD
- */
-final class PgExtend extends Pg implements DBI
-{
-    /**
-     * PgExtend constructor.
-     *
-     * @param        $object
-     * @param string $statement
-     */
-    public function __construct($object, $statement = "") {
-        parent::extendMe($object, $statement);
-    }
-}
-
-/**
  * Class Pg
  *
  * @package DBD
@@ -58,10 +40,10 @@ class Pg extends DBD
      * @return void
      */
     public function _connect() {
-        $this->dbh = @pg_connect($this->dsn);
+        $this->dbh = pg_connect($this->dsn);
 
         if(!$this->dbh)
-            trigger_error("Can not connect to PostgreSQL server: " . $this->_errorMessage(), E_USER_ERROR);
+            trigger_error("Can not connect to PostgreSQL server! ", E_USER_ERROR);
     }
 
     /**
@@ -248,7 +230,10 @@ class Pg extends DBD
      * @return string
      */
     protected function _errorMessage() {
-        return pg_last_error($this->dbh);
+        if ($this->dbh)
+            return pg_last_error($this->dbh);
+        else
+            return pg_last_error();
     }
 
     /**
@@ -306,7 +291,7 @@ class Pg extends DBD
     }
 
     protected function _queryExplain($statement) {
-        return @pg_query($this->dbh, "EXPLAIN $statement");
+        //TODO: return @pg_query($this->dbh, "EXPLAIN $statement");
     }
 
     /**
@@ -316,5 +301,23 @@ class Pg extends DBD
      */
     protected function _rollback() {
         return $this->_query("ROLLBACK;");
+    }
+}
+
+/**
+ * Class PgExtend
+ *
+ * @package DBD
+ */
+final class PgExtend extends Pg implements DBI
+{
+    /**
+     * PgExtend constructor.
+     *
+     * @param        $object
+     * @param string $statement
+     */
+    public function __construct($object, $statement = "") {
+        parent::extendMe($object, $statement);
     }
 }

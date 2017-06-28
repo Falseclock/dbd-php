@@ -38,21 +38,20 @@ use Exception;
  */
 abstract class DBD
 {
-    public $rows = 0;
     //private $affected = 0;
-    protected $cache       = [
+    public           $rows        = 0;
+    protected static $debug       = [];
+    protected        $cache       = [
         'key'      => null,
         'result'   => null,
         'compress' => null,
         'expire'   => null,
     ];
-    protected $database    = null;
-    protected $dbh         = null;
-    protected $debug       = null;
-    protected $dsn         = null;
-    protected $fetch       = "UNDEF";
-    protected $myDebug     = true;
-    protected $options     = [
+    protected        $database    = null;
+    protected        $dbh         = null;
+    protected        $dsn         = null;
+    protected        $fetch       = "UNDEF";
+    protected        $options     = [
         'OnDemand'           => false,
         'PrintError'         => true,
         'RaiseError'         => true,
@@ -64,12 +63,17 @@ abstract class DBD
         /** @var \DBD\Cache CacheDriver */
         'CacheDriver'        => null,
     ];
-    protected $password    = null;
-    protected $port        = null;
-    protected $query       = "";
-    protected $result      = null;
-    protected $transaction = false;
-    protected $username    = null;
+    protected        $password    = null;
+    protected        $port        = null;
+    protected        $query       = "";
+    protected        $result      = null;
+    protected        $storage     = false;
+    protected        $transaction = false;
+    protected        $username    = null;
+
+    public function __construct() {
+        self::$debug = [];
+    }
 
     abstract protected function _affectedRows();
 
@@ -199,9 +203,7 @@ abstract class DBD
             if($this->transaction) {
                 $this->rollback();
             }
-            if(!$this->options['Persistent']) {
-                $this->_disconnect();
-            }
+            $this->_disconnect();
         }
         if(is_resource($this->cacheDriver())) {
             $this->cacheDriver()->close();
@@ -258,12 +260,19 @@ abstract class DBD
     /**
      * Sends a request to execute a prepared statement with given parameters, and waits for the result.
      *
-     * @return bool|mixed|null|string
+     * @return mixed
      */
     public function execute() {
+
+        if($this->options['UseDebug']) {
+            Debug::me()->startTimer();
+        }
+
         // Set result to false
-        $this->result = false;
-        $this->fetch = "UNDEF";
+        $this->result  = false;
+        $this->fetch   = "UNDEF";
+        $this->storage = null;
+        $exec          = $this->getExec(func_get_args());
 
         //--------------------------------------
         // Is query uses cache?
@@ -276,65 +285,23 @@ abstract class DBD
                 // Cache not empty?
                 if($this->cache['result'] && $this->cache['result'] !== false) {
                     // To avoid errors as result by default is NULL
-                    $this->result = 'cached';
-                    $this->rows = count($this->cache['result']);
-                    // Do not show in debug, cause data taken from cache
-                    //$storeDebug = 0;
+                    $this->result  = 'cached';
+                    $this->storage = 'cache';
+                    $this->rows    = count($this->cache['result']);
                 }
             }
         }
 
-        $exec = $this->query;
-
         // If not found in cache, then let's get from DB
         if($this->result != 'cached') {
-            // Store debug
-            $storeDebug = 1;
 
-            $binds = substr_count($this->query, "?");
-            $ARGS = func_get_args();
-            $args = $this->parseArgs($ARGS);
-
-            $numargs = count($args);
-
-            if($binds != $numargs) {
-                $caller = $this->caller();
-
-                trigger_error("Execute failed: called with 
-					$numargs bind variables when $binds are needed at 
-					{$caller[0]['file']} line {$caller[0]['line']}", E_USER_ERROR);
-            }
-
-            if($numargs) {
-                $query = str_split($this->query);
-
-                foreach($query as $ind => $str) {
-                    if($str == '?') {
-                        $query[$ind] = $this->_escape(array_shift($args));
-                    }
-                }
-                $exec = implode("", $query);
-            }
-            // FIXME: what for I did this?
-            // Print query to window for debug purposes
-            //if ($this->obj['print']) {
-            //	print ($exec);
-            //}
-
-            //--------------------------------------
-            // Debug?
-            //--------------------------------------
-
-            if($storeDebug and $this->options['UseDebug']) {
-                $Debug = new Debug;
-                $Debug->startTimer();
-            }
             $this->connectionPreCheck();
             // Execute query to the database
             $this->result = $this->_query($exec);
 
             if($this->result !== false) {
-                $this->rows = $this->_numRows();
+                $this->rows    = $this->_numRows();
+                $this->storage = 'database';
             }
 
             // If query from cache
@@ -343,7 +310,7 @@ abstract class DBD
                 //  because during internal method invoke (fetchrowset below) this Driver
                 //  will think we have data from cache
 
-                $storedKey = $this->cache['key'];
+                $storedKey          = $this->cache['key'];
                 $this->cache['key'] = null;
 
                 // If we have data from query
@@ -356,53 +323,28 @@ abstract class DBD
                 }
 
                 // reverting all back, cause we stored data to cache
-                $this->result = 'cached';
+                $this->result       = 'cached';
                 $this->cache['key'] = $storedKey;
 
                 // Setting up our cache
                 $this->cacheDriver()->set($this->cache['key'], $this->cache['result'], $this->cache['expire']);
             }
         }
+
         if($this->result === false) {
             new ErrorHandler ($exec, $this->_errorMessage(), $this->caller(), $this->options);
         }
 
-        /*
-        if($storeDebug)
-        {
-            //--------------------------------------
-            // Debug?
-            //--------------------------------------
-
-                        if ($DB->obj['debug'])
-                        {
-                            $caller = $this->caller();
-
-                            $endtime  = $Debug->endTimer();
-                            $site->debug['RuntimeDB'] += $endtime;
-                            $current = count($site->debug['db']);
-
-                            $site->debug['db'][$current]['caller_file'] = $caller['file'];
-                            $site->debug['db'][$current]['caller_line'] = $caller['line'];
-                            $site->debug['db'][$current]['time'] = $endtime;
-
-                            $site->debug['db'][$current]['query'] = $exec;
-
-                            if ( preg_match( "/^[\s\t\r\n]*select/i", $exec ) )
-                            {
-                                $this->connectionPreCheck();
-                                $explain = $this->_queryExplain($exec);
-
-                                while ($row = pg_fetch_row($explain))
-                                {
-                                    $site->debug['db'][$current]['explain'] .= $row[0]."\n";
-                                }
-                            }
-                        }
-                        $DB->obj['cache'][] = $exec;
-
+        if($this->options['UseDebug']) {
+            self::$debug[$this->storage][] = [
+                'query'   => $exec,
+                'time'    => date('c'),
+                'cost'    => Debug::me()->endTimer(),
+                'caller'  => $this->caller()[0],
+                'explain' => null,
+                'driver'  => $this->getDriver()
+            ];
         }
-        */
 
         return $this->result;
     }
@@ -461,7 +403,7 @@ abstract class DBD
             }
         }
         else {
-            $cache = $this->cache['result'];
+            $cache                 = $this->cache['result'];
             $this->cache['result'] = [];
 
             if($key) {
@@ -477,6 +419,10 @@ abstract class DBD
         return $array;
     }
 
+    public function getDebug() {
+        return self::$debug;
+    }
+
     public function getOption($key) {
         if(array_key_exists($key, $this->options)) {
             return $this->options[$key];
@@ -484,6 +430,14 @@ abstract class DBD
         else {
             throw new Exception("Unknown option provided");
         }
+    }
+
+    public function getResult() {
+        return $this->result;
+    }
+
+    public function getStorage() {
+        return $this->storage;
     }
 
     /**
@@ -596,11 +550,11 @@ abstract class DBD
     }
 
     public function update() {
-        $binds = 0;
-        $where = null;
+        $binds  = 0;
+        $where  = null;
         $return = null;
-        $ARGS = func_get_args();
-        $table = $ARGS[0];
+        $ARGS   = func_get_args();
+        $table  = $ARGS[0];
         $values = $ARGS[1];
 
         $params = $this->compileUpdateArgs($values);
@@ -632,7 +586,7 @@ abstract class DBD
 
     protected function caller() {
         $return = [];
-        $debug = debug_backtrace();
+        $debug  = debug_backtrace();
 
         // working directory
         $wd = $_SERVER["DOCUMENT_ROOT"];
@@ -677,7 +631,7 @@ abstract class DBD
 
         if($this->cacheDriver()) {
             $this->cache['compress'] = $this->cacheDriver()->COMPRESS;
-            $this->cache['expire'] = $this->cacheDriver()->EXPIRE;
+            $this->cache['expire']   = $this->cacheDriver()->EXPIRE;
         }
     }
 
@@ -705,14 +659,14 @@ abstract class DBD
     private function compileInsertArgs($data) {
 
         $columns = "";
-        $values = "";
-        $args = [];
+        $values  = "";
+        $args    = [];
 
         foreach($data as $c => $v) {
             $pattern = "/[^\"a-zA-Z0-9_-]/";
-            $c = preg_replace($pattern, "", $c);
+            $c       = preg_replace($pattern, "", $c);
             $columns .= "$c, ";
-            $values .= "?,";
+            $values  .= "?,";
             if($v === true) {
                 $v = 'true';
             }
@@ -723,7 +677,7 @@ abstract class DBD
         }
 
         $columns = preg_replace("/, $/", "", $columns);
-        $values = preg_replace("/,$/", "", $values);
+        $values  = preg_replace("/,$/", "", $values);
 
         return [
             'COLUMNS' => $columns,
@@ -735,13 +689,13 @@ abstract class DBD
     private function compileUpdateArgs($data) {
 
         $columns = "";
-        $args = [];
+        $args    = [];
 
         $pattern = "/[^\"a-zA-Z0-9_-]/";
         foreach($data as $k => $v) {
-            $k = preg_replace($pattern, "", $k);
+            $k       = preg_replace($pattern, "", $k);
             $columns .= "$k = ?, ";
-            $args[] = $v;
+            $args[]  = $v;
         }
 
         $columns = preg_replace("/, $/", "", $columns);
@@ -765,9 +719,42 @@ abstract class DBD
         return $this;
     }
 
+    private function getDriver() {
+        return (new \ReflectionClass($this))->getParentClass()->getShortName();
+    }
+
+    private function getExec($ARGS) {
+        $exec  = $this->query;
+        $binds = substr_count($this->query, "?");
+        $args  = $this->parseArgs($ARGS);
+
+        $numberOfArgs = count($args);
+
+        if($binds != $numberOfArgs) {
+            $caller = $this->caller();
+
+            trigger_error("Execute failed: called with 
+					$numberOfArgs bind variables when $binds are needed at 
+					{$caller[0]['file']} line {$caller[0]['line']}", E_USER_ERROR);
+        }
+
+        if($numberOfArgs) {
+            $query = str_split($this->query);
+
+            foreach($query as $ind => $str) {
+                if($str == '?') {
+                    $query[$ind] = $this->_escape(array_shift($args));
+                }
+            }
+            $exec = implode("", $query);
+        }
+
+        return $exec;
+    }
+
     private function prepareArgs($ARGS) {
         $statement = array_shift($ARGS);
-        $args = $this->parseArgs($ARGS);
+        $args      = $this->parseArgs($ARGS);
 
         return [
             $statement,

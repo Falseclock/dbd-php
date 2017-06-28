@@ -27,7 +27,6 @@
 
 
 namespace DBD;
-use DBI;
 
 /**
  * Class <DRIVER_NAME>

@@ -30,24 +30,6 @@ namespace DBD;
 use DBD\Base\ErrorHandler;
 
 /**
- * Class MSSQLExtend
- *
- * @package DBD
- */
-final class MSSQLExtend extends MSSQL implements DBI
-{
-    public function __construct($object, $statement = "") {
-        parent::extendMe($object, $statement);
-    }
-
-    public function cursor($cursorType) {
-        $this->cursorType = $cursorType;
-
-        return;
-    }
-}
-
-/**
  * Class MSSQL
  *
  * @package DBD
@@ -220,5 +202,23 @@ class MSSQL extends DBD
 
     protected function _rollback() {
         return sqlsrv_rollback($this->dbh);
+    }
+}
+
+/**
+ * Class MSSQLExtend
+ *
+ * @package DBD
+ */
+final class MSSQLExtend extends MSSQL implements DBI
+{
+    public function __construct($object, $statement = "") {
+        parent::extendMe($object, $statement);
+    }
+
+    public function cursor($cursorType) {
+        $this->cursorType = $cursorType;
+
+        return;
     }
 }

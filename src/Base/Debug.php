@@ -25,34 +25,33 @@
 
 namespace DBD\Base;
 
+use DBD\Base\Instantiatable as Instantiatable;
+use DBD\Base\Singleton as Singleton;
+
 final class Debug extends Singleton implements Instantiatable
 {
-    protected static $starttime = null;
-
-    public function __construct() {
-        return $this;
-    }
+    protected static $startTime = null;
 
     public static function me() {
         return Singleton::getInstance(__CLASS__);
     }
 
     public function endTimer() {
-        $mtime = microtime();
-        $mtime = explode(' ', $mtime);
-        $mtime = $mtime[1] + $mtime[0];
-        $endtime = $mtime;
-        $totaltime = round(($endtime - Debug::$starttime), 5);
+        $mtime     = microtime();
+        $mtime     = explode(' ', $mtime);
+        $mtime     = $mtime[1] + $mtime[0];
+        $endtime   = $mtime;
+        $totaltime = round(($endtime - Debug::$startTime), 5);
 
         return $totaltime;
     }
 
     public function startTimer() {
-        $mtime = microtime();
-        $mtime = explode(' ', $mtime);
-        $mtime = $mtime[1] + $mtime[0];
-        Debug::$starttime = $mtime;
+        $mtime            = microtime();
+        $mtime            = explode(' ', $mtime);
+        $mtime            = $mtime[1] + $mtime[0];
+        Debug::$startTime = $mtime;
 
-        return Debug::$starttime;
+        return Debug::$startTime;
     }
 }
