@@ -30,28 +30,32 @@ use DBD\Base\Singleton as Singleton;
 
 final class Debug extends Singleton implements Instantiatable
 {
-    protected static $startTime = null;
+    protected $startTime = null;
 
     public static function me() {
         return Singleton::getInstance(__CLASS__);
     }
 
     public function endTimer() {
-        $mtime     = microtime();
-        $mtime     = explode(' ', $mtime);
-        $mtime     = $mtime[1] + $mtime[0];
-        $endtime   = $mtime;
-        $totaltime = round(($endtime - Debug::$startTime), 5);
-
-        return $totaltime;
+        return $this->difference($this->startTime);
     }
 
     public function startTimer() {
-        $mtime            = microtime();
-        $mtime            = explode(' ', $mtime);
-        $mtime            = $mtime[1] + $mtime[0];
-        Debug::$startTime = $mtime;
+        $this->startTime = microtime();
 
-        return Debug::$startTime;
+        return $this->startTime;
+    }
+
+    private function difference($start, $end = null)
+    {
+        if (!$end) {
+            $end = microtime();
+        }
+        list($start_usec, $start_sec) = explode(" ", $start);
+        list($end_usec, $end_sec) = explode(" ", $end);
+        $diff_sec = intval($end_sec) - intval($start_sec);
+        $diff_usec = floatval($end_usec) - floatval($start_usec);
+        //return floatval($diff_sec) + $diff_usec;
+        return round( ((floatval($diff_sec) + $diff_usec)*1000), 3);
     }
 }

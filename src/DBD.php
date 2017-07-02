@@ -39,19 +39,19 @@ use Exception;
 abstract class DBD
 {
     //private $affected = 0;
-    public           $rows        = 0;
-    protected static $debug       = [];
-    protected        $cache       = [
+    public static $debug       = [];
+    public        $rows        = 0;
+    protected     $cache       = [
         'key'      => null,
         'result'   => null,
         'compress' => null,
         'expire'   => null,
     ];
-    protected        $database    = null;
-    protected        $dbh         = null;
-    protected        $dsn         = null;
-    protected        $fetch       = "UNDEF";
-    protected        $options     = [
+    protected     $database    = null;
+    protected     $dbh         = null;
+    protected     $dsn         = null;
+    protected     $fetch       = "UNDEF";
+    protected     $options     = [
         'OnDemand'           => false,
         'PrintError'         => true,
         'RaiseError'         => true,
@@ -63,17 +63,16 @@ abstract class DBD
         /** @var \DBD\Cache CacheDriver */
         'CacheDriver'        => null,
     ];
-    protected        $password    = null;
-    protected        $port        = null;
-    protected        $query       = "";
-    protected        $result      = null;
-    protected        $storage     = false;
-    protected        $transaction = false;
-    protected        $username    = null;
-
-    public function __construct() {
-        self::$debug = [];
-    }
+    protected     $password    = null;
+    protected     $port        = null;
+    protected     $query       = "";
+    protected     $result      = null;
+    protected     $storage     = false;
+    protected     $transaction = false;
+    protected     $username    = null;
+    //public function __construct() {
+    //    self::$debug = [];
+    // }
 
     abstract protected function _affectedRows();
 
@@ -263,11 +262,6 @@ abstract class DBD
      * @return mixed
      */
     public function execute() {
-
-        if($this->options['UseDebug']) {
-            Debug::me()->startTimer();
-        }
-
         // Set result to false
         $this->result  = false;
         $this->fetch   = "UNDEF";
@@ -280,10 +274,14 @@ abstract class DBD
         if($this->cacheDriver()) {
             if($this->cache['key'] !== null) {
                 // Get data from cache
+                if($this->options['UseDebug']) {
+                    Debug::me()->startTimer();
+                }
                 $this->cache['result'] = $this->cacheDriver()->get($this->cache['key']);
 
                 // Cache not empty?
                 if($this->cache['result'] && $this->cache['result'] !== false) {
+                    $cost = Debug::me()->endTimer();
                     // To avoid errors as result by default is NULL
                     $this->result  = 'cached';
                     $this->storage = 'cache';
@@ -296,8 +294,12 @@ abstract class DBD
         if($this->result != 'cached') {
 
             $this->connectionPreCheck();
+            if($this->options['UseDebug']) {
+                Debug::me()->startTimer();
+            }
             // Execute query to the database
             $this->result = $this->_query($exec);
+            $cost         = Debug::me()->endTimer();
 
             if($this->result !== false) {
                 $this->rows    = $this->_numRows();
@@ -336,14 +338,19 @@ abstract class DBD
         }
 
         if($this->options['UseDebug']) {
-            self::$debug[$this->storage][] = [
-                'query'   => $exec,
-                'time'    => date('c'),
-                'cost'    => Debug::me()->endTimer(),
+            $index = $this->result == 'cached' ? 'Cache' : $this->getDriver();
+
+            self::$debug['queries'][$index][]           = [
+                'query'   => $this->cleanSql($exec),
+                'cost'    => $cost,
                 'caller'  => $this->caller()[0],
                 'explain' => null,
-                'driver'  => $this->getDriver()
+                'mark'    => $this->debugMark($cost),
             ];
+            self::$debug['total_queries']               += 1;
+            self::$debug['total_cost']                  += $cost;
+            self::$debug['per_driver'][$index]['total'] += 1;
+            self::$debug['per_driver'][$index]['cost']  += $cost;
         }
 
         return $this->result;
@@ -472,6 +479,27 @@ abstract class DBD
         $className = get_class($this);
 
         return new $className($this, $statement);
+    }
+
+    /**
+     * @return string
+     */
+    public function printDebug() {
+        $debug = $this->getDebug();
+        foreach($debug['per_driver'] as $key => $row) {
+            $debug['per_driver'][$key]['mark'] = $this->debugMark($row['cost'] / $row['total']);
+        }
+        extract($debug);
+
+        ob_start();
+        /** @noinspection PhpIncludeInspection */
+        require(__DIR__ . DIRECTORY_SEPARATOR . 'DBDDebug.php');
+        $return = ob_get_contents();
+        ob_end_clean();
+
+        echo $return;
+
+        return;
     }
 
     public function query() {
@@ -656,6 +684,26 @@ abstract class DBD
         return $args;
     }
 
+    private function cleanSql($exec) {
+        $array = preg_split('/\R/', $exec);
+
+        foreach($array as $idx => $line) {
+            //$array[$idx] = trim($array[$idx], "\s\t\n\r");
+            if(!$array[$idx] || preg_match('/^[\s\R\t]*?$/', $array[$idx])) {
+                unset($array[$idx]);
+                continue;
+            }
+            if(preg_match('/^\s*?(UNION|CREATE|DELETE|UPDATE|SELECT|FROM|WHERE|JOIN|LIMIT|OFFSET|ORDER|GROUP)/i', $array[$idx])) {
+                $array[$idx] = ltrim($array[$idx]);
+            }
+            else {
+                $array[$idx] = "    " . ltrim($array[$idx]);
+            }
+        }
+
+        return implode("\n", $array);
+    }
+
     private function compileInsertArgs($data) {
 
         $columns = "";
@@ -717,6 +765,23 @@ abstract class DBD
         }
 
         return $this;
+    }
+
+    private function debugMark($cost) {
+        switch(true) {
+            case ($cost >= 0 && $cost <= 20):
+                return 1;
+            case ($cost >= 21 && $cost <= 50):
+                return 2;
+            case ($cost >= 51 && $cost <= 90):
+                return 3;
+            case ($cost >= 91 && $cost <= 140):
+                return 4;
+            case ($cost >= 141 && $cost <= 200):
+                return 5;
+            default:
+                return 6;
+        }
     }
 
     private function getDriver() {

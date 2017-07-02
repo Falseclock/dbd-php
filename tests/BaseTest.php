@@ -86,22 +86,21 @@ foreach($TEST['database'] as $database) {
                     ->Commit()
                     ->Rollback()
                     ->TableCreation()
-                    //->TableInsertion()
-                    //->TableUpdate()
-                    //->TableDelete()
-                    //->TableInsert()
-                    //->CheckPlaceHolder()
-                    //->CheckFetch()
-                    //->CheckCache()
+                    ->TableInsertion()
+                    ->TableUpdate()
+                    ->TableDelete()
+                    ->TableInsert()
+                    ->CheckPlaceHolder()
+                    ->CheckFetch()
+                    ->CheckCache()
                     ->TableDrop()
     ;
 
     $db->disconnect();
 
-    $debug = $db->getDebug();
-    dump($debug);
-}
 
+}
+$db->printDebug();
 $cache->close();
 
 final class Tests

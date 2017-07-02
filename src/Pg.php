@@ -59,20 +59,6 @@ class Pg extends DBD
         $dsn .= $this->port ? "port={$this->port} " : "";
         $dsn .= "options='--application_name=DBD-PHP' ";
 
-        /*
-         * Getting array from DSN string like
-         * [['host','localhost'],['port','5432'],['dbname','myDatabase']]
-         */
-        #$chunks = array_chunk(preg_split('/(=|;)/', $this->dsn), 2);
-        /*
-         * Now build array like ('host' => 'localhost', 'port' => '5432', 'dbname' => 'myDatabase')
-         */
-        #$options = array_combine(array_column($chunks, 0), array_column($chunks, 1));
-
-        #foreach($options as $key => $value) {
-        #    $dsn .= "{$key}={$value} ";
-        #}
-
         $this->dsn = $dsn;
 
         if($this->options['OnDemand'] == false) {
