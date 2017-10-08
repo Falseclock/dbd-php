@@ -227,7 +227,7 @@ abstract class DBD
         }
     */
 
-    public function do() {
+    public function doit() {
         if(!func_num_args())
             trigger_error("query failed: statement is not set or empty", E_USER_ERROR);
 
@@ -253,7 +253,7 @@ abstract class DBD
      * @deprecated
      */
     public function du() {
-        return $this->do(func_get_args());
+        return $this->doit(func_get_args());
     }
 
     /**
