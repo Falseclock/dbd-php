@@ -216,7 +216,7 @@ class Pg extends DBD
      * @return string
      */
     protected function _errorMessage() {
-        if ($this->dbh)
+        if($this->dbh)
             return pg_last_error($this->dbh);
         else
             return pg_last_error();

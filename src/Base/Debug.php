@@ -46,16 +46,16 @@ final class Debug extends Singleton implements Instantiatable
         return $this->startTime;
     }
 
-    private function difference($start, $end = null)
-    {
-        if (!$end) {
+    private function difference($start, $end = null) {
+        if(!$end) {
             $end = microtime();
         }
         list($start_usec, $start_sec) = explode(" ", $start);
         list($end_usec, $end_sec) = explode(" ", $end);
-        $diff_sec = intval($end_sec) - intval($start_sec);
+        $diff_sec  = intval($end_sec) - intval($start_sec);
         $diff_usec = floatval($end_usec) - floatval($start_usec);
+
         //return floatval($diff_sec) + $diff_usec;
-        return round( ((floatval($diff_sec) + $diff_usec)*1000), 3);
+        return round(((floatval($diff_sec) + $diff_usec) * 1000), 3);
     }
 }

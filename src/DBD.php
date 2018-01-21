@@ -39,7 +39,7 @@ use Exception;
 abstract class DBD
 {
     //private $affected = 0;
-    public static $debug       = [];
+    public static $debug       = [ 'total_queries', 'total_cost', 'per_driver' ];
     public        $rows        = 0;
     protected     $cache       = [
         'key'      => null,
@@ -182,6 +182,7 @@ abstract class DBD
      * @param array  $options
      *
      * @return $this
+     * @throws \Exception
      */
     public function create($dsn, $port, $database, $username, $password, $options = []) {
         $driver = get_class($this);
@@ -203,6 +204,7 @@ abstract class DBD
                 $this->rollback();
             }
             $this->_disconnect();
+            $this->dbh = null;
         }
         if(is_resource($this->cacheDriver())) {
             $this->cacheDriver()->close();
@@ -260,6 +262,7 @@ abstract class DBD
      * Sends a request to execute a prepared statement with given parameters, and waits for the result.
      *
      * @return mixed
+     * @throws \Exception
      */
     public function execute() {
         // Set result to false
@@ -305,6 +308,9 @@ abstract class DBD
                 $this->rows    = $this->_numRows();
                 $this->storage = 'database';
             }
+            else {
+                new ErrorHandler ($exec, $this->_errorMessage(), $this->caller(), $this->options);
+            }
 
             // If query from cache
             if($this->cache['key'] !== null) {
@@ -340,17 +346,18 @@ abstract class DBD
         if($this->options['UseDebug']) {
             $index = $this->result == 'cached' ? 'Cache' : $this->getDriver();
 
-            self::$debug['queries'][$index][]           = [
+            $caller = $this->caller();
+            @self::$debug['queries'][$index][] = [
                 'query'   => $this->cleanSql($exec),
                 'cost'    => $cost,
-                'caller'  => $this->caller()[0],
+                'caller'  => $caller[0],
                 'explain' => null,
                 'mark'    => $this->debugMark($cost),
             ];
-            self::$debug['total_queries']               += 1;
-            self::$debug['total_cost']                  += $cost;
-            self::$debug['per_driver'][$index]['total'] += 1;
-            self::$debug['per_driver'][$index]['cost']  += $cost;
+            @self::$debug['total_queries'] += 1;
+            @self::$debug['total_cost'] += $cost;
+            @self::$debug['per_driver'][$index]['total'] += 1;
+            @self::$debug['per_driver'][$index]['cost'] += $cost;
         }
 
         return $this->result;
@@ -427,7 +434,14 @@ abstract class DBD
     }
 
     public function getDebug() {
-        return self::$debug;
+        $debug = self::$debug;
+        if(count($debug['per_driver'])) {
+            foreach($debug['per_driver'] as $key => $row) {
+                $debug['per_driver'][$key]['mark'] = $this->debugMark($row['cost'] / $row['total']);
+            }
+        }
+
+        return $debug;
     }
 
     public function getOption($key) {
@@ -455,6 +469,7 @@ abstract class DBD
      * @param null   $return
      *
      * @return \DBD\DBD
+     * @throws \Exception
      */
     public function insert($table, $args, $return = null) {
         $params = $this->compileInsertArgs($args);
@@ -486,9 +501,7 @@ abstract class DBD
      */
     public function printDebug() {
         $debug = $this->getDebug();
-        foreach($debug['per_driver'] as $key => $row) {
-            $debug['per_driver'][$key]['mark'] = $this->debugMark($row['cost'] / $row['total']);
-        }
+
         extract($debug);
 
         ob_start();
@@ -547,7 +560,7 @@ abstract class DBD
      */
     public function rows() {
         if($this->cache['key'] === null) {
-            if(preg_match('/^(\s*?)select\s*?.*?\s*?from/i', $this->query)) {
+            if(preg_match('/^(\s*?)select\s*?.*?\s*?from/is', $this->query)) {
                 return $this->_numRows();
             }
 

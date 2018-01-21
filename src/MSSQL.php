@@ -115,11 +115,9 @@ class MSSQL extends DBD
     }
 
     protected function _errorMessage() {
-        return preg_replace('/^(\[.*\])+?/', '', sqlsrv_errors()[0]['message']) .
-               " SQL State: " .
-               sqlsrv_errors()[0]['SQLSTATE'] .
-               ". Code: " .
-               sqlsrv_errors()[0]['code'];
+        $errors = sqlsrv_errors();
+
+        return preg_replace('/^(\[.*\])+?/', '', $errors[0]['message']) . " SQL State: " . $errors[0]['SQLSTATE'] . ". Code: " . $errors[0]['code'];
     }
 
     protected function _escape($str) {
@@ -187,7 +185,7 @@ class MSSQL extends DBD
             return @sqlsrv_query($this->dbh, $statement, [], [ "Scrollable" => $this->cursorType ]);
         }
         else {
-            if(preg_match('/^(\s*?)select\s*?.*?\s*?from/i', $this->query)) {
+            if(preg_match('/^(\s*?)select\s*?.*?\s*?from/is', $this->query)) {
                 // TODO: make as selectable option
                 return @sqlsrv_query($this->dbh, $statement, [], [ "Scrollable" => MSSQL::SQLSRV_CURSOR_STATIC ]);
             }

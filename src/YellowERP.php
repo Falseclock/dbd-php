@@ -29,15 +29,15 @@ use Exception;
 
 final class YellowERP extends OData
 {
-    private static $ibsession     = null;
-    private static $retry         = 0;
-    private static $sessionExist  = false;
     protected      $httpServices  = null;
     protected      $maxRetries    = 3;
     protected      $reuseSessions = false;
     protected      $servicesURL   = null;
     protected      $sessionFile   = null;
     protected      $timeOutLimit  = 30;
+    private static $ibsession     = null;
+    private static $retry         = 0;
+    private static $sessionExist  = false;
 
     public function connect() {
         if(!is_resource($this->dbh)) {
@@ -71,11 +71,11 @@ final class YellowERP extends OData
 
         curl_setopt($this->dbh, CURLOPT_TIMEOUT, $this->timeOutLimit);
 
-        $response = curl_exec($this->dbh);
+        $response    = curl_exec($this->dbh);
         $header_size = curl_getinfo($this->dbh, CURLINFO_HEADER_SIZE);
 
-        $this->header = substr($response, 0, $header_size);
-        $this->body = substr($response, $header_size);
+        $this->header   = substr($response, 0, $header_size);
+        $this->body     = substr($response, $header_size);
         $this->httpcode = curl_getinfo($this->dbh, CURLINFO_HTTP_CODE);
         //$url            = curl_getinfo($this->dbh, CURLINFO_EFFECTIVE_URL);
 
@@ -180,8 +180,8 @@ final class YellowERP extends OData
 
     public function reuseSessions($use = false, $maxRetries = 3, $file = 'YellowERP.ses') {
         $this->reuseSessions = $use;
-        $this->maxRetries = $maxRetries;
-        $this->sessionFile = $file;
+        $this->maxRetries    = $maxRetries;
+        $this->sessionFile   = $file;
 
         return $this;
     }

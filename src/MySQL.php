@@ -17,63 +17,83 @@ namespace DBD;
 class MySQL extends DBD
 {
     public function connect() {
+        if($this->options['OnDemand'] == false) {
+            $this->_connect();
+        }
+
         return new MySQLExtend($this);
     }
 
     protected function _affectedRows() {
-        // TODO: Implement _affectedRows() method.
+        return mysqli_affected_rows($this->result);
     }
 
     protected function _begin() {
-        // TODO: Implement _begin() method.
+        return mysqli_begin_transaction($this->dbh);
     }
 
     protected function _commit() {
-        // TODO: Implement _commit() method.
+        return mysqli_commit($this->dbh);
     }
 
     protected function _compileInsert($table, $params, $return = "") {
-        // TODO: Implement _compileInsert() method.
+        return "INSERT INTO $table ({$params['COLUMNS']}) VALUES ({$params['VALUES']})";
     }
 
     protected function _compileUpdate($table, $params, $where, $return = "") {
-        // TODO: Implement _compileUpdate() method.
+        return "UPDATE $table SET {$params['COLUMNS']}" . ($where ? " WHERE $where" : "");
     }
 
     protected function _connect() {
-        // TODO: Implement _connect() method.
+        $this->dbh = mysqli_connect($this->dsn, $this->username, $this->password, $this->database, $this->port);
+
+        if(!$this->dbh)
+            trigger_error("Can not connect to MySQL server: " . mysqli_connect_error(), E_USER_ERROR);
+
+        mysqli_autocommit($this->dbh, false);
     }
 
     protected function _convertIntFloat(&$data, $type) {
         // TODO: Implement _convertIntFloat() method.
+        return $data;
     }
 
     protected function _disconnect() {
-        // TODO: Implement _disconnect() method.
+        return mysqli_close($this->dbh);
     }
 
     protected function _errorMessage() {
-        // TODO: Implement _errorMessage() method.
+        return mysqli_error($this->dbh);
     }
 
     protected function _escape($string) {
-        // TODO: Implement _escape() method.
+        if(!isset($string) or $string === null) {
+            return "NULL";
+        }
+        $str = mysqli_real_escape_string($this->dbh, $string);
+
+        return "'$str'";
     }
 
     protected function _fetchArray() {
-        // TODO: Implement _fetchArray() method.
+        return mysqli_fetch_array($this->dbh);
     }
 
     protected function _fetchAssoc() {
-        // TODO: Implement _fetchAssoc() method.
+        return mysqli_fetch_assoc($this->dbh);
     }
 
     protected function _numRows() {
-        // TODO: Implement _numRows() method.
+        if(preg_match('/\s*(SELECT|UPDATE|DELETE|INSERT)\s+/', $this->query)) {
+            return mysqli_num_rows($this->result);
+        }
+        else {
+            return 0;
+        }
     }
 
     protected function _query($statement) {
-        // TODO: Implement _query() method.
+        return mysqli_query($this->dbh, $statement);
     }
 
     protected function _queryExplain($statement) {
@@ -81,7 +101,7 @@ class MySQL extends DBD
     }
 
     protected function _rollback() {
-        // TODO: Implement _rollback() method.
+        return mysqli_rollback($this->dbh);
     }
 }
 

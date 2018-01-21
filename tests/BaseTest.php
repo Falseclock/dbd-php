@@ -11,6 +11,24 @@ $TEST = [
     ],
     'database' => [
         [
+            'type'     => 'MySQL',
+            'database' => 'test',
+            'user'     => 'user',
+            'password' => 'password',
+            'host'     => '172.16.0.10',
+            'port'     => '3306',
+            'cache'    => true,
+            'options'  => [
+                'OnDemand'           => true,
+                'RaiseError'         => true,
+                'PrintError'         => true,
+                'HTMLError'          => false,
+                'ShowErrorStatement' => true,
+                'ConvertNumeric'     => true,
+                'UseDebug'           => true
+            ]
+        ],/*
+        [
             'type'     => 'MSSQL',
             'database' => 'virtex',
             'user'     => 'virtex',
@@ -27,7 +45,7 @@ $TEST = [
                 'ConvertNumeric'     => true,
                 'UseDebug'           => true
             ]
-        ],
+        ],*/
 
         [
             'type'     => 'Pg',
@@ -97,10 +115,8 @@ foreach($TEST['database'] as $database) {
     ;
 
     $db->disconnect();
-
-
 }
-$db->printDebug();
+
 $cache->close();
 
 final class Tests
@@ -238,8 +254,18 @@ final class Tests
         $this->db = $db;
     }
 
-    public function CheckCache()
-    {
+    public function Begin() {
+
+        $this->testHeader("Transaction BEGIN");
+
+        $this->db->begin();
+
+        $this->testPass();
+
+        return $this;
+    }
+
+    public function CheckCache() {
         $this->testHeader("Memcache tests");
 
         $db = $this->db;
@@ -247,79 +273,75 @@ final class Tests
         $sth = $db->prepare($this->queries['table_select_all']);
         $sth->cache('test_purposed', '5s');
         $sth->execute();
-        if ($sth->getResult() != "cached" && $sth->getStorage() != "database") {
+        if($sth->getResult() != "cached" && $sth->getStorage() != "database") {
             $this->testFail("cache test1 failed");
         }
         $result1 = $sth->fetchrowset();
 
-
         $sth->execute();
-        if ($sth->getResult() != "cached" && $sth->getStorage() != "cache") {
+        if($sth->getResult() != "cached" && $sth->getStorage() != "cache") {
             $this->testFail("cache test2 failed");
         }
         $result2 = $sth->fetchrowset();
 
         $sta = $db->prepare($this->queries['table_select_all']);
-        $sta->cache('test_purposed','5s');
+        $sta->cache('test_purposed', '5s');
         $sta->execute();
-        if ($sth->getResult() != "cached" && $sth->getStorage() != "cache") {
+        if($sth->getResult() != "cached" && $sth->getStorage() != "cache") {
             $this->testFail("cache test3 failed");
         }
         $result3 = $sta->fetchrowset();
 
         $result4 = DBD\Cache\MemCache::me()::me()->get('test_purposed');
 
-        if ($result1 !== $result2) {
+        if($result1 !== $result2) {
             $this->testFail("cache fetchrowset \$result1 != \$result2");
         }
-        if ($result1 !== $result3) {
+        if($result1 !== $result3) {
             $this->testFail("cache fetchrowset \$result1 != \$result3");
         }
-        if ($result1 !== $result4) {
+        if($result1 !== $result4) {
             $this->testFail("cache fetchrowset \$result1 != \$result4");
         }
 
         sleep(6);
         $result5 = DBD\Cache\MemCache::me()->get('test_purposed');
 
-        if ($result5 !== false) {
+        if($result5 !== false) {
             $this->testFail("cache test5 failed");
         }
-
-
 
         $sth = $db->prepare($this->queries['table_select_all']);
         $sth->cache('test_purposed', '5s');
         $sth->execute();
-        if ($sth->getResult() != "cached" && $sth->getStorage() != "database") {
+        if($sth->getResult() != "cached" && $sth->getStorage() != "database") {
             $this->testFail("cache test6 failed");
         }
         $result1 = $sth->fetchrow();
 
-
         $sth->execute();
-        if ($sth->getResult() != "cached" && $sth->getStorage() != "cache") {
+        if($sth->getResult() != "cached" && $sth->getStorage() != "cache") {
             $this->testFail("cache test7 failed");
         }
         $result2 = $sth->fetchrow();
 
         $sta = $db->prepare($this->queries['table_select_all']);
-        $sta->cache('test_purposed','5s');
+        $sta->cache('test_purposed', '5s');
         $sta->execute();
-        if ($sth->getResult() != "cached" && $sth->getStorage() != "cache") {
+        if($sth->getResult() != "cached" && $sth->getStorage() != "cache") {
             $this->testFail("cache test8 failed");
         }
         $result3 = $sta->fetchrow();
 
         $result4 = DBD\Cache\MemCache::me()->get('test_purposed')[0];
 
-        if ($result1 !== $result2) {
+        if($result1 !== $result2) {
             $this->testFail("cache fetchrow \$result1 != \$result2");
         }
-        if ($result1 !== $result3) {
+        if($result1 !== $result3) {
             $this->testFail("cache fetchrow \$result1 != \$result3");
         }
-        if ($result1 !== $result4) {
+        if($result1 !== $result4) {
             dump($result1);
             dump($result4);
             $this->testFail("cache fetchrow \$result1 != \$result4");
@@ -328,20 +350,9 @@ final class Tests
         sleep(6);
         $result5 = DBD\Cache\MemCache::me()::me()->get('test_purposed');
 
-        if ($result5 !== false) {
+        if($result5 !== false) {
             $this->testFail("cache test9 failed");
         }
-
-        $this->testPass();
-
-        return $this;
-    }
-
-    public function Begin() {
-
-        $this->testHeader("Transaction BEGIN");
-
-        $this->db->begin();
 
         $this->testPass();
 
@@ -382,10 +393,10 @@ final class Tests
 
         $db = $this->db;
 
-        $db->do($this->queries['table_delete']);
+        $db->doit($this->queries['table_delete']);
         foreach($this->queries['table_insert'] as $query) {
-            if($db->do($query) !== 1) {
-                $this->testFail("do method returned not equal 1");
+            if($db->doit($query) !== 1) {
+                $this->testFail("doit method returned not equal 1");
             }
         }
 
@@ -440,8 +451,8 @@ final class Tests
 
         $this->testHeader("Transaction COMMIT");
 
-        $this->db->do($this->queries['table_create']);
-        $this->db->do($this->queries['table_drop']);
+        $this->db->doit($this->queries['table_create']);
+        $this->db->doit($this->queries['table_drop']);
 
         $this->db->commit();
 
@@ -455,10 +466,8 @@ final class Tests
         $this->testHeader("Transaction ROLLBACK");
 
         $this->db->begin();
-        $this->db->do($this->queries['table_create']);
-
+        $this->db->doit($this->queries['table_create']);
         $this->db->rollback();
-        $this->db->begin();
 
         $this->testPass();
 
@@ -477,15 +486,15 @@ final class Tests
         if($sth->rows() !== 0) {
             $this->testFail("prepare method returned " . $sth->rows());
         }
-        $this->db->do($this->queries['table_drop']);
+        $this->db->doit($this->queries['table_drop']);
 
         //--------------------------------
         // Table creation through do
-        $result = $this->db->do($this->queries['table_create']);
+        $result = $this->db->doit($this->queries['table_create']);
         if($result !== 0) {
             $this->testFail("do method returned {$result}");
         }
-        $this->db->do($this->queries['table_drop']);
+        $this->db->doit($this->queries['table_drop']);
 
         //--------------------------------
         // Table creation through query
@@ -494,7 +503,7 @@ final class Tests
         if($sth->rows() !== 0) {
             $this->testFail("query method returned " . $sth->rows());
         }
-        $this->db->do($this->queries['table_drop']);
+        $this->db->doit($this->queries['table_drop']);
 
         //--------------------------------
         // Table creation through prepare without drop
@@ -545,7 +554,7 @@ final class Tests
         $this->testHeader("Table drop");
 
         $db = $this->db;
-        $db->do($this->queries['table_drop']);
+        $db->doit($this->queries['table_drop']);
 
         $this->testPass();
 
@@ -557,7 +566,7 @@ final class Tests
 
         $this->testHeader("Insert method");
 
-        $db->do($this->queries['table_delete']);
+        $db->doit($this->queries['table_delete']);
 
         $insert = [
             'id'   => 1,
@@ -598,12 +607,12 @@ final class Tests
         // DO method ---------------------------------------------
         $i = 0;
         foreach($this->queries['table_insert'] as $query) {
-            if($db->do($query) !== 1) {
+            if($db->doit($query) !== 1) {
                 $this->testFail("do method returned not equal 1");
             }
             $i++;
         }
-        if($db->do($this->queries['table_delete']) !== $i) {
+        if($db->doit($this->queries['table_delete']) !== $i) {
             $this->testFail("DO insert not equal $i");
         }
         // PREPARE->EXECUTE ---------------------------------------------
@@ -653,13 +662,13 @@ final class Tests
         $this->testHeader("Table updates");
 
         foreach($this->queries['table_insert'] as $query) {
-            $db->do($query);
+            $db->doit($query);
         }
 
         // DO method ---------------------------------------------
         $i = 0;
         foreach($this->queries['table_updates'] as $query) {
-            if($db->do($query) !== 1) {
+            if($db->doit($query) !== 1) {
                 $this->testFail("do method returned not equal 1");
             }
             $i++;

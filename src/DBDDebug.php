@@ -175,7 +175,7 @@ if(count($debug['queries'])) {
     }
 
     .DBD-Debug .tab_container [id^="tab"]:checked + .labelTab:last-of-type::after {
-      background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAQAAAAZCAIAAACZ2xhsAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAyZpVFh0WE1MOmNvbS5hZG9iZS54bXAAAAAAADw/eHBhY2tldCBiZWdpbj0i77u/IiBpZD0iVzVNME1wQ2VoaUh6cmVTek5UY3prYzlkIj8+IDx4OnhtcG1ldGEgeG1sbnM6eD0iYWRvYmU6bnM6bWV0YS8iIHg6eG1wdGs9IkFkb2JlIFhNUCBDb3JlIDUuNi1jMDY3IDc5LjE1Nzc0NywgMjAxNS8wMy8zMC0yMzo0MDo0MiAgICAgICAgIj4gPHJkZjpSREYgeG1sbnM6cmRmPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5LzAyLzIyLXJkZi1zeW50YXgtbnMjIj4gPHJkZjpEZXNjcmlwdGlvbiByZGY6YWJvdXQ9IiIgeG1sbnM6eG1wPSJodHRwOi8vbnMuYWRvYmUuY29tL3hhcC8xLjAvIiB4bWxuczp4bXBNTT0iaHR0cDovL25zLmFkb2JlLmNvbS94YXAvMS4wL21tLyIgeG1sbnM6c3RSZWY9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC9zVHlwZS9SZXNvdXJjZVJlZiMiIHhtcDpDcmVhdG9yVG9vbD0iQWRvYmUgUGhvdG9zaG9wIENDIDIwMTUgKFdpbmRvd3MpIiB4bXBNTTpJbnN0YW5jZUlEPSJ4bXAuaWlkOjgzNEQ2NTBDNUU5NzExRTc4MTk3RDYxQUU3MTU0MjE2IiB4bXBNTTpEb2N1bWVudElEPSJ4bXAuZGlkOjgzNEQ2NTBENUU5NzExRTc4MTk3RDYxQUU3MTU0MjE2Ij4gPHhtcE1NOkRlcml2ZWRGcm9tIHN0UmVmOmluc3RhbmNlSUQ9InhtcC5paWQ6ODM0RDY1MEE1RTk3MTFFNzgxOTdENjFBRTcxNTQyMTYiIHN0UmVmOmRvY3VtZW50SUQ9InhtcC5kaWQ6ODM0RDY1MEI1RTk3MTFFNzgxOTdENjFBRTcxNTQyMTYiLz4gPC9yZGY6RGVzY3JpcHRpb24+IDwvcmRmOlJERj4gPC94OnhtcG1ldGE+IDw/eHBhY2tldCBlbmQ9InIiPz7RkNprAAAAaklEQVR42oyQSwpAIQhFNRzXqAW0nfa/hPYQEX20HrwcBN2BIueqKMYYU0qtNQAw3ntJSwRLiMiRxhh/cRKzydadPNrUHj0ADt1tmjz2qEt770QSxcZ/sdZ+RSnFOcew1iqGnHMIgckUYAClDUOCtK5UzgAAAABJRU5ErkJggg==');
+      background: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAQAAAAZCAIAAACZ2xhsAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAyZpVFh0WE1MOmNvbS5hZG9iZS54bXAAAAAAADw/eHBhY2tldCBiZWdpbj0i77u/IiBpZD0iVzVNME1wQ2VoaUh6cmVTek5UY3prYzlkIj8+IDx4OnhtcG1ldGEgeG1sbnM6eD0iYWRvYmU6bnM6bWV0YS8iIHg6eG1wdGs9IkFkb2JlIFhNUCBDb3JlIDUuNi1jMDY3IDc5LjE1Nzc0NywgMjAxNS8wMy8zMC0yMzo0MDo0MiAgICAgICAgIj4gPHJkZjpSREYgeG1sbnM6cmRmPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5LzAyLzIyLXJkZi1zeW50YXgtbnMjIj4gPHJkZjpEZXNjcmlwdGlvbiByZGY6YWJvdXQ9IiIgeG1sbnM6eG1wPSJodHRwOi8vbnMuYWRvYmUuY29tL3hhcC8xLjAvIiB4bWxuczp4bXBNTT0iaHR0cDovL25zLmFkb2JlLmNvbS94YXAvMS4wL21tLyIgeG1sbnM6c3RSZWY9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC9zVHlwZS9SZXNvdXJjZVJlZiMiIHhtcDpDcmVhdG9yVG9vbD0iQWRvYmUgUGhvdG9zaG9wIENDIDIwMTUgKFdpbmRvd3MpIiB4bXBNTTpJbnN0YW5jZUlEPSJ4bXAuaWlkOjgzNEQ2NTBDNUU5NzExRTc4MTk3RDYxQUU3MTU0MjE2IiB4bXBNTTpEb2N1bWVudElEPSJ4bXAuZGlkOjgzNEQ2NTBENUU5NzExRTc4MTk3RDYxQUU3MTU0MjE2Ij4gPHhtcE1NOkRlcml2ZWRGcm9tIHN0UmVmOmluc3RhbmNlSUQ9InhtcC5paWQ6ODM0RDY1MEE1RTk3MTFFNzgxOTdENjFBRTcxNTQyMTYiIHN0UmVmOmRvY3VtZW50SUQ9InhtcC5kaWQ6ODM0RDY1MEI1RTk3MTFFNzgxOTdENjFBRTcxNTQyMTYiLz4gPC9yZGY6RGVzY3JpcHRpb24+IDwvcmRmOlJERj4gPC94OnhtcG1ldGE+IDw/eHBhY2tldCBlbmQ9InIiPz7RkNprAAAAaklEQVR42oyQSwpAIQhFNRzXqAW0nfa/hPYQEX20HrwcBN2BIueqKMYYU0qtNQAw3ntJSwRLiMiRxhh/cRKzydadPNrUHj0ADt1tmjz2qEt770QSxcZ/sdZ+RSnFOcew1iqGnHMIgckUYAClDUOCtK5UzgAAAABJRU5ErkJggg==');
     }
 
     .DBD-Debug .button {
@@ -352,7 +352,7 @@ if(count($debug['queries'])) {
    ?>
 
   </style>
-  <div class="DBD-Debug">
+  <div class="DBD-Debug" style="top: 0;position: absolute;">
 
     <div class="tab_container" id="DebugDBD">
       <div class="button"><span>▲</span></div>
@@ -462,6 +462,7 @@ if(count($debug['queries'])) {
               var height = this.clientHeight;
               var width = this.clientWidth;
               document.addEventListener("mousemove", resize);
+
               function resize(e) {
                   if (dir == 0 || dir == 4 || dir == 7) {
                       if (e.clientY + elem.min[1] > ev.clientY + height) return;
@@ -485,14 +486,14 @@ if(count($debug['queries'])) {
                       elem.style.left = e.clientX - ev.clientX + pos.left;
                       elem.style.width = width + ev.clientX - e.clientX;
                   }
-                /*
-                 if ( elem.clientHeight < elem.min[1] ) elem.style.height = elem.min[1];
-                 if ( elem.clientWidth < elem.min[0] ) elem.style.width = elem.min[0];
-                 if ( elem.clientHeight > elem.max[1] ) elem.style.height = elem.max[1];
-                 if ( elem.clientWidth > elem.max[0] ) elem.style.width = elem.max[0];
-                 if ( e.clientY < pos.bottom - elem.max[1] ) elem.style.top = pos.bottom - elem.max[1];
-                 if ( e.clientX < pos.right - elem.max[0] ) elem.style.left = pos.right - elem.max[0];
-                 */
+                  /*
+                   if ( elem.clientHeight < elem.min[1] ) elem.style.height = elem.min[1];
+                   if ( elem.clientWidth < elem.min[0] ) elem.style.width = elem.min[0];
+                   if ( elem.clientHeight > elem.max[1] ) elem.style.height = elem.max[1];
+                   if ( elem.clientWidth > elem.max[0] ) elem.style.width = elem.max[0];
+                   if ( e.clientY < pos.bottom - elem.max[1] ) elem.style.top = pos.bottom - elem.max[1];
+                   if ( e.clientX < pos.right - elem.max[0] ) elem.style.left = pos.right - elem.max[0];
+                   */
               }
 
               document.addEventListener("mouseup", function () {

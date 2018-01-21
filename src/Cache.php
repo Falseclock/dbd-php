@@ -50,6 +50,7 @@ abstract class Cache extends Singleton implements Instantiatable
 
     /**
      * @return $this
+     * @throws \Exception
      */
     public static function me() {
         return Singleton::getInstance(get_called_class());
@@ -60,7 +61,7 @@ abstract class Cache extends Singleton implements Instantiatable
             return Cache::getExpire();
         }
 
-        $val = $matches[1];
+        $val  = $matches[1];
         $mult = $matches[2];
 
         if($mult) {
@@ -121,9 +122,9 @@ abstract class Cache extends Singleton implements Instantiatable
      * @return $this
      */
     public function create($servers = [], $compress = false, $expire = 300) {
-        $this->SERVERS = $servers;
+        $this->SERVERS  = $servers;
         $this->COMPRESS = $compress;
-        $this->EXPIRE = $expire;
+        $this->EXPIRE   = $expire;
 
         return $this;
     }

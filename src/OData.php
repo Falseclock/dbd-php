@@ -52,10 +52,10 @@ class OData extends DBD
             $this->setupCurl($this->dsn);
         }
         // TODO: read keep-alive header and reset handler if not exist
-        $response = curl_exec($this->dbh);
-        $header_size = curl_getinfo($this->dbh, CURLINFO_HEADER_SIZE);
-        $this->header = trim(substr($response, 0, $header_size));
-        $this->body = preg_replace("/\xEF\xBB\xBF/", "", substr($response, $header_size));
+        $response       = curl_exec($this->dbh);
+        $header_size    = curl_getinfo($this->dbh, CURLINFO_HEADER_SIZE);
+        $this->header   = trim(substr($response, 0, $header_size));
+        $this->body     = preg_replace("/\xEF\xBB\xBF/", "", substr($response, $header_size));
         $this->httpcode = curl_getinfo($this->dbh, CURLINFO_HTTP_CODE);
 
         if($this->httpcode >= 200 && $this->httpcode < 300) {
@@ -309,13 +309,13 @@ class OData extends DBD
     /*--------------------------------------------------------------*/
 
     public function update() {
-        $binds = 0;
-        $where = null;
+        $binds  = 0;
+        $where  = null;
         $return = null;
-        $ARGS = func_get_args();
-        $table = $ARGS[0];
+        $ARGS   = func_get_args();
+        $table  = $ARGS[0];
         $values = $ARGS[1];
-        $args = [];
+        $args   = [];
 
         if(func_num_args() > 2) {
             $where = $ARGS[2];
@@ -463,13 +463,13 @@ class OData extends DBD
             'expire'   => null,
         ];
 
-        $this->query = null;
+        $this->query        = null;
         $this->replacements = null;
-        $this->result = null;
-        $this->requestUrl = null;
-        $this->httpcode = null;
-        $this->header = null;
-        $this->body = null;
+        $this->result       = null;
+        $this->requestUrl   = null;
+        $this->httpcode     = null;
+        $this->header       = null;
+        $this->body         = null;
     }
 
     protected function findComplexTypeByName($array, $name) {
@@ -505,8 +505,8 @@ class OData extends DBD
 
     protected function prepareUrl($ARGS) {
         // Check and prepare args
-        $binds = substr_count($this->query, "?");
-        $args = $this->parseArgs($ARGS);
+        $binds   = substr_count($this->query, "?");
+        $args    = $this->parseArgs($ARGS);
         $numargs = count($args);
 
         if($binds != $numargs) {
@@ -564,7 +564,7 @@ class OData extends DBD
                 $keywords = preg_split("/AS/i", $field);
                 if($keywords[1]) {
                     $this->replacements[trim($keywords[0])] = trim($keywords[1]);
-                    $field = trim($keywords[0]);
+                    $field                                  = trim($keywords[0]);
                 }
                 $field = trim($field);
             }
@@ -664,7 +664,7 @@ class OData extends DBD
                 if($this->cache['result'] && $this->cache['result'] !== false) {
                     // set to our class var and count rows
                     $this->result = $this->cache['result'];
-                    $this->rows = count($this->cache['result']);
+                    $this->rows   = count($this->cache['result']);
                 }
             }
         }
@@ -677,17 +677,17 @@ class OData extends DBD
             '%20',
             '%27'
         ];
-        $entities = [
+        $entities     = [
             ' ',
             "'"
         ];
-        $string = str_replace($replacements, $entities, $string);
+        $string       = str_replace($replacements, $entities, $string);
 
         return $string;
     }
 
     protected function urlEncode($string) {
-        $entities = [
+        $entities     = [
             '%20',
             '%27'
         ];
@@ -695,7 +695,7 @@ class OData extends DBD
             ' ',
             "'"
         ];
-        $string = str_replace($replacements, $entities, $string);
+        $string       = str_replace($replacements, $entities, $string);
 
         return $string;
     }
