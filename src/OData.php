@@ -654,6 +654,23 @@ class OData extends DBD
 		}
 
 		if($struct['ORDER BY']) {
+
+			$struct['ORDER BY'] = implode(
+				",",
+				array_map(
+					function($order) {
+						return preg_replace_callback(
+							"/(\s+(asc|desc)\s*)$/i",
+							function($matches) {
+								return strtolower($matches[1]);
+							},
+							$order
+						);
+					},
+					explode(",", $struct['ORDER BY'])
+				)
+			);
+
 			$this->requestUrl .= '$orderby=' . $struct['ORDER BY'] . '&';
 		}
 
