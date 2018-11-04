@@ -5,7 +5,7 @@
     position: absolute;
     float: left;
     width: 90%;
-    z-index: 1000;
+	z-index: 10000 !important;
   }
 
   .codeError table {

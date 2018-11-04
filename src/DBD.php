@@ -133,8 +133,8 @@ abstract class DBD
             trigger_error("caching failed: key is not set or empty", E_USER_ERROR);
         }
         if($this->cacheDriver() == null) {
-            return;
-            //trigger_error("CacheDriver not initialized", E_USER_ERROR);
+            //return;
+            trigger_error("CacheDriver not initialized", E_USER_ERROR);
         }
         if(preg_match("/^[\s\t\r\n]*select/i", $this->query)) {
             // set hash key
@@ -344,7 +344,7 @@ abstract class DBD
         }
 
         if($this->options['UseDebug']) {
-            $index = $this->result == 'cached' ? 'Cache' : $this->getDriver();
+            $index = $this->storage == 'cache' ? 'Cache' : $this->getDriver();
 
             $caller = $this->caller();
             @self::$debug['queries'][$index][] = [
@@ -402,6 +402,33 @@ abstract class DBD
             return array_shift($this->cache['result']);
         }
     }
+
+	public function fetcharrayset() {
+		$array = [];
+
+		if($this->cache['key'] === null) {
+			while($row = $this->fetchrow()) {
+				$entry = [];
+				foreach($row as $key => $value) {
+					$entry[] = $value;
+				}
+				$array[] = $entry;
+			}
+		}
+		else {
+			$cache = $this->cache['result'];
+			$this->cache['result'] = [];
+			foreach($cache as $row) {
+				$entry = [];
+				foreach($row as $key => $value) {
+					$entry[] = $value;
+				}
+				$array[] = $entry;
+			}
+		}
+
+		return $array;
+	}
 
     public function fetchrowset($key = null) {
         $array = [];

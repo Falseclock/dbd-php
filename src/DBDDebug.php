@@ -352,7 +352,7 @@ if(count($debug['queries'])) {
    ?>
 
   </style>
-  <div class="DBD-Debug" style="top: 0;position: absolute;">
+  <div class="DBD-Debug" style="bottom: 0;position: absolute;">
 
     <div class="tab_container" id="DebugDBD">
       <div class="button"><span>▲</span></div>

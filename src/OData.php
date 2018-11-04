@@ -38,163 +38,6 @@ class OData extends DBD
     protected $replacements = null;
     protected $requestUrl   = null;
 
-    public function begin() {
-        trigger_error("BEGIN not supported by OData", E_USER_ERROR);
-    }
-
-    public function commit() {
-        trigger_error("COMMIT not supported by OData", E_USER_ERROR);
-    }
-
-    public function connect() {
-        // if we never invoke connect and did not setup it, just call setup with DSN url
-        if(!is_resource($this->dbh)) {
-            $this->setupCurl($this->dsn);
-        }
-        // TODO: read keep-alive header and reset handler if not exist
-        $response       = curl_exec($this->dbh);
-        $header_size    = curl_getinfo($this->dbh, CURLINFO_HEADER_SIZE);
-        $this->header   = trim(substr($response, 0, $header_size));
-        $this->body     = preg_replace("/\xEF\xBB\xBF/", "", substr($response, $header_size));
-        $this->httpcode = curl_getinfo($this->dbh, CURLINFO_HTTP_CODE);
-
-        if($this->httpcode >= 200 && $this->httpcode < 300) {
-            // do nothing
-        }
-        else {
-            $this->parseError();
-        }
-
-        return new OdataExtend($this);
-    }
-
-    /**
-     * @return $this
-     */
-    public function disconnect() {
-        if($this->isConnected()) {
-            curl_close($this->dbh);
-        }
-        if(is_resource($this->cacheDriver())) {
-            $this->cacheDriver()->close();
-        }
-
-        return $this;
-    } // TODO:
-
-    public function du() {
-        return $this;
-    } // TODO:
-
-    public function execute() {
-
-        $this->tryGetFromCache();
-
-        // If not found in cache or we dont use it, then let's get via HTTP request
-        if($this->result === null) {
-
-            $this->prepareUrl(func_get_args());
-
-            // just initicate connect with prepared URL and HEADERS
-            $this->setupCurl($this->dsn . $this->requestUrl);
-            // and make request
-            $this->connect();
-
-            // Will return NULL in case of failure
-            $json = json_decode($this->body, true);
-
-            if($this->dataKey) {
-                if($json[$this->dataKey]) {
-                    $this->result = $this->doReplacements($json[$this->dataKey]);
-                }
-                else {
-                    $this->result = $json;
-                }
-            }
-            else {
-                $this->result = $this->doReplacements($json);
-            }
-
-            $this->storeResultToache();
-        }
-        $this->query = null;
-
-        return $this;
-    } // TODO:
-
-    /*--------------------------------------------------------------*/
-
-    public function fetch() {
-        return $this;
-    }
-
-    /*--------------------------------------------------------------*/
-
-    public function fetchrow() {
-        return array_shift($this->result);
-    }
-
-    public function fetchrowset($key = null) {
-
-        $array = [];
-        while($row = $this->fetchrow()) {
-            if($key) {
-                $array[$row[$key]] = $row;
-            }
-            else {
-                $array[] = $row;
-            }
-        }
-
-        return $array;
-    }
-
-    /*--------------------------------------------------------------*/
-
-    public function insert($table, $content, $return = null) {
-        $this->dropVars();
-
-        /*
-        $insert = $this->metadata($table);
-
-        foreach ($insert as $key => &$option) {
-            // if we have defined such field
-            if (isset($data[$key])) {
-                // check options
-                if (array_keys($option) !== range(0, count($option) - 1)) { // associative
-                    // TODO: check value type
-                    $option = $data[$key];
-                } else {
-                    $option = array();
-                    $i = 1;
-                    foreach ($data[$key] as $row) {
-                        // TODO: check value type
-                        $option[] = $row;
-                        $i++;
-                    }
-                }
-            } else {
-                if (array_keys($option) !== range(0, count($option) - 1)) { // associative
-                    if ($option['Nullable']) {
-                        $option = null;
-                    } else {
-                        throw new Exception("$key can't be null");
-                    }
-                } else {
-                    $option = array();
-                }
-            }
-        }
-        */
-
-        $this->setupCurl($this->dsn . $table . '?$format=application/json;odata=nometadata&', "POST", json_encode($content, JSON_UNESCAPED_UNICODE));
-        $this->connect();
-
-        return json_decode($this->body, true);
-    }
-
-    /*--------------------------------------------------------------*/
-
     public function metadata($key = null, $expire = null) {
         // If we already got metadata
         if($this->metadata) {
@@ -262,7 +105,276 @@ class OData extends DBD
             return $this->metadata;
     }
 
+    protected function findComplexTypeByName($array, $name) {
+        foreach($array['edmx:Edmx']['edmx:DataServices']['Schema']['ComplexType'] as $ComplexType) {
+            if($ComplexType['@attributes']['Name'] == $name) {
+                return $ComplexType;
+            }
+        }
+
+        return null;
+    }
+
+    public function setDataKey($dataKey) {
+        $this->dataKey = $dataKey;
+
+        return $this;
+    }
+
+        protected function _affectedRows() {
+        // TODO: Implement _affectedRows() method.
+    } // TODO:
+
+        protected function _begin() {
+        // TODO: Implement _begin() method.
+    } // TODO:
+
+        protected function _commit() {
+        // TODO: Implement _commit() method.
+    } // TODO:
+
     /*--------------------------------------------------------------*/
+
+    protected function _compileInsert($table, $params, $return = "") {
+        // TODO: Implement _compileInsert() method.
+    }
+
+    /*--------------------------------------------------------------*/
+
+    protected function _compileUpdate($table, $params, $where, $return = "") {
+        // TODO: Implement _compileUpdate() method.
+    }
+
+    protected function _connect() {
+        // TODO: Implement _connect() method.
+    }
+
+    /*--------------------------------------------------------------*/
+
+    protected function _convertIntFloat(&$data, $type) {
+        // TODO: Implement _convertIntFloat() method.
+    }
+
+    /*--------------------------------------------------------------*/
+
+    protected function _disconnect() {
+        // TODO: Implement _disconnect() method.
+    }
+
+    /*--------------------------------------------------------------*/
+
+    protected function _errorMessage() {
+        // TODO: Implement _errorMessage() method.
+    }
+
+    /*--------------------------------------------------------------*/
+
+    protected function _escape($string) {
+        // TODO: Implement _escape() method.
+    }
+
+    /*--------------------------------------------------------------*/
+
+    protected function _fetchArray() {
+        // TODO: Implement _fetchArray() method.
+    }
+
+    /*--------------------------------------------------------------*/
+
+    protected function _fetchAssoc() {
+        // TODO: Implement _fetchAssoc() method.
+    }
+
+    /*--------------------------------------------------------------*/
+
+    protected function _numRows() {
+        // TODO: Implement _numRows() method.
+    }
+
+    /*--------------------------------------------------------------*/
+
+    protected function _query($statement) {
+        // TODO: Implement _query() method.
+    }
+
+    /*--------------------------------------------------------------*/
+
+    protected function _queryExplain($statement) {
+        // TODO: Implement _queryExplain() method.
+    }
+
+    /*--------------------------------------------------------------*/
+
+    protected function _rollback() {
+        // TODO: Implement _rollback() method.
+    }
+
+    /*--------------------------------------------------------------*/
+
+    public function begin() {
+        trigger_error("BEGIN not supported by OData", E_USER_ERROR);
+    }
+
+    /*--------------------------------------------------------------*/
+
+    public function commit() {
+        trigger_error("COMMIT not supported by OData", E_USER_ERROR);
+    }
+
+    /*--------------------------------------------------------------*/
+
+    public function connect() {
+        // if we never invoke connect and did not setup it, just call setup with DSN url
+        if(!is_resource($this->dbh)) {
+            $this->setupCurl($this->dsn);
+        }
+        // TODO: read keep-alive header and reset handler if not exist
+        $response       = curl_exec($this->dbh);
+        $header_size    = curl_getinfo($this->dbh, CURLINFO_HEADER_SIZE);
+        $this->header   = trim(substr($response, 0, $header_size));
+        $this->body     = preg_replace("/\xEF\xBB\xBF/", "", substr($response, $header_size));
+        $this->httpcode = curl_getinfo($this->dbh, CURLINFO_HTTP_CODE);
+
+        if($this->httpcode >= 200 && $this->httpcode < 300) {
+            // do nothing
+        }
+        else {
+            $this->parseError();
+        }
+
+        return new OdataExtend($this);
+    }
+
+    /*--------------------------------------------------------------*/
+
+    /**
+     * @return $this
+     */
+    public function disconnect() {
+        if($this->isConnected()) {
+            curl_close($this->dbh);
+        }
+        if(is_resource($this->cacheDriver())) {
+            $this->cacheDriver()->close();
+        }
+
+        return $this;
+    }
+
+    /*--------------------------------------------------------------*/
+
+    public function du() {
+        return $this;
+    }
+
+    /*--------------------------------------------------------------*/
+
+    public function execute() {
+
+        $this->tryGetFromCache();
+
+        // If not found in cache or we dont use it, then let's get via HTTP request
+        if($this->result === null) {
+
+            $this->prepareUrl(func_get_args());
+
+            // just initicate connect with prepared URL and HEADERS
+            $this->setupCurl($this->dsn . $this->requestUrl);
+            // and make request
+            $this->connect();
+
+            // Will return NULL in case of failure
+            $json = json_decode($this->body, true);
+
+            if($this->dataKey) {
+                if($json[$this->dataKey]) {
+                    $this->result = $this->doReplacements($json[$this->dataKey]);
+                }
+                else {
+                    $this->result = $json;
+                }
+            }
+            else {
+                $this->result = $this->doReplacements($json);
+            }
+
+            $this->storeResultToache();
+        }
+        $this->query = null;
+
+        return $this;
+    }
+
+    /*--------------------------------------------------------------*/
+
+    public function fetch() {
+        return $this;
+    }
+
+    /*--------------------------------------------------------------*/
+
+    public function fetchrow() {
+        return array_shift($this->result);
+    }
+
+    /*--------------------------------------------------------------*/
+
+    public function fetchrowset($key = null) {
+
+        $array = [];
+        while($row = $this->fetchrow()) {
+            if($key) {
+                $array[$row[$key]] = $row;
+            }
+            else {
+                $array[] = $row;
+            }
+        }
+
+        return $array;
+    }
+
+    public function insert($table, $content, $return = null) {
+        $this->dropVars();
+
+        /*
+        $insert = $this->metadata($table);
+
+        foreach ($insert as $key => &$option) {
+            // if we have defined such field
+            if (isset($data[$key])) {
+                // check options
+                if (array_keys($option) !== range(0, count($option) - 1)) { // associative
+                    // TODO: check value type
+                    $option = $data[$key];
+                } else {
+                    $option = array();
+                    $i = 1;
+                    foreach ($data[$key] as $row) {
+                        // TODO: check value type
+                        $option[] = $row;
+                        $i++;
+                    }
+                }
+            } else {
+                if (array_keys($option) !== range(0, count($option) - 1)) { // associative
+                    if ($option['Nullable']) {
+                        $option = null;
+                    } else {
+                        throw new Exception("$key can't be null");
+                    }
+                } else {
+                    $option = array();
+                }
+            }
+        }
+        */
+
+        $this->setupCurl($this->dsn . $table . '?$format=application/json;odata=nometadata&', "POST", json_encode($content, JSON_UNESCAPED_UNICODE));
+        $this->connect();
+
+        return json_decode($this->body, true);
+    }
 
     public function prepare($statement) {
 
@@ -280,33 +392,17 @@ class OData extends DBD
         return $this;
     }
 
-    /*--------------------------------------------------------------*/
-
     public function query() {
         return $this;
     }
-
-    /*--------------------------------------------------------------*/
 
     public function rollback() {
         trigger_error("ROLLBACK not supported by OData", E_USER_ERROR);
     }
 
-    /*--------------------------------------------------------------*/
-
     public function rows() {
         return count($this->result);
     }
-
-    /*--------------------------------------------------------------*/
-
-    public function setDataKey($dataKey) {
-        $this->dataKey = $dataKey;
-
-        return $this;
-    }
-
-    /*--------------------------------------------------------------*/
 
     public function update() {
         $binds  = 0;
@@ -351,156 +447,24 @@ class OData extends DBD
         return json_decode($this->body, true);
     }
 
-    /*--------------------------------------------------------------*/
+    protected function tryGetFromCache() {
+        // If we have cache driver
+        if($this->cacheDriver()) {
+            // we set cache via $sth->cache('blabla');
+            if($this->cache['key'] !== null) {
+                // getting result
+                $this->cache['result'] = $this->cacheDriver()->get($this->cache['key']);
 
-    protected function _affectedRows() {
-        // TODO: Implement _affectedRows() method.
+                // Cache not empty?
+                if($this->cache['result'] && $this->cache['result'] !== false) {
+                    // set to our class var and count rows
+                    $this->result = $this->cache['result'];
+                    $this->rows = count($this->cache['result']);
+    }
+    }
     }
 
-    /*--------------------------------------------------------------*/
-
-    protected function _begin() {
-        // TODO: Implement _begin() method.
-    }
-
-    /*--------------------------------------------------------------*/
-
-    protected function _commit() {
-        // TODO: Implement _commit() method.
-    }
-
-    /*--------------------------------------------------------------*/
-
-    protected function _compileInsert($table, $params, $return = "") {
-        // TODO: Implement _compileInsert() method.
-    }
-
-    /*--------------------------------------------------------------*/
-
-    protected function _compileUpdate($table, $params, $where, $return = "") {
-        // TODO: Implement _compileUpdate() method.
-    }
-
-    /*--------------------------------------------------------------*/
-
-    protected function _connect() {
-        // TODO: Implement _connect() method.
-    }
-
-    /*--------------------------------------------------------------*/
-
-    protected function _convertIntFloat(&$data, $type) {
-        // TODO: Implement _convertIntFloat() method.
-    }
-
-    /*--------------------------------------------------------------*/
-
-    protected function _disconnect() {
-        // TODO: Implement _disconnect() method.
-    }
-
-    /*--------------------------------------------------------------*/
-
-    protected function _errorMessage() {
-        // TODO: Implement _errorMessage() method.
-    }
-
-    /*--------------------------------------------------------------*/
-
-    protected function _escape($string) {
-        // TODO: Implement _escape() method.
-    }
-
-    /*--------------------------------------------------------------*/
-
-    protected function _fetchArray() {
-        // TODO: Implement _fetchArray() method.
-    }
-
-    protected function _fetchAssoc() {
-        // TODO: Implement _fetchAssoc() method.
-    }
-
-    protected function _numRows() {
-        // TODO: Implement _numRows() method.
-    }
-
-    protected function _query($statement) {
-        // TODO: Implement _query() method.
-    }
-
-    protected function _queryExplain($statement) {
-        // TODO: Implement _queryExplain() method.
-    }
-
-    protected function _rollback() {
-        // TODO: Implement _rollback() method.
-    }
-
-    protected function doConnection() {
-    }
-
-    protected function doReplacements($data) {
-        if(count($this->replacements) && $data != null) {
-            foreach($data as &$value) {
-                foreach($value as $key => $val) {
-                    if(array_key_exists($key, $this->replacements)) {
-                        $value[$this->replacements[$key]] = $val;
-                        unset($value[$key]);
-                    }
-                }
-            }
-        }
-
-        return $data;
-    }
-
-    protected function dropVars() {
-        $this->cache = [
-            'key'      => null,
-            'result'   => null,
-            'compress' => null,
-            'expire'   => null,
-        ];
-
-        $this->query        = null;
-        $this->replacements = null;
-        $this->result       = null;
-        $this->requestUrl   = null;
-        $this->httpcode     = null;
-        $this->header       = null;
-        $this->body         = null;
-    }
-
-    protected function findComplexTypeByName($array, $name) {
-        foreach($array['edmx:Edmx']['edmx:DataServices']['Schema']['ComplexType'] as $ComplexType) {
-            if($ComplexType['@attributes']['Name'] == $name) {
-                return $ComplexType;
-            }
-        }
-
-        return null;
-    }
-
-    protected function parseError() {
-        $fail = $this->urlDecode(curl_getinfo($this->dbh, CURLINFO_EFFECTIVE_URL));
-        if($this->body) {
-            $error = json_decode($this->body, true);
-            if($error && isset($error['odata.error']['message']['value'])) {
-                new ErrorHandler ($this->query, "URL: {$fail}\n" . $error['odata.error']['message']['value'], $this->caller(), $this->options);
-            }
-            else {
-                $this->body = str_replace([
-                    "\\r\\n",
-                    "\\n",
-                    "\\r"
-                ], "\n", $this->body);
-                new ErrorHandler ($this->query, "HEADER: {$this->header}\nURL: {$fail}\nBODY: {$this->body}\n", $this->caller(), $this->options);
-            }
-        }
-        else {
-            new ErrorHandler ($this->query, "HTTP STATUS: {$this->httpcode}\n" . strtok($this->header, "\n"), $this->caller(), $this->options);
-        }
+        return $this;
     }
 
     protected function prepareUrl($ARGS) {
@@ -511,9 +475,12 @@ class OData extends DBD
 
         if($binds != $numargs) {
             $caller = $this->caller();
-            trigger_error("Query failed: called with 
+            trigger_error(
+                "Query failed: called with 
 				$numargs bind variables when $binds are needed at 
-				{$caller[0]['file']} line {$caller[0]['line']}", E_USER_ERROR);
+				{$caller[0]['file']} line {$caller[0]['line']}",
+                E_USER_ERROR
+            );
         }
 
         // Make url and put arguments
@@ -639,6 +606,21 @@ class OData extends DBD
         return $this;
     }
 
+    protected function doReplacements($data) {
+        if(count($this->replacements) && $data != null) {
+            foreach($data as &$value) {
+                foreach($value as $key => $val) {
+                    if(array_key_exists($key, $this->replacements)) {
+                        $value[$this->replacements[$key]] = $val;
+                        unset($value[$key]);
+                    }
+                }
+            }
+        }
+
+        return $data;
+    }
+
     protected function storeResultToache() {
         if($this->result) {
             $this->rows = count($this->result);
@@ -652,32 +634,12 @@ class OData extends DBD
         return $this;
     }
 
-    protected function tryGetFromCache() {
-        // If we have cache driver
-        if($this->cacheDriver()) {
-            // we set cache via $sth->cache('blabla');
-            if($this->cache['key'] !== null) {
-                // getting result
-                $this->cache['result'] = $this->cacheDriver()->get($this->cache['key']);
-
-                // Cache not empty?
-                if($this->cache['result'] && $this->cache['result'] !== false) {
-                    // set to our class var and count rows
-                    $this->result = $this->cache['result'];
-                    $this->rows   = count($this->cache['result']);
-                }
-            }
-        }
-
-        return $this;
-    }
-
-    protected function urlDecode($string) {
-        $replacements = [
+    protected function urlEncode($string) {
+        $entities = [
             '%20',
             '%27'
         ];
-        $entities     = [
+        $replacements = [
             ' ',
             "'"
         ];
@@ -686,12 +648,57 @@ class OData extends DBD
         return $string;
     }
 
-    protected function urlEncode($string) {
-        $entities     = [
+    protected function dropVars() {
+        $this->cache = [
+            'key'      => null,
+            'result'   => null,
+            'compress' => null,
+            'expire'   => null,
+        ];
+
+        $this->query = null;
+        $this->replacements = null;
+        $this->result = null;
+        $this->requestUrl = null;
+        $this->httpcode = null;
+        $this->header = null;
+        $this->body = null;
+    }
+
+    protected function doConnection() {
+    }
+
+    protected function parseError() {
+        $fail = $this->urlDecode(curl_getinfo($this->dbh, CURLINFO_EFFECTIVE_URL));
+        if($this->body) {
+            $error = json_decode($this->body, true);
+            if($error && isset($error['odata.error']['message']['value'])) {
+                new ErrorHandler ($this->query, "URL: {$fail}\n" . $error['odata.error']['message']['value'], $this->caller(), $this->options);
+            }
+            else {
+                $this->body = str_replace(
+                    [
+                        "\\r\\n",
+                        "\\n",
+                        "\\r"
+                    ],
+                    "\n",
+                    $this->body
+                );
+                new ErrorHandler ($this->query, "HEADER: {$this->header}\nURL: {$fail}\nBODY: {$this->body}\n", $this->caller(), $this->options);
+            }
+        }
+        else {
+            new ErrorHandler ($this->query, "HTTP STATUS: {$this->httpcode}\n" . strtok($this->header, "\n"), $this->caller(), $this->options);
+        }
+    }
+
+    protected function urlDecode($string) {
+        $replacements = [
             '%20',
             '%27'
         ];
-        $replacements = [
+        $entities = [
             ' ',
             "'"
         ];

@@ -41,7 +41,7 @@ class ErrorHandler extends Exception
      * @param array  $caller
      * @param array  $options
      *
-     * @throws \Exception
+     * @throws Exception
      */
     public function __construct($query, $error, $caller, $options = null) {
         if($options['ErrorHandler'] !== null) {
