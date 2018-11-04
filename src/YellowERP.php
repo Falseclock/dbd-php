@@ -143,7 +143,7 @@ final class YellowERP extends OData
                 // Will return NULL in case of failure
                 $this->result = json_decode($this->body, true);
 
-                $this->storeResultToache();
+                $this->storeResultToCache();
             }
 
             $this->servicesURL = null;

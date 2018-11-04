@@ -298,7 +298,7 @@ class OData extends DBD
                 $this->result = $this->doReplacements($json);
             }
 
-            $this->storeResultToache();
+            $this->storeResultToCache();
         }
         $this->query = null;
 
@@ -621,7 +621,7 @@ class OData extends DBD
         return $data;
     }
 
-    protected function storeResultToache() {
+    protected function storeResultToCache() {
         if($this->result) {
             $this->rows = count($this->result);
             // If we want to store to the cache
