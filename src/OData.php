@@ -1,4 +1,6 @@
-<?php
+<?php /** @noinspection PhpUndefinedNamespaceInspection */
+/** @noinspection PhpUndefinedClassInspection */
+
 /************************************************************************************
  *   MIT License                                                                     *
  *                                                                                   *
@@ -520,6 +522,7 @@ class OData extends DBD
 			for($i = 3; $i < $binds + 3; $i++) {
 				$args[] = $ARGS[$i];
 			}
+			/** @noinspection PhpStatementHasEmptyBodyInspection */
 			if(func_num_args() > $binds + 3) {
 				// FIXME: закоментарил, потому что варнило
 				//$return = $ARGS[ func_num_args() - 1 ];
