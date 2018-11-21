@@ -1,6 +1,4 @@
-<?php /** @noinspection PhpUndefinedNamespaceInspection */
-/** @noinspection PhpUndefinedClassInspection */
-
+<?php
 /************************************************************************************
  *   MIT License                                                                     *
  *                                                                                   *
@@ -40,13 +38,6 @@ class OData extends DBD
 	protected $replacements = null;
 	protected $requestUrl   = null;
 
-	/**
-	 * @param null $key
-	 * @param null $expire
-	 *
-	 * @return array|mixed|null
-	 * @throws \ReflectionException
-	 */
 	public function metadata($key = null, $expire = null) {
 		// If we already got metadata
 		if($this->metadata) {
@@ -318,10 +309,6 @@ class OData extends DBD
 
 	/*--------------------------------------------------------------*/
 
-	/**
-	 * @return \DBD\OdataExtend
-	 * @throws \ReflectionException
-	 */
 	public function connect() {
 		// if we never invoke connect and did not setup it, just call setup with DSN url
 		if(!is_resource($this->dbh)) {
@@ -397,7 +384,7 @@ class OData extends DBD
 				$this->result = $this->doReplacements($json);
 			}
 
-			$this->storeResultToCache();
+			$this->storeResultToache();
 		}
 		$this->query = null;
 
@@ -469,21 +456,14 @@ class OData extends DBD
 		return json_decode($this->body, true);
 	}
 
-	/**
-	 * @param string $statement
-	 *
-	 * @return $this|\DBD\DBD
-	 * @throws \ReflectionException
-	 * @throws \Exception
-	 */
 	public function prepare($statement) {
 
 		// This is not SQL driver, so we can't make several instances with prepare
 		// and let's allow only one by one requests per driver
 		if($this->query) {
-			new ErrorHandler ($this->query, "You have an un executed query", $this->caller(), $this->options);
+			new ErrorHandler ($this->query, "You have an unexecuted query", $this->caller(), $this->options);
 		}
-		// Drop current protected vars to do not mix up
+		// Drop current proteced vars to do not mix up
 		$this->dropVars();
 
 		// Just storing query. Parse will be done later during buildQuery
@@ -522,7 +502,6 @@ class OData extends DBD
 			for($i = 3; $i < $binds + 3; $i++) {
 				$args[] = $ARGS[$i];
 			}
-			/** @noinspection PhpStatementHasEmptyBodyInspection */
 			if(func_num_args() > $binds + 3) {
 				// FIXME: закоментарил, потому что варнило
 				//$return = $ARGS[ func_num_args() - 1 ];
@@ -568,12 +547,6 @@ class OData extends DBD
 		return $this;
 	}
 
-	/**
-	 * @param $ARGS
-	 *
-	 * @return $this
-	 * @throws \ReflectionException
-	 */
 	protected function prepareUrl($ARGS) {
 		// Check and prepare args
 		$binds = substr_count($this->query, "?");
@@ -655,21 +628,18 @@ class OData extends DBD
 
 		if($struct['ORDER BY']) {
 
-			$struct['ORDER BY'] = implode(
-				",",
-				array_map(
-					function($order) {
-						return preg_replace_callback(
-							"/(\s+(asc|desc)\s*)$/i",
-							function($matches) {
-								return strtolower($matches[1]);
-							},
-							$order
-						);
-					},
-					explode(",", $struct['ORDER BY'])
-				)
-			);
+			$struct['ORDER BY'] = implode(",", array_map(
+				function($order) {
+					return preg_replace_callback(
+						"/(\s+(asc|desc)\s*)$/i",
+						function($matches) {
+							return strtolower($matches[1]);
+						},
+						$order
+					);
+				},
+				explode(",", $struct['ORDER BY'])
+			));
 
 			$this->requestUrl .= '$orderby=' . $struct['ORDER BY'] . '&';
 		}
@@ -696,7 +666,7 @@ class OData extends DBD
 		return $data;
 	}
 
-	protected function storeResultToCache() {
+	protected function storeResultToache() {
 		if($this->result) {
 			$this->rows = count($this->result);
 			// If we want to store to the cache
@@ -712,10 +682,6 @@ class OData extends DBD
 	protected function doConnection() {
 	}
 
-	/**
-	 * @throws \ReflectionException
-	 * @throws \Exception
-	 */
 	protected function parseError() {
 		$fail = $this->urlDecode(curl_getinfo($this->dbh, CURLINFO_EFFECTIVE_URL));
 		if($this->body) {
