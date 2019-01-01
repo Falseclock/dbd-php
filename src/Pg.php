@@ -130,76 +130,99 @@ class Pg extends DBD
      *
      * @return mixed
      */
-    protected function _convertIntFloat(&$data, $type) {
-        // TODO: in case of fetchrowset do not get each time and use static variable
+	protected function _convertIntFloat(&$data, $type) {
+		// TODO: in case of fetchrowset do not get each time and use static variable
+		// FIXME: numeric vs int
+		if($data && pg_num_fields($this->result) != count($data)) {
 
-        if($data && pg_num_fields($this->result) != count($data)) {
+			$names = [];
+			for($i = 0; $i < pg_num_fields($this->result); $i++) {
+				$names[pg_field_name($this->result, $i)]++;
+			}
+			$names = array_filter($names, function($v) {
+				return $v > 1;
+			});
 
-            $names = [];
-            for($i = 0; $i < pg_num_fields($this->result); $i++) {
-                $names[pg_field_name($this->result, $i)]++;
-            }
-            $names = array_filter($names, function($v) {
-                return $v > 1;
-            });
+			$dublications = "";
 
-            $dublications = "";
+			foreach($names as $key => $value) {
+				$dublications .= "[<b>{$key}</b>] => <b style='color:crimson'>{$value}</b><br />";
+			}
 
-            foreach($names as $key => $value) {
-                $dublications .= "[<b>{$key}</b>] => <b style='color:crimson'>{$value}</b><br />";
-            }
-
-            trigger_error("Statement result has " . pg_num_fields($this->result) . " columns while fetched row only " . count($data) . ". 
+			trigger_error("Statement result has " . pg_num_fields($this->result) . " columns while fetched row only " . count($data) . ". 
 				Fetching it associative reduces number of columns. 
 				Rename column with `AS` inside statement or fetch as indexed array.<br /><br />
 				Dublicating columns are:<br /> {$dublications}<br />", E_USER_ERROR);
-        }
+		}
 
-        $types = [];
+		$types = [];
 
-        $map = [
-            'int'       => 'integer',
-            'int2'      => 'integer',
-            'int4'      => 'integer',
-            'int8'      => 'integer',
-            'serial4'   => 'integer',
-            'serial8'   => 'integer',
-            'smallint'  => 'integer',
-            'bigint'    => 'integer',
-            'bigserial' => 'integer',
-            'serial'    => 'integer',
-            'numeric'   => 'float',
-            'decimal'   => 'float',
-            'real'      => 'float',
-            'float'     => 'float',
-            'float4'    => 'float',
-            'float8'    => 'float'
-        ];
+		$map = [
+			'int'       => 'integer',
+			'int2'      => 'integer',
+			'int4'      => 'integer',
+			'int8'      => 'integer',
+			'serial4'   => 'integer',
+			'serial8'   => 'integer',
+			'smallint'  => 'integer',
+			'bigint'    => 'integer',
+			'bigserial' => 'integer',
+			'serial'    => 'integer',
+			'numeric'   => 'float',
+			'decimal'   => 'float',
+			'real'      => 'float',
+			'float'     => 'float',
+			'float4'    => 'float',
+			'float8'    => 'float'
+		];
 
-        if($type == 'row') {
-            if($data) {
-                // count how many fields we have and get their types
-                for($i = 0; $i < pg_num_fields($this->result); $i++) {
-                    $types[] = pg_field_type($this->result, $i);
-                }
+		if($type == 'row') {
+			if($data) {
+				// count how many fields we have and get their types
+				for($i = 0; $i < pg_num_fields($this->result); $i++) {
+					$types[] = pg_field_type($this->result, $i);
+				}
 
-                // Identify on which column we are
-                $i = 0;
-                //        row    idx      value
-                foreach($data as $key => $value) {
-                    // if type of current column exist in map array
-                    if(array_key_exists($types[$i], $map)) {
-                        // using data key, cause can be
-                        //printf("Type: %s\n",$types[$i]);
-                        $data[$key] = ($map[$types[$i]] == 'integer' ? intval($value) : floatval($value));
-                    }
-                    $i++;
-                }
-            }
-        }
+				// Identify on which column we are
+				$i = 0;
+				//        row    idx      value
+				foreach($data as $key => $value) {
+					// if type of current column exist in map array
+					if(array_key_exists($types[$i], $map)) {
+						// using data key, cause can be
+						//printf("Type: %s\n",$types[$i]);
+						$data[$key] = ($map[$types[$i]] == 'integer' ? intval($value) : floatval($value));
+					}
+					$i++;
+				}
+			}
+		}
 
-        return $data;
-    }
+		return $data;
+	}
+
+	protected function _convertBoolean(&$data, $type) {
+		if($type == 'row') {
+			if($data) {
+				for($i = 0; $i < pg_num_fields($this->result); $i++) {
+					if (pg_field_type($this->result, $i) == 'bool') {
+						$dataKey = pg_field_name ( $this->result , $i );
+						if ($data[$dataKey] == 't') {
+							$data[$dataKey] = true;
+						} elseif($data[$dataKey] == 'f') {
+							$data[$dataKey] = false;
+						} elseif ($data[$dataKey] == null) {
+							$data[$dataKey] = null;
+						} else {
+							trigger_error("Unexpected boolean value");
+						}
+					}
+				}
+			}
+		}
+
+		return $data;
+	}
 
     /**
      * Closes the non-persistent connection to a PostgreSQL database associated with the given connection resource

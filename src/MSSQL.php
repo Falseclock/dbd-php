@@ -105,8 +105,8 @@ class MSSQL extends DBD
             new ErrorHandler ("", $this->_errorMessage(), $this->caller(), $this->options);
     }
 
-    protected function _convertIntFloat(&$data, $type) {
-        // TODO: Implement _convertIntFloat() method.
+    protected function _convertTypes(&$data, $type) {
+        // TODO: Implement _convertTypes() method.
         return $data;
     }
 

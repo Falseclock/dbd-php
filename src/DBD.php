@@ -58,6 +58,7 @@ abstract class DBD
 		'ShowErrorStatement' => false,
 		'HTMLError'          => false,
 		'ConvertNumeric'     => false,
+		'ConvertBoolean'     => false,
 		'UseDebug'           => false,
 		'ErrorHandler'       => null,
 		/** @var \DBD\Cache CacheDriver */
@@ -534,11 +535,10 @@ abstract class DBD
 		if($binds != $numberOfArgs) {
 			$caller = $this->caller();
 
-			trigger_error(
-				"Execute failed: called with 
+			trigger_error("Execute failed: called with 
 					$numberOfArgs bind variables when $binds are needed at 
 					{$caller[0]['file']} line {$caller[0]['line']}",
-				E_USER_ERROR
+						  E_USER_ERROR
 			);
 		}
 
@@ -694,8 +694,8 @@ abstract class DBD
 		if($this->cache['key'] === null) {
 			$return = $this->_fetchAssoc();
 
-			if($this->options['ConvertNumeric']) {
-				return $this->_convertIntFloat($return, 'row');
+			if($this->options['ConvertNumeric'] || $this->options['ConvertBoolean']) {
+				return $this->_convertTypes($return, 'row');
 			}
 
 			return $return;
@@ -707,7 +707,20 @@ abstract class DBD
 
 	abstract protected function _fetchAssoc();
 
+	private function _convertTypes(&$data, $type) {
+		if($this->options['ConvertNumeric']) {
+			$this->_convertIntFloat($data, $type);
+		}
+		if($this->options['ConvertBoolean']) {
+			$this->_convertBoolean($data, $type);
+		}
+
+		return $data;
+	}
+
 	abstract protected function _convertIntFloat(&$data, $type);
+
+	abstract protected function _convertBoolean(&$data, $type);
 
 	public function fetcharrayset() {
 		$array = [];
@@ -863,9 +876,8 @@ abstract class DBD
 
 				$return = $this->_fetchArray();
 
-				if($this->options['ConvertNumeric']) {
-
-					$return = $this->_convertIntFloat($return, 'row');
+				if($this->options['ConvertNumeric'] || $this->options['ConvertBoolean']) {
+					$return = $this->_convertTypes($return, 'row');
 				}
 
 				$this->fetch = $return;

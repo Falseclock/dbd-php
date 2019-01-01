@@ -53,8 +53,8 @@ class MySQL extends DBD
         mysqli_autocommit($this->dbh, false);
     }
 
-    protected function _convertIntFloat(&$data, $type) {
-        // TODO: Implement _convertIntFloat() method.
+    protected function _convertTypes(&$data, $type) {
+        // TODO: Implement _convertTypes() method.
         return $data;
     }
 

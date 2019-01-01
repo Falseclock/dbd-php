@@ -237,8 +237,8 @@ class OData extends DBD
 
 	/*--------------------------------------------------------------*/
 
-	protected function _convertIntFloat(&$data, $type) {
-		// TODO: Implement _convertIntFloat() method.
+	protected function _convertTypes(&$data, $type) {
+		// TODO: Implement _convertTypes() method.
 	}
 
 	/*--------------------------------------------------------------*/
