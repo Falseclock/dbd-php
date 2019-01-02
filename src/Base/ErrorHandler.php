@@ -63,7 +63,7 @@ class ErrorHandler extends Exception
                     exit();
                 }
                 else {
-                    throw new Exception($error);
+					throw new Exception($error);
                 }
             }
             if($options['PrintError']) {

@@ -27,8 +27,8 @@
 
 namespace DBD;
 
+use DBD\Base\DBDPHPException;
 use DBD\Base\Debug;
-use DBD\Base\ErrorHandler;
 use Exception;
 
 /**
@@ -90,7 +90,7 @@ abstract class DBD
 		$this->connectionPreCheck();
 		$this->result = $this->_begin();
 		if($this->result === false)
-			trigger_error("Can not start transaction " . $this->_errorMessage(), E_USER_ERROR);
+			throw new DBDPHPException("Can not start transaction: " . $this->_errorMessage());
 
 		$this->transaction = true;
 
@@ -122,11 +122,11 @@ abstract class DBD
 
 	public function cache($key, $expire = null, $compress = null) {
 		if(!isset($key) or !$key) {
-			trigger_error("caching failed: key is not set or empty", E_USER_ERROR);
+			throw new DBDPHPException("caching failed: key is not set or empty");
 		}
 		if($this->cacheDriver() == null) {
 			//return;
-			trigger_error("CacheDriver not initialized", E_USER_ERROR);
+			throw new DBDPHPException("CacheDriver not initialized");
 		}
 		if(preg_match("/^[\s\t\r\n]*select/i", $this->query)) {
 			// set hash key
@@ -139,7 +139,7 @@ abstract class DBD
 				$this->cache['expire'] = $expire;
 		}
 		else {
-			trigger_error("caching failed: current query is not of SELECT type", E_USER_ERROR);
+			throw new DBDPHPException("caching failed: current query is not of SELECT type");
 		}
 
 		return;
@@ -162,10 +162,10 @@ abstract class DBD
 			$this->connectionPreCheck();
 			$this->result = $this->_commit();
 			if($this->result === false)
-				trigger_error("Can not end transaction " . $this->_errorMessage(), E_USER_ERROR);
+				throw new DBDPHPException("Can not commit transaction: " . $this->_errorMessage());
 		}
 		else {
-			trigger_error("No transaction to commit", E_USER_ERROR);
+			throw new DBDPHPException("No transaction to commit");
 		}
 		$this->transaction = false;
 
@@ -207,11 +207,11 @@ abstract class DBD
 					$this->options[$key] = $value;
 				}
 				else {
-					throw new Exception("Unknown option provided");
+					throw new DBDPHPException("Unknown option provided");
 				}
 			}
 			else {
-				throw new Exception("Option must be a string");
+				throw new DBDPHPException("Option must be a string");
 			}
 		}
 
@@ -284,10 +284,10 @@ abstract class DBD
 			$this->connectionPreCheck();
 			$this->result = $this->_rollback();
 			if($this->result === false)
-				trigger_error("Can not end transaction " . pg_errormessage(), E_USER_ERROR);
+				throw new DBDPHPException("Can not end transaction " . pg_errormessage());
 		}
 		else {
-			trigger_error("No transaction to rollback", E_USER_ERROR);
+			throw new DBDPHPException("No transaction to rollback");
 		}
 		$this->transaction = false;
 
@@ -307,7 +307,7 @@ abstract class DBD
 			}
 			else
 			{
-				trigger_error("CacheDriver not initialized", E_USER_ERROR);
+				throw new DBDPHPException("CacheDriver not initialized");
 			}
 
 			return;
@@ -319,7 +319,7 @@ abstract class DBD
 			$this->cacheDriver()->delete($key);
 		}
 		else {
-			trigger_error("CacheDriver not initialized", E_USER_ERROR);
+			throw new DBDPHPException("CacheDriver not initialized");
 		}
 
 		return;
@@ -339,7 +339,7 @@ abstract class DBD
 	 */
 	public function doit() {
 		if(!func_num_args())
-			trigger_error("query failed: statement is not set or empty", E_USER_ERROR);
+			throw new DBDPHPException("query failed: statement is not set or empty");
 
 		list ($statement, $args) = $this->prepareArgs(func_get_args());
 
@@ -364,7 +364,7 @@ abstract class DBD
 	 */
 	public function query() {
 		if(!func_num_args())
-			trigger_error("query failed: statement is not set or empty", E_USER_ERROR);
+			throw new DBDPHPException("query failed: statement is not set or empty");
 
 		list ($statement, $args) = $this->prepareArgs(func_get_args());
 
@@ -406,7 +406,7 @@ abstract class DBD
 	 */
 	public function prepare($statement) {
 		if(!isset($statement) or empty($statement))
-			trigger_error("prepare failed: statement is not set or empty", E_USER_ERROR);
+			throw new DBDPHPException("prepare failed: statement is not set or empty");
 
 		$className = get_class($this);
 
@@ -456,7 +456,12 @@ abstract class DBD
 				Debug::me()->startTimer();
 			}
 			// Execute query to the database
-			$this->result = $this->_query($exec);
+			try {
+				$this->result = $this->_query($exec);
+			}
+			catch(Exception $exception) {
+				throw new DBDPHPException($exception->getMessage(), $exec);
+			}
 			$cost = Debug::me()->endTimer();
 
 			if($this->result !== false) {
@@ -464,7 +469,7 @@ abstract class DBD
 				$this->storage = 'database';
 			}
 			else {
-				new ErrorHandler ($exec, $this->_errorMessage(), $this->caller(), $this->options);
+				throw new DBDPHPException ($this->_errorMessage(), $exec);
 			}
 
 			// If query from cache
@@ -495,7 +500,7 @@ abstract class DBD
 		}
 
 		if($this->result === false) {
-			new ErrorHandler ($exec, $this->_errorMessage(), $this->caller(), $this->options);
+			throw new DBDPHPException($this->_errorMessage(), $exec);
 		}
 
 		if($this->options['UseDebug']) {
@@ -533,13 +538,7 @@ abstract class DBD
 		$numberOfArgs = count($args);
 
 		if($binds != $numberOfArgs) {
-			$caller = $this->caller();
-
-			trigger_error("Execute failed: called with 
-					$numberOfArgs bind variables when $binds are needed at 
-					{$caller[0]['file']} line {$caller[0]['line']}",
-						  E_USER_ERROR
-			);
+			throw new DBDPHPException("Execute failed: called with $numberOfArgs bind variables when $binds are needed");
 		}
 
 		if($numberOfArgs) {
@@ -559,41 +558,6 @@ abstract class DBD
 	abstract protected function _query($statement);
 
 	abstract protected function _numRows();
-
-	/**
-	 * @return array
-	 * @throws \ReflectionException
-	 */
-	protected function caller() {
-		$return = [];
-		$debug = debug_backtrace();
-
-		// working directory
-		$wd = $_SERVER["DOCUMENT_ROOT"];
-		$wd = str_replace(DIRECTORY_SEPARATOR, "/", $wd);
-
-		$myFilename = $debug[0]['file'];
-		$myFilename = str_replace(DIRECTORY_SEPARATOR, "/", $myFilename);
-		$myFilename = str_replace($wd, '', $myFilename);
-
-		$child = (new \ReflectionClass($this))->getShortName();
-
-		foreach($debug as $ind => $call) {
-			// our filename
-			$call['file'] = str_replace(DIRECTORY_SEPARATOR, "/", $call['file']);
-			$call['file'] = str_replace($wd, '', $call['file']);
-
-			if($myFilename != $call['file'] && !preg_match('/' . $child . '\.\w+$/', $call['file'])) {
-				$return[] = [
-					'file'     => $call['file'],
-					'line'     => $call['line'],
-					'function' => $call['function']
-				];
-			}
-		}
-
-		return $return;
-	}
 
 	/**
 	 * Will return the number of rows in a database result resource.
@@ -649,6 +613,41 @@ abstract class DBD
 	 */
 	private function getDriver() {
 		return (new \ReflectionClass($this))->getParentClass()->getShortName();
+	}
+
+	/**
+	 * @return array
+	 * @throws \ReflectionException
+	 */
+	protected function caller() {
+		$return = [];
+		$debug = debug_backtrace();
+
+		// working directory
+		$wd = $_SERVER["DOCUMENT_ROOT"];
+		$wd = str_replace(DIRECTORY_SEPARATOR, "/", $wd);
+
+		$myFilename = $debug[0]['file'];
+		$myFilename = str_replace(DIRECTORY_SEPARATOR, "/", $myFilename);
+		$myFilename = str_replace($wd, '', $myFilename);
+
+		$child = (new \ReflectionClass($this))->getShortName();
+
+		foreach($debug as $ind => $call) {
+			// our filename
+			$call['file'] = str_replace(DIRECTORY_SEPARATOR, "/", $call['file']);
+			$call['file'] = str_replace($wd, '', $call['file']);
+
+			if($myFilename != $call['file'] && !preg_match('/' . $child . '\.\w+$/', $call['file'])) {
+				$return[] = [
+					'file'     => $call['file'],
+					'line'     => $call['line'],
+					'function' => $call['function']
+				];
+			}
+		}
+
+		return $return;
 	}
 
 	private function cleanSql($exec) {
@@ -760,7 +759,7 @@ abstract class DBD
 			return $this->options[$key];
 		}
 		else {
-			throw new Exception("Unknown option provided");
+			throw new DBDPHPException("Unknown option provided");
 		}
 	}
 
@@ -909,7 +908,7 @@ abstract class DBD
 			return $value;
 		}
 		else {
-			throw new Exception("Unknown option provided : '{$key}'");
+			throw new DBDPHPException("Unknown option provided : '{$key}'");
 		}
 	}
 

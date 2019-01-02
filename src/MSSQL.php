@@ -27,7 +27,7 @@
 
 namespace DBD;
 
-use DBD\Base\ErrorHandler;
+use DBD\Base\DBDPHPException;
 
 /**
  * Class MSSQL
@@ -68,7 +68,7 @@ class MSSQL extends DBD
         $return = sqlsrv_rows_affected($this->result);
 
         if($return === false) {
-            new ErrorHandler ($this->query, $this->_errorMessage(), $this->caller(), $this->options);
+            throw new DBDPHPException($this->_errorMessage(), $this->query );
         }
         if($return === -1) {
             return 0;
@@ -102,7 +102,7 @@ class MSSQL extends DBD
         $this->dbh = sqlsrv_connect($this->dsn, $this->connectionInfo);
 
         if(!$this->dbh)
-            new ErrorHandler ("", $this->_errorMessage(), $this->caller(), $this->options);
+			throw new DBDPHPException($this->_errorMessage());
     }
 
     protected function _convertTypes(&$data, $type) {

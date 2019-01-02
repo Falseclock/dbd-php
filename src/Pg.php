@@ -27,6 +27,8 @@
 
 namespace DBD;
 
+use DBD\Base\DBDPHPException;
+
 /**
  * Class Pg
  *
@@ -43,7 +45,7 @@ class Pg extends DBD
         $this->dbh = pg_connect($this->dsn);
 
         if(!$this->dbh)
-            trigger_error("Can not connect to PostgreSQL server! ", E_USER_ERROR);
+			throw new DBDPHPException("Can not connect to PostgreSQL server! ");
     }
 
     /**
@@ -149,10 +151,10 @@ class Pg extends DBD
 				$dublications .= "[<b>{$key}</b>] => <b style='color:crimson'>{$value}</b><br />";
 			}
 
-			trigger_error("Statement result has " . pg_num_fields($this->result) . " columns while fetched row only " . count($data) . ". 
+			throw new DBDPHPException("Statement result has " . pg_num_fields($this->result) . " columns while fetched row only " . count($data) . ". 
 				Fetching it associative reduces number of columns. 
-				Rename column with `AS` inside statement or fetch as indexed array.<br /><br />
-				Dublicating columns are:<br /> {$dublications}<br />", E_USER_ERROR);
+				Rename column with `AS` inside statement or fetch as indexed array.\n\n
+				Dublicating columns are: {$dublications}\n");
 		}
 
 		$types = [];
@@ -214,7 +216,7 @@ class Pg extends DBD
 						} elseif ($data[$dataKey] == null) {
 							$data[$dataKey] = null;
 						} else {
-							trigger_error("Unexpected boolean value");
+							throw new DBDPHPException("Unexpected boolean value");
 						}
 					}
 				}
@@ -296,7 +298,7 @@ class Pg extends DBD
      * @return resource
      */
     protected function _query($statement) {
-        return @pg_query($this->dbh, $statement);
+        return pg_query($this->dbh, $statement);
     }
 
     protected function _queryExplain($statement) {
