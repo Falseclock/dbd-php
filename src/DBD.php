@@ -39,7 +39,7 @@ use Exception;
 abstract class DBD
 {
 	//private $affected = 0;
-	public static $debug       = [ 'total_queries', 'total_cost', 'per_driver' ];
+	public static $debug       = [ 'total_queries' => 0, 'total_cost' => 0, 'per_driver' => [] ];
 	public        $rows        = 0;
 	protected     $cache       = [
 		'key'      => null,
@@ -507,7 +507,7 @@ abstract class DBD
 			$index = $this->storage == 'cache' ? 'Cache' : $this->getDriver();
 
 			$caller = $this->caller();
-			/** @noinspection PhpUndefinedVariableInspection */
+
 			@self::$debug['queries'][$index][] = [
 				'query'   => $this->cleanSql($exec),
 				'cost'    => $cost,
@@ -517,6 +517,11 @@ abstract class DBD
 			];
 			@self::$debug['total_queries'] += 1;
 			@self::$debug['total_cost'] += $cost;
+			if (!isset($debug['per_driver'][$index])) {
+				self::$debug['per_driver'] = [
+					$index => ['total' => 0, 'cost' => 0 ]
+				];
+			}
 			@self::$debug['per_driver'][$index]['total'] += 1;
 			@self::$debug['per_driver'][$index]['cost'] += $cost;
 		}
@@ -635,15 +640,17 @@ abstract class DBD
 
 		foreach($debug as $ind => $call) {
 			// our filename
-			$call['file'] = str_replace(DIRECTORY_SEPARATOR, "/", $call['file']);
-			$call['file'] = str_replace($wd, '', $call['file']);
+			if (isset($call['file'])) {
+				$call['file'] = str_replace(DIRECTORY_SEPARATOR, "/", $call['file']);
+				$call['file'] = str_replace($wd, '', $call['file']);
 
-			if($myFilename != $call['file'] && !preg_match('/' . $child . '\.\w+$/', $call['file'])) {
-				$return[] = [
-					'file'     => $call['file'],
-					'line'     => $call['line'],
-					'function' => $call['function']
-				];
+				if($myFilename != $call['file'] && !preg_match('/' . $child . '\.\w+$/', $call['file'])) {
+					$return[] = [
+						'file'     => $call['file'],
+						'line'     => $call['line'],
+						'function' => $call['function']
+					];
+				}
 			}
 		}
 

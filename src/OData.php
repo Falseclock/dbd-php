@@ -714,6 +714,10 @@ class OData extends DBD
 
 		return $string;
 	}
+
+	protected function _convertIntFloat(&$data, $type) {}
+
+	protected function _convertBoolean(&$data, $type){}
 }
 
 final class OdataExtend extends OData implements DBI
