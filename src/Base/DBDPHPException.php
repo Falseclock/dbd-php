@@ -31,6 +31,8 @@ class DBDPHPException extends Exception
 {
 	protected $query;
 	protected $trace;
+	protected $fullTrace;
+	protected $shortTrace;
 	protected $message;
 	protected $code;
 	protected $file;
@@ -39,26 +41,39 @@ class DBDPHPException extends Exception
 	public function __construct(string $message = "", $query = null) {
 		$this->query = $query;
 		$this->message = $message;
+		$this->code = E_ERROR;
 
-		$backTrace = debug_backtrace();
+		$backTrace = parent::getTrace();
+		$this->fullTrace = $backTrace;
 
 		foreach($backTrace as $trace) {
-			if(isset($trace['class'])) {
-				if(substr($trace['class'], 0, 4) === "DBD\\") {
+			if(isset($trace['file'])) {
+				$pathInfo = pathinfo($trace['file']);
+				if($pathInfo['basename'] == "DBD.php") {
 					array_shift($backTrace);
 					continue;
+				} else {
+					break;
 				}
 			}
 		}
 		$this->file = $backTrace[0]['file'];
 		$this->line = $backTrace[0]['line'];
 
-		$this->trace = $backTrace;
+		$this->shortTrace = $backTrace;
 
-		parent::__construct($message);
+		parent::__construct($message, $this->code);
 	}
 
 	public function getQuery() {
 		return $this->query;
+	}
+
+	public function getShortTrace(){
+		return $this->shortTrace;
+	}
+
+	public function getFullTrace() {
+		return $this->fullTrace;
 	}
 }

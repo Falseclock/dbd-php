@@ -290,15 +290,15 @@ class Pg extends DBD
         return pg_affected_rows($this->result);
     }
 
-    /**
-     * Executes the query on the specified database connection.
-     *
-     * @param $statement
-     *
-     * @return resource
-     */
+	/**
+	 * Executes the query on the specified database connection.
+	 *
+	 * @param $statement
+	 *
+	 * @return resource
+	 */
     protected function _query($statement) {
-        return pg_query($this->dbh, $statement);
+			return @pg_query($this->dbh, $statement);
     }
 
     protected function _queryExplain($statement) {
