@@ -16,7 +16,7 @@
  *                                                                                   *
  *   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR      *
  *   IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,        *
- *   FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE     *
+ *   FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT. IN NO EVENT SHALL THE     *
  *   AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER          *
  *   LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,   *
  *   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE   *
@@ -25,7 +25,7 @@
 
 namespace DBD\Base;
 
-use \Exception;
+use Exception;
 
 class DBDPHPException extends Exception
 {
@@ -52,7 +52,8 @@ class DBDPHPException extends Exception
 				if($pathInfo['basename'] == "DBD.php") {
 					array_shift($backTrace);
 					continue;
-				} else {
+				}
+				else {
 					break;
 				}
 			}
@@ -69,7 +70,7 @@ class DBDPHPException extends Exception
 		return $this->query;
 	}
 
-	public function getShortTrace(){
+	public function getShortTrace() {
 		return $this->shortTrace;
 	}
 
