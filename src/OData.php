@@ -584,12 +584,14 @@ class OData extends DBD
 		$query = trim($query);
 
 		// split whole query by special words
-		$pieces = preg_split('/(?=(SELECT|FROM|WHERE|ORDER BY|LIMIT|EXPAND).+?)/', $query);
+		$pieces = preg_split('/(?=(SELECT|FROM|WHERE|ORDER BY|LIMIT|EXPAND).+?)/u', $query);
 		$struct = [];
 
 		foreach($pieces as $piece) {
-			preg_match('/(SELECT|FROM|WHERE|ORDER BY|LIMIT|EXPAND)(.+)/', $piece, $matches);
-			$struct[trim($matches[1])] = trim($matches[2]);
+			preg_match('/(SELECT|FROM|WHERE|ORDER BY|LIMIT|EXPAND)(.+)/u', $piece, $matches);
+			if (count($matches)) {
+				$struct[trim($matches[1])] = trim($matches[2]);
+			}
 		}
 
 		// Start URL build
@@ -603,7 +605,7 @@ class OData extends DBD
 
 			foreach($fields as &$field) {
 				$keywords = preg_split("/AS/i", $field);
-				if($keywords[1]) {
+				if(isset($keywords[1])) {
 					$this->replacements[trim($keywords[0])] = trim($keywords[1]);
 					$field = trim($keywords[0]);
 				}
@@ -638,7 +640,7 @@ class OData extends DBD
 			$this->requestUrl .= '$orderby=' . $struct['ORDER BY'] . '&';
 		}
 
-		if($struct['LIMIT']) {
+		if(isset($struct['LIMIT'])) {
 			$this->requestUrl .= '$top=' . $struct['LIMIT'] . '&';
 		}
 
