@@ -25,37 +25,41 @@
 
 namespace DBD\Base;
 
-use DBD\Base\Instantiatable as Instantiatable;
-use DBD\Base\Singleton as Singleton;
+use DBD\Base\DBDPHPInstantiatable as Instantiatable;
+use DBD\Base\DBDPHPSingleton as Singleton;
 
-final class Debug extends Singleton implements Instantiatable
+final class DBDPHPDebug extends Singleton implements Instantiatable
 {
-    protected $startTime = null;
+	protected $startTime = null;
 
-    public static function me() {
-        return Singleton::getInstance(__CLASS__);
-    }
+	/**
+	 * @return DBDPHPDebug
+	 * @throws \Exception
+	 */
+	public static function me() {
+		return Singleton::getInstance(__CLASS__);
+	}
 
-    public function endTimer() {
-        return $this->difference($this->startTime);
-    }
+	public function endTimer() {
+		return $this->difference($this->startTime);
+	}
 
-    public function startTimer() {
-        $this->startTime = microtime();
+	private function difference($start, $end = null) {
+		if(!$end) {
+			$end = microtime();
+		}
+		list($start_usec, $start_sec) = explode(" ", $start);
+		list($end_usec, $end_sec) = explode(" ", $end);
+		$diff_sec = intval($end_sec) - intval($start_sec);
+		$diff_usec = floatval($end_usec) - floatval($start_usec);
 
-        return $this->startTime;
-    }
+		//return floatval($diff_sec) + $diff_usec;
+		return round(((floatval($diff_sec) + $diff_usec) * 1000), 3);
+	}
 
-    private function difference($start, $end = null) {
-        if(!$end) {
-            $end = microtime();
-        }
-        list($start_usec, $start_sec) = explode(" ", $start);
-        list($end_usec, $end_sec) = explode(" ", $end);
-        $diff_sec  = intval($end_sec) - intval($start_sec);
-        $diff_usec = floatval($end_usec) - floatval($start_usec);
+	public function startTimer() {
+		$this->startTime = microtime();
 
-        //return floatval($diff_sec) + $diff_usec;
-        return round(((floatval($diff_sec) + $diff_usec) * 1000), 3);
-    }
+		return $this->startTime;
+	}
 }

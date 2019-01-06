@@ -27,9 +27,8 @@
 
 namespace DBD;
 
-use DBD\Base\DBDPHPException;
-use DBD\Base\Debug;
-use Exception;
+use DBD\Base\DBDPHPDebug as Debug;
+use DBD\Base\DBDPHPException as Exception;
 
 /**
  * Class DBD
@@ -85,12 +84,13 @@ abstract class DBD
 	 * Starts database transaction
 	 *
 	 * @return $this
+	 * @throws \DBD\Base\DBDPHPException
 	 */
 	public function begin() {
 		$this->connectionPreCheck();
 		$this->result = $this->_begin();
 		if($this->result === false)
-			throw new DBDPHPException("Can not start transaction: " . $this->_errorMessage());
+			throw new Exception("Can not start transaction: " . $this->_errorMessage());
 
 		$this->transaction = true;
 
@@ -122,11 +122,11 @@ abstract class DBD
 
 	public function cache($key, $expire = null, $compress = null) {
 		if(!isset($key) or !$key) {
-			throw new DBDPHPException("caching failed: key is not set or empty");
+			throw new Exception("caching failed: key is not set or empty");
 		}
 		if($this->cacheDriver() == null) {
 			//return;
-			throw new DBDPHPException("CacheDriver not initialized");
+			throw new Exception("CacheDriver not initialized");
 		}
 		if(preg_match("/^[\s\t\r\n]*select/i", $this->query)) {
 			// set hash key
@@ -139,7 +139,7 @@ abstract class DBD
 				$this->cache['expire'] = $expire;
 		}
 		else {
-			throw new DBDPHPException("caching failed: current query is not of SELECT type");
+			throw new Exception("caching failed: current query is not of SELECT type");
 		}
 
 		return;
@@ -156,16 +156,17 @@ abstract class DBD
 	 * Commits a transaction that was begun
 	 *
 	 * @return $this
+	 * @throws \DBD\Base\DBDPHPException
 	 */
 	public function commit() {
 		if($this->transaction) {
 			$this->connectionPreCheck();
 			$this->result = $this->_commit();
 			if($this->result === false)
-				throw new DBDPHPException("Can not commit transaction: " . $this->_errorMessage());
+				throw new Exception("Can not commit transaction: " . $this->_errorMessage());
 		}
 		else {
-			throw new DBDPHPException("No transaction to commit");
+			throw new Exception("No transaction to commit");
 		}
 		$this->transaction = false;
 
@@ -207,11 +208,11 @@ abstract class DBD
 					$this->options[$key] = $value;
 				}
 				else {
-					throw new DBDPHPException("Unknown option provided");
+					throw new Exception("Unknown option provided");
 				}
 			}
 			else {
-				throw new DBDPHPException("Option must be a string");
+				throw new Exception("Option must be a string");
 			}
 		}
 
@@ -258,6 +259,7 @@ abstract class DBD
 	 * Closes a database connection
 	 *
 	 * @return $this
+	 * @throws \DBD\Base\DBDPHPException
 	 */
 	public function disconnect() {
 		if($this->isConnected()) {
@@ -278,16 +280,17 @@ abstract class DBD
 	 * Rolls back a transaction that was begun
 	 *
 	 * @return $this
+	 * @throws \DBD\Base\DBDPHPException
 	 */
 	public function rollback() {
 		if($this->transaction) {
 			$this->connectionPreCheck();
 			$this->result = $this->_rollback();
 			if($this->result === false)
-				throw new DBDPHPException("Can not end transaction " . pg_errormessage());
+				throw new Exception("Can not end transaction " . pg_errormessage());
 		}
 		else {
-			throw new DBDPHPException("No transaction to rollback");
+			throw new Exception("No transaction to rollback");
 		}
 		$this->transaction = false;
 
@@ -307,7 +310,7 @@ abstract class DBD
 			}
 			else
 			{
-				throw new DBDPHPException("CacheDriver not initialized");
+				throw new Exception("CacheDriver not initialized");
 			}
 
 			return;
@@ -319,7 +322,7 @@ abstract class DBD
 			$this->cacheDriver()->delete($key);
 		}
 		else {
-			throw new DBDPHPException("CacheDriver not initialized");
+			throw new Exception("CacheDriver not initialized");
 		}
 
 		return;
@@ -339,7 +342,7 @@ abstract class DBD
 	 */
 	public function doit() {
 		if(!func_num_args())
-			throw new DBDPHPException("query failed: statement is not set or empty");
+			throw new Exception("query failed: statement is not set or empty");
 
 		list ($statement, $args) = $this->prepareArgs(func_get_args());
 
@@ -354,7 +357,7 @@ abstract class DBD
 
 		return [
 			$statement,
-			$args
+			$args,
 		];
 	}
 
@@ -364,7 +367,7 @@ abstract class DBD
 	 */
 	public function query() {
 		if(!func_num_args())
-			throw new DBDPHPException("query failed: statement is not set or empty");
+			throw new Exception("query failed: statement is not set or empty");
 
 		list ($statement, $args) = $this->prepareArgs(func_get_args());
 
@@ -403,10 +406,11 @@ abstract class DBD
 	 * @param string $statement
 	 *
 	 * @return DBD
+	 * @throws \DBD\Base\DBDPHPException
 	 */
 	public function prepare($statement) {
 		if(!isset($statement) or empty($statement))
-			throw new DBDPHPException("prepare failed: statement is not set or empty");
+			throw new Exception("prepare failed: statement is not set or empty");
 
 		$className = get_class($this);
 
@@ -456,12 +460,7 @@ abstract class DBD
 				Debug::me()->startTimer();
 			}
 			// Execute query to the database
-			try {
-				$this->result = $this->_query($exec);
-			}
-			catch(Exception $exception) {
-				throw new DBDPHPException($exception->getMessage(), $exec);
-			}
+			$this->result = $this->_query($exec);
 			$cost = Debug::me()->endTimer();
 
 			if($this->result !== false) {
@@ -469,7 +468,7 @@ abstract class DBD
 				$this->storage = 'database';
 			}
 			else {
-				throw new DBDPHPException ($this->_errorMessage(), $exec);
+				throw new Exception ($this->_errorMessage(), $exec);
 			}
 
 			// If query from cache
@@ -500,10 +499,12 @@ abstract class DBD
 		}
 
 		if($this->result === false) {
-			throw new DBDPHPException($this->_errorMessage(), $exec);
+			throw new Exception($this->_errorMessage(), $exec);
 		}
 
 		if($this->options['UseDebug']) {
+			$cost = isset($cost) ? $cost : 0;
+
 			$index = $this->storage == 'cache' ? 'Cache' : $this->getDriver();
 
 			$caller = $this->caller();
@@ -517,9 +518,9 @@ abstract class DBD
 			];
 			@self::$debug['total_queries'] += 1;
 			@self::$debug['total_cost'] += $cost;
-			if (!isset($debug['per_driver'][$index])) {
+			if(!isset($debug['per_driver'][$index])) {
 				self::$debug['per_driver'] = [
-					$index => ['total' => 0, 'cost' => 0 ]
+					$index => [ 'total' => 0, 'cost' => 0 ],
 				];
 			}
 			@self::$debug['per_driver'][$index]['total'] += 1;
@@ -533,7 +534,7 @@ abstract class DBD
 	 * @param $ARGS
 	 *
 	 * @return string
-	 * @throws \ReflectionException
+	 * @throws \DBD\Base\DBDPHPException
 	 */
 	private function getExec($ARGS) {
 		$exec = $this->query;
@@ -543,7 +544,7 @@ abstract class DBD
 		$numberOfArgs = count($args);
 
 		if($binds != $numberOfArgs) {
-			throw new DBDPHPException("Execute failed: called with $numberOfArgs bind variables when $binds are needed");
+			throw new Exception("Execute failed: called with $numberOfArgs bind variables when $binds are needed");
 		}
 
 		if($numberOfArgs) {
@@ -640,7 +641,7 @@ abstract class DBD
 
 		foreach($debug as $ind => $call) {
 			// our filename
-			if (isset($call['file'])) {
+			if(isset($call['file'])) {
 				$call['file'] = str_replace(DIRECTORY_SEPARATOR, "/", $call['file']);
 				$call['file'] = str_replace($wd, '', $call['file']);
 
@@ -648,7 +649,7 @@ abstract class DBD
 					$return[] = [
 						'file'     => $call['file'],
 						'line'     => $call['line'],
-						'function' => $call['function']
+						'function' => $call['function'],
 					];
 				}
 			}
@@ -766,7 +767,7 @@ abstract class DBD
 			return $this->options[$key];
 		}
 		else {
-			throw new DBDPHPException("Unknown option provided");
+			throw new Exception("Unknown option provided");
 		}
 	}
 
@@ -823,29 +824,18 @@ abstract class DBD
 		return [
 			'COLUMNS' => $columns,
 			'VALUES'  => $values,
-			'ARGS'    => $args
+			'ARGS'    => $args,
 		];
 	}
 
 	abstract protected function _compileInsert($table, $params, $return = "");
 
 	/**
+	 * @deprecated
 	 * @return string
 	 */
 	public function printDebug() {
-		$debug = $this->getDebug();
-
-		extract($debug);
-
-		ob_start();
-		/** @noinspection PhpIncludeInspection */
-		require(__DIR__ . DIRECTORY_SEPARATOR . 'DBDDebug.php');
-		$return = ob_get_contents();
-		ob_end_clean();
-
-		echo $return;
-
-		return;
+		return null;
 	}
 
 	public function getDebug() {
@@ -915,7 +905,7 @@ abstract class DBD
 			return $value;
 		}
 		else {
-			throw new DBDPHPException("Unknown option provided : '{$key}'");
+			throw new Exception("Unknown option provided : '{$key}'");
 		}
 	}
 
@@ -967,7 +957,7 @@ abstract class DBD
 
 		return [
 			'COLUMNS' => $columns,
-			'ARGS'    => $args
+			'ARGS'    => $args,
 		];
 	}
 

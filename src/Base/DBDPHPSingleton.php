@@ -13,7 +13,7 @@ namespace DBD\Base;
 
 use Exception;
 
-abstract class Singleton
+abstract class DBDPHPSingleton
 {
     private static $instances = [];
 
@@ -27,7 +27,7 @@ abstract class Singleton
     /// @example singleton.php
 
     final public static function getInstance($class, $args = null /* , ... */) {
-        // for Singleton::getInstance('class_name', $arg1, ...) calling
+        // for DBDPHPSingleton::getInstance('class_name', $arg1, ...) calling
         if(2 < func_num_args()) {
             $args = func_get_args();
             array_shift($args);
@@ -36,7 +36,7 @@ abstract class Singleton
         if(!isset(self::$instances[$class])) {
             $object = $args ? new $class($args) : new $class();
 
-            if(!($object instanceof Singleton)) {
+            if(!($object instanceof DBDPHPSingleton)) {
                 throw new Exception("Class '{$class}' is something not a Singleton's child");
             }
 

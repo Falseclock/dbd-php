@@ -26,7 +26,7 @@
 namespace DBD;
 
 use LSS\XML2Array;
-use DBD\Base\DBDPHPException;
+use DBD\Base\DBDPHPException as Exception;
 
 class OData extends DBD
 {
@@ -298,13 +298,13 @@ class OData extends DBD
 	/*--------------------------------------------------------------*/
 
 	public function begin() {
-		throw new DBDPHPException("BEGIN not supported by OData");
+		throw new Exception("BEGIN not supported by OData");
 	}
 
 	/*--------------------------------------------------------------*/
 
 	public function commit() {
-		throw new DBDPHPException("COMMIT not supported by OData");
+		throw new Exception("COMMIT not supported by OData");
 	}
 
 	/*--------------------------------------------------------------*/
@@ -461,7 +461,7 @@ class OData extends DBD
 		// This is not SQL driver, so we can't make several instances with prepare
 		// and let's allow only one by one requests per driver
 		if($this->query) {
-			throw new DBDPHPException("You have an unexecuted query", $this->query);
+			throw new Exception("You have an unexecuted query", $this->query);
 		}
 		// Drop current proteced vars to do not mix up
 		$this->dropVars();
@@ -477,7 +477,7 @@ class OData extends DBD
 	}
 
 	public function rollback() {
-		throw new DBDPHPException("ROLLBACK not supported by OData");
+		throw new Exception("ROLLBACK not supported by OData");
 	}
 
 	public function rows() {
@@ -554,7 +554,7 @@ class OData extends DBD
 		$numargs = count($args);
 
 		if($binds != $numargs) {
-			throw new DBDPHPException( "Query failed: called with $numargs bind variables when $binds are needed");
+			throw new Exception( "Query failed: called with $numargs bind variables when $binds are needed");
 		}
 
 		// Make url and put arguments
@@ -683,7 +683,7 @@ class OData extends DBD
 		if($this->body) {
 			$error = json_decode($this->body, true);
 			if($error && isset($error['odata.error']['message']['value'])) {
-				throw new DBDPHPException("URL: {$fail}\n" . $error['odata.error']['message']['value'], $this->query);
+				throw new Exception("URL: {$fail}\n" . $error['odata.error']['message']['value'], $this->query);
 			}
 			else {
 				$this->body = str_replace(
@@ -695,11 +695,11 @@ class OData extends DBD
 					"\n",
 					$this->body
 				);
-				throw new DBDPHPException("HEADER: {$this->header}\nURL: {$fail}\nBODY: {$this->body}\n", $this->query);
+				throw new Exception("HEADER: {$this->header}\nURL: {$fail}\nBODY: {$this->body}\n", $this->query);
 			}
 		}
 		else {
-			throw new DBDPHPException("HTTP STATUS: {$this->httpcode}\n" . strtok($this->header, "\n"), $this->query);
+			throw new Exception("HTTP STATUS: {$this->httpcode}\n" . strtok($this->header, "\n"), $this->query);
 		}
 	}
 

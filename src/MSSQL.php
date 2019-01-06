@@ -27,7 +27,7 @@
 
 namespace DBD;
 
-use DBD\Base\DBDPHPException;
+use DBD\Base\DBDPHPException as Exception;
 
 /**
  * Class MSSQL
@@ -68,7 +68,7 @@ class MSSQL extends DBD
         $return = sqlsrv_rows_affected($this->result);
 
         if($return === false) {
-            throw new DBDPHPException($this->_errorMessage(), $this->query );
+            throw new Exception($this->_errorMessage(), $this->query );
         }
         if($return === -1) {
             return 0;
@@ -102,7 +102,7 @@ class MSSQL extends DBD
         $this->dbh = sqlsrv_connect($this->dsn, $this->connectionInfo);
 
         if(!$this->dbh)
-			throw new DBDPHPException($this->_errorMessage());
+			throw new Exception($this->_errorMessage());
     }
 
     protected function _convertTypes(&$data, $type) {
@@ -201,6 +201,14 @@ class MSSQL extends DBD
     protected function _rollback() {
         return sqlsrv_rollback($this->dbh);
     }
+
+	protected function _convertIntFloat(&$data, $type) {
+		// TODO: Implement _convertIntFloat() method.
+	}
+
+	protected function _convertBoolean(&$data, $type) {
+		// TODO: Implement _convertBoolean() method.
+	}
 }
 
 /**

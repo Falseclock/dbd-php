@@ -25,14 +25,14 @@
 
 namespace DBD;
 
-use DBD\Base\Instantiatable;
-use DBD\Base\Singleton;
+use DBD\Base\DBDPHPInstantiatable as Instantiatable;
+use DBD\Base\DBDPHPSingleton as Singleton;;
 
 abstract class Cache extends Singleton implements Instantiatable
 {
     public $COMPRESS = [];
     public $EXPIRE   = 1;
-    /** @var Cache $link */
+    /** @var self $link */
     public    $link    = null;
     protected $SERVERS = null;
 
@@ -58,7 +58,7 @@ abstract class Cache extends Singleton implements Instantiatable
 
     public static function secCalc($matches) {
         if(!$matches || !$matches[1]) {
-            return Cache::getExpire();
+            return self::getExpire();
         }
 
         $val  = $matches[1];

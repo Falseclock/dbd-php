@@ -27,7 +27,7 @@
 
 namespace DBD;
 
-use DBD\Base\DBDPHPException;
+use DBD\Base\DBDPHPException as Exception;
 
 /**
  * Class Pg
@@ -36,23 +36,25 @@ use DBD\Base\DBDPHPException;
  */
 class Pg extends DBD
 {
-    /**
-     * Do real connection. Can be invoked if OnDemand is set to TRUE
-     *
-     * @return void
-     */
+	/**
+	 * Do real connection. Can be invoked if OnDemand is set to TRUE
+	 *
+	 * @return void
+	 * @throws \DBD\Base\DBDPHPException
+	 */
     public function _connect() {
         $this->dbh = pg_connect($this->dsn);
 
         if(!$this->dbh)
-			throw new DBDPHPException("Can not connect to PostgreSQL server! ");
+			throw new Exception("Can not connect to PostgreSQL server! ");
     }
 
-    /**
-     * Replacement for constructor
-     *
-     * @return \DBD\PgExtend
-     */
+	/**
+	 * Replacement for constructor
+	 *
+	 * @return \DBD\PgExtend
+	 * @throws \DBD\Base\DBDPHPException
+	 */
     public function connect() {
         $dsn = "host={$this->dsn} ";
         $dsn .= "dbname={$this->database} ";
@@ -121,17 +123,19 @@ class Pg extends DBD
      * @return string
      */
     protected function _compileUpdate($table, $params, $where, $return = "") {
-        return "UPDATE $table SET {$params['COLUMNS']}" . ($where ? " WHERE $where" : "") . ($return ? " RETURNING {$return}" : "");
+		/** @noinspection SqlWithoutWhere */
+		return "UPDATE $table SET {$params['COLUMNS']}" . ($where ? " WHERE $where" : "") . ($return ? " RETURNING {$return}" : "");
     }
 
-    /**
-     * Convert integer, double and float values to corresponding PHP types. By default Postgres returns them as string
-     *
-     * @param $data
-     * @param $type
-     *
-     * @return mixed
-     */
+	/**
+	 * Convert integer, double and float values to corresponding PHP types. By default Postgres returns them as string
+	 *
+	 * @param $data
+	 * @param $type
+	 *
+	 * @return mixed
+	 * @throws \DBD\Base\DBDPHPException
+	 */
 	protected function _convertIntFloat(&$data, $type) {
 		// TODO: in case of fetchrowset do not get each time and use static variable
 		// FIXME: numeric vs int
@@ -151,7 +155,7 @@ class Pg extends DBD
 				$dublications .= "[<b>{$key}</b>] => <b style='color:crimson'>{$value}</b><br />";
 			}
 
-			throw new DBDPHPException("Statement result has " . pg_num_fields($this->result) . " columns while fetched row only " . count($data) . ". 
+			throw new Exception("Statement result has " . pg_num_fields($this->result) . " columns while fetched row only " . count($data) . ". 
 				Fetching it associative reduces number of columns. 
 				Rename column with `AS` inside statement or fetch as indexed array.\n\n
 				Dublicating columns are: {$dublications}\n");
@@ -216,7 +220,7 @@ class Pg extends DBD
 						} elseif ($data[$dataKey] == null) {
 							$data[$dataKey] = null;
 						} else {
-							throw new DBDPHPException("Unexpected boolean value");
+							throw new Exception("Unexpected boolean value");
 						}
 					}
 				}
