@@ -659,11 +659,11 @@ abstract class DBD
 	}
 
 	private function cleanSql($exec) {
-		$array = preg_split('/\R/', $exec);
+		$array = preg_split('/\R/u', $exec);
 
 		foreach($array as $idx => $line) {
 			//$array[$idx] = trim($array[$idx], "\s\t\n\r");
-			if(!$array[$idx] || preg_match('/^[\s\R\t]*?$/', $array[$idx])) {
+			if(!$array[$idx] || preg_match('/^[\s\R\t]*?$/u', $array[$idx])) {
 				unset($array[$idx]);
 				continue;
 			}
