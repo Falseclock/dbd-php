@@ -629,8 +629,10 @@ abstract class DBD
 		$return = [];
 		$debug = debug_backtrace();
 
+		$DIR = __DIR__;
+
 		// working directory
-		$wd = $_SERVER["DOCUMENT_ROOT"];
+		$wd = is_link($_SERVER["DOCUMENT_ROOT"]) ? readlink($_SERVER["DOCUMENT_ROOT"]) : $_SERVER["DOCUMENT_ROOT"];
 		$wd = str_replace(DIRECTORY_SEPARATOR, "/", $wd);
 
 		$myFilename = $debug[0]['file'];
