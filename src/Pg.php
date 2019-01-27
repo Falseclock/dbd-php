@@ -299,10 +299,14 @@ class Pg extends DBD
 	 *
 	 * @param $statement
 	 *
-	 * @return resource
+	 * @return resource|bool
 	 */
     protected function _query($statement) {
+    	try {
 			return @pg_query($this->dbh, $statement);
+		} catch(\Exception $e) {
+    		return false;
+		}
     }
 
     protected function _queryExplain($statement) {
