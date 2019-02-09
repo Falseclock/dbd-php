@@ -207,28 +207,37 @@ class Pg extends DBD
 		return $data;
 	}
 
-	protected function _convertBoolean(&$data, $type) {
-		if($type == 'row') {
-			if($data) {
-				for($i = 0; $i < pg_num_fields($this->result); $i++) {
-					if (pg_field_type($this->result, $i) == 'bool') {
-						$dataKey = pg_field_name ( $this->result , $i );
-						if ($data[$dataKey] == 't') {
-							$data[$dataKey] = true;
-						} elseif($data[$dataKey] == 'f') {
-							$data[$dataKey] = false;
-						} elseif ($data[$dataKey] == null) {
-							$data[$dataKey] = null;
-						} else {
-							throw new Exception("Unexpected boolean value");
-						}
-					}
-				}
-			}
-		}
+    protected function _convertBoolean(&$data, $type) {
+        if($type == 'row') {
+            if(isset($data) and count($data) > 0) {
+                for($i = 0; $i < pg_num_fields($this->result); $i++) {
+                    if(pg_field_type($this->result, $i) == 'bool') {
+                        $dataKey = pg_field_name($this->result, $i);
+                        if(array_keys($data) !== range(0, count($data) - 1)) {
+                            $key = $dataKey;
+                        }
+                        else {
+                            $key = $i;
+                        }
+                        if($data[$key] == 't') {
+                            $data[$key] = true;
+                        }
+                        else if($data[$key] == 'f') {
+                            $data[$key] = false;
+                        }
+                        else if($data[$key] == null) {
+                            $data[$key] = null;
+                        }
+                        else {
+                            throw new Exception("Unexpected boolean value");
+                        }
+                    }
+                }
+            }
+        }
 
-		return $data;
-	}
+        return $data;
+    }
 
     /**
      * Closes the non-persistent connection to a PostgreSQL database associated with the given connection resource
