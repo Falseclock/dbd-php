@@ -1,8 +1,8 @@
 {
-  "name": "falseclock/dbd-php",
-  "type": "library",
+  "name":        "falseclock/dbd-php",
+  "type":        "library",
   "description": "Database driver for PHP (PostgreSQL, MySQL, MSSQL, OData, YellowERP, 1С)",
-  "keywords": [
+  "keywords":    [
     "dbd",
     "dbi",
     "sql",
@@ -19,28 +19,28 @@
     "YellowERP",
     "Yellow ERP"
   ],
-  "license": "MIT",
-  "authors": [
+  "license":     "MIT",
+  "authors":     [
     {
-      "name": "Nurlan Mukhanov",
+      "name":  "Nurlan Mukhanov",
       "email": "nurike@gmail.com"
     }
   ],
-  "require": {
-    "php": "^5.4 || ^7.0",
-    "ext-memcache": "*",
-    "psr/simple-cache": "*",
+  "require":     {
+    "php":                   "^5.4 || ^7.0",
+    "psr/simple-cache":      "*",
     "openlss/lib-array2xml": "0.5.*"
   },
   "require-dev": {
-    "ext-pgsql": "*",
+    "ext-pgsql":  "*",
     "ext-sqlsrv": "*"
   },
-  "suggest": {
-    "ext-pgsql": "Needed to support PostgreSQL database",
-    "ext-sqlsrv": "Needed to support MSSQL database"
+  "suggest":     {
+    "ext-memcache": "*",
+    "ext-pgsql":    "Needed to support PostgreSQL database",
+    "ext-sqlsrv":   "Needed to support MSSQL database"
   },
-  "autoload": {
+  "autoload":    {
     "psr-4": {
       "DBD\\": "src/"
     }
