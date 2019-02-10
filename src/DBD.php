@@ -27,6 +27,7 @@
 
 namespace DBD;
 
+use DBD\Base\DBDConfig;
 use DBD\Base\DBDOptions;
 use DBD\Base\DBDPHPDebug as Debug;
 use DBD\Base\DBDPHPException as Exception;
@@ -44,25 +45,22 @@ abstract class DBD
     public        $rows  = 0;
     /** @var \Psr\SimpleCache\CacheInterface|\DBD\Cache */
     protected $CacheDriver = null;
-    /** @var \DBD\Base\DBDOptions $Options */
+    /** @var DBDOptions $Options */
     protected $Options;
-    protected $cache       = [
+    /** @var DBDConfig $Config */
+    protected $Config;
+    protected $cache         = [
         'key'      => null,
         'result'   => null,
         'compress' => null,
         'expire'   => null,
     ];
-    protected $database    = null;
-    protected $dbh         = null;
-    protected $dsn         = null;
-    protected $fetch       = self::UNDEFINED;
-    protected $password    = null;
-    protected $port        = null;
-    protected $query       = "";
-    protected $result      = null;
-    protected $storage     = false;
-    protected $transaction = false;
-    protected $username    = null;
+    protected $dbResource    = null;
+    protected $fetch         = self::UNDEFINED;
+    protected $query         = "";
+    protected $result        = null;
+    protected $storage       = false;
+    protected $inTransaction = false;
 
     /**
      * @return \DBD\Cache|\Psr\SimpleCache\CacheInterface
@@ -106,7 +104,7 @@ abstract class DBD
         if($this->result === false)
             throw new Exception("Can not start transaction: " . $this->_errorMessage());
 
-        $this->transaction = true;
+        $this->inTransaction = true;
 
         return $this;
     }
@@ -129,7 +127,7 @@ abstract class DBD
     abstract protected function _errorMessage();
 
     protected function isConnected() {
-        return is_resource($this->dbh);
+        return is_resource($this->dbResource);
     }
 
     abstract protected function _connect();
@@ -166,7 +164,7 @@ abstract class DBD
      * @throws \DBD\Base\DBDPHPException
      */
     public function commit() {
-        if($this->transaction) {
+        if($this->inTransaction) {
             $this->connectionPreCheck();
             $this->result = $this->_commit();
             if($this->result === false)
@@ -175,7 +173,7 @@ abstract class DBD
         else {
             throw new Exception("No transaction to commit");
         }
-        $this->transaction = false;
+        $this->inTransaction = false;
 
         return $this;
     }
@@ -183,79 +181,36 @@ abstract class DBD
     abstract protected function _commit();
 
     /**
-     * @param string                     $dsn
-     * @param string                     $port
-     * @param string                     $database
-     * @param string                     $username
-     * @param string                     $password
-     * @param array|\DBD\Base\DBDOptions $options
+     * @param DBDConfig        $config
+     * @param array|DBDOptions $options
      *
      * @return $this
-     * @throws \Exception
+     * @throws \DBD\Base\DBDPHPException
      */
-    public function create($dsn, $port, $database, $username, $password, $options = null) {
+    public function create($config, $options = null) {
         $driver = get_class($this);
 
         /** @var \DBD\DBD $db */
         $db = new $driver;
 
-        return $db->setDsn($dsn)->setDatabase($database)->setPort($port)->setUsername($username)->setPassword($password)->setOptions($options);
-    }
+        if($config instanceof DBDConfig) {
+            $db->Config = $config;
+        }
+        else {
+            throw new Exception("config is not instance of DBDConfig");
+        }
 
-    /**
-     * @param array|\DBD\Base\DBDOptions $options
-     *
-     * @return $this
-     * @throws \Exception
-     */
-    private function setOptions($options) {
         if(!isset($options)) {
-            $this->Options = new DBDOptions;
+            $db->Options = new DBDOptions;
         }
         if($options instanceof DBDOptions) {
-            $this->Options = $options;
+            $db->Options = $options;
         }
-        if(is_array($options)) {
-            $this->Options = new DBDOptions($options);
+        else {
+            throw new Exception("options are not instance of DBDOptions");
         }
 
-        return $this;
-    }
-
-    private function setPassword($password) {
-        if($password)
-            $this->password = $password;
-
-        return $this;
-    }
-
-    private function setUsername($username) {
-        $this->username = $username;
-
-        return $this;
-    }
-
-    private function setPort($port) {
-        $this->port = $port;
-
-        return $this;
-    }
-
-    private function setDatabase($database) {
-        $this->database = $database;
-
-        return $this;
-    }
-
-    /**
-     * @param $dsn
-     *
-     * @return $this
-     */
-    private function setDsn($dsn) {
-        $this->dsn = $dsn;
-
-        return $this;
+        return $db;
     }
 
     /**
@@ -266,11 +221,11 @@ abstract class DBD
      */
     public function disconnect() {
         if($this->isConnected()) {
-            if($this->transaction) {
+            if($this->inTransaction) {
                 $this->rollback();
             }
             $this->_disconnect();
-            $this->dbh = null;
+            $this->dbResource = null;
         }
 
         return $this;
@@ -283,7 +238,7 @@ abstract class DBD
      * @throws \DBD\Base\DBDPHPException
      */
     public function rollback() {
-        if($this->transaction) {
+        if($this->inTransaction) {
             $this->connectionPreCheck();
             $this->result = $this->_rollback();
             if($this->result === false)
@@ -292,7 +247,7 @@ abstract class DBD
         else {
             throw new Exception("No transaction to rollback");
         }
-        $this->transaction = false;
+        $this->inTransaction = false;
 
         return $this;
     }

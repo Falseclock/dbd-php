@@ -40,8 +40,8 @@ final class YellowERP extends OData
     private static $sessionExist  = false;
 
     public function connect() {
-        if(!is_resource($this->dbh)) {
-            $this->setupCurl($this->dsn);
+        if(!is_resource($this->dbResource)) {
+            $this->setupCurl($this->Config->getDsn());
         }
 
         if($this->reuseSessions && !self::$sessionExist) {
@@ -56,27 +56,27 @@ final class YellowERP extends OData
             }
 
             if(self::$retry > $this->maxRetries) {
-                $url = curl_getinfo($this->dbh, CURLINFO_EFFECTIVE_URL);
+                $url = curl_getinfo($this->dbResource, CURLINFO_EFFECTIVE_URL);
                 throw new Exception("Too many connection retiries. Can't initiate session. URL: '{$url}'");
             }
 
             if(self::$ibsession) {
-                curl_setopt($this->dbh, CURLOPT_COOKIE, "ibsession=" . self::$ibsession);
+                curl_setopt($this->dbResource, CURLOPT_COOKIE, "ibsession=" . self::$ibsession);
             }
             else {
-                curl_setopt($this->dbh, CURLOPT_COOKIE, null);
-                curl_setopt($this->dbh, CURLOPT_HTTPHEADER, [ 'IBSession: start' ]);
+                curl_setopt($this->dbResource, CURLOPT_COOKIE, null);
+                curl_setopt($this->dbResource, CURLOPT_HTTPHEADER, [ 'IBSession: start' ]);
             }
         }
 
-        curl_setopt($this->dbh, CURLOPT_TIMEOUT, $this->timeOutLimit);
+        curl_setopt($this->dbResource, CURLOPT_TIMEOUT, $this->timeOutLimit);
 
-        $response    = curl_exec($this->dbh);
-        $header_size = curl_getinfo($this->dbh, CURLINFO_HEADER_SIZE);
+        $response    = curl_exec($this->dbResource);
+        $header_size = curl_getinfo($this->dbResource, CURLINFO_HEADER_SIZE);
 
         $this->header   = substr($response, 0, $header_size);
         $this->body     = substr($response, $header_size);
-        $this->httpcode = curl_getinfo($this->dbh, CURLINFO_HTTP_CODE);
+        $this->httpcode = curl_getinfo($this->dbResource, CURLINFO_HTTP_CODE);
         //$url            = curl_getinfo($this->dbh, CURLINFO_EFFECTIVE_URL);
 
         if($this->reuseSessions && !self::$sessionExist) {
@@ -108,7 +108,7 @@ final class YellowERP extends OData
 
         if($this->httpcode >= 200 && $this->httpcode < 300) {
             if($this->reuseSessions && !self::$sessionExist) {
-                curl_setopt($this->dbh, CURLOPT_COOKIE, "ibsession=" . self::$ibsession);
+                curl_setopt($this->dbResource, CURLOPT_COOKIE, "ibsession=" . self::$ibsession);
                 @setcookie('IBSession', self::$ibsession, time() + 60 * 60 * 24, '/');
                 self::$sessionExist = true;
             }
@@ -156,11 +156,11 @@ final class YellowERP extends OData
     }
 
     public function finish() {
-        if($this->dbh && self::$ibsession) {
-            curl_setopt($this->dbh, CURLOPT_URL, $this->dsn);
-            curl_setopt($this->dbh, CURLOPT_COOKIE, "ibsession=" . self::$ibsession);
-            curl_setopt($this->dbh, CURLOPT_HTTPHEADER, [ 'IBSession: finish' ]);
-            curl_exec($this->dbh);
+        if($this->dbResource && self::$ibsession) {
+            curl_setopt($this->dbResource, CURLOPT_URL, $this->Config->getDsn());
+            curl_setopt($this->dbResource, CURLOPT_COOKIE, "ibsession=" . self::$ibsession);
+            curl_setopt($this->dbResource, CURLOPT_HTTPHEADER, [ 'IBSession: finish' ]);
+            curl_exec($this->dbResource);
         }
         file_put_contents($this->sessionFile, null);
         self::$ibsession = null;

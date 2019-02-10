@@ -562,6 +562,7 @@ final class Tests
     }
 
     public function TableInsert() {
+        /** @var \DBD\DBD $db */
         $db = $this->db;
 
         $this->testHeader("Insert method");

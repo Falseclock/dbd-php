@@ -50,12 +50,14 @@ class MSSQL extends DBD
      */
     public function connect() {
 
-        if($this->database != null)
-            $this->connectionInfo['Database'] = $this->database;
-        if($this->username != null)
-            $this->connectionInfo['UID'] = $this->username;
-        if($this->password != null)
-            $this->connectionInfo['PWD'] = $this->password;
+        if($this->Config->getDatabase())
+            $this->connectionInfo['Database'] = $this->Config->getDatabase();
+
+        if($this->Config->getUsername())
+            $this->connectionInfo['UID'] = $this->Config->getUsername();
+
+        if($this->Config->getPassword() != null)
+            $this->connectionInfo['PWD'] = $this->Config->getPassword();
 
         if($this->Options->isOnDemand() == false) {
             $this->_connect();
@@ -78,11 +80,11 @@ class MSSQL extends DBD
     }
 
     protected function _begin() {
-        return sqlsrv_begin_transaction($this->dbh);
+        return sqlsrv_begin_transaction($this->dbResource);
     }
 
     protected function _commit() {
-        return sqlsrv_commit($this->dbh);
+        return sqlsrv_commit($this->dbResource);
     }
 
     protected function _compileInsert($table, $params, $return = "") {
@@ -99,9 +101,9 @@ class MSSQL extends DBD
      * @return void
      */
     protected function _connect() {
-        $this->dbh = sqlsrv_connect($this->dsn, $this->connectionInfo);
+        $this->dbResource = sqlsrv_connect($this->Config->getDsn(), $this->connectionInfo);
 
-        if(!$this->dbh)
+        if(!$this->dbResource)
 			throw new Exception($this->_errorMessage());
     }
 
@@ -111,7 +113,7 @@ class MSSQL extends DBD
     }
 
     protected function _disconnect() {
-        return sqlsrv_close($this->dbh);
+        return sqlsrv_close($this->dbResource);
     }
 
     protected function _errorMessage() {
@@ -182,16 +184,16 @@ class MSSQL extends DBD
     protected function _query($statement) {
 
         if($this->cursorType !== null) {
-            return @sqlsrv_query($this->dbh, $statement, [], [ "Scrollable" => $this->cursorType ]);
+            return @sqlsrv_query($this->dbResource, $statement, [], [ "Scrollable" => $this->cursorType ]);
         }
         else {
             if(preg_match('/^(\s*?)select\s*?.*?\s*?from/is', $this->query)) {
                 // TODO: make as selectable option
-                return @sqlsrv_query($this->dbh, $statement, [], [ "Scrollable" => MSSQL::SQLSRV_CURSOR_STATIC ]);
+                return @sqlsrv_query($this->dbResource, $statement, [], [ "Scrollable" => MSSQL::SQLSRV_CURSOR_STATIC ]);
             }
         }
 
-        return @sqlsrv_query($this->dbh, $statement);
+        return @sqlsrv_query($this->dbResource, $statement);
     }
 
     protected function _queryExplain($statement) {
@@ -199,7 +201,7 @@ class MSSQL extends DBD
     }
 
     protected function _rollback() {
-        return sqlsrv_rollback($this->dbh);
+        return sqlsrv_rollback($this->dbResource);
     }
 
 	protected function _convertIntFloat(&$data, $type) {

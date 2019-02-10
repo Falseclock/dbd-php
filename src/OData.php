@@ -60,7 +60,7 @@ class OData extends DBD
         }
         $this->dropVars();
 
-        $this->setupCurl($this->dsn . '$metadata');
+        $this->setupCurl($this->Config->getDsn() . '$metadata');
         $this->connect();
 
         $array = XML2Array::createArray($this->body);
@@ -123,49 +123,49 @@ class OData extends DBD
     }
 
     protected function setupCurl($url, $method = "GET", $content = null) {
-        if(!is_resource($this->dbh)) {
-            $this->dbh = curl_init();
+        if(!is_resource($this->dbResource)) {
+            $this->dbResource = curl_init();
         }
-        curl_setopt($this->dbh, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_V4);
-        curl_setopt($this->dbh, CURLOPT_URL, $this->urlEncode($url));
-        curl_setopt($this->dbh, CURLOPT_USERAGENT, __CLASS__);
-        curl_setopt($this->dbh, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($this->dbh, CURLOPT_HEADER, 1);
+        curl_setopt($this->dbResource, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_V4);
+        curl_setopt($this->dbResource, CURLOPT_URL, $this->urlEncode($url));
+        curl_setopt($this->dbResource, CURLOPT_USERAGENT, __CLASS__);
+        curl_setopt($this->dbResource, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($this->dbResource, CURLOPT_HEADER, 1);
 
-        if($this->username && $this->password) {
-            curl_setopt($this->dbh, CURLOPT_HTTPAUTH, CURLAUTH_BASIC);
-            curl_setopt($this->dbh, CURLOPT_USERPWD, $this->username . ":" . $this->password);
+        if($this->Config->getUsername() && $this->Config->getPassword()) {
+            curl_setopt($this->dbResource, CURLOPT_HTTPAUTH, CURLAUTH_BASIC);
+            curl_setopt($this->dbResource, CURLOPT_USERPWD, $this->Config->getUsername() . ":" . $this->Config->getPassword());
         }
         switch($method) {
             case "POST":
-                curl_setopt($this->dbh, CURLOPT_POST, true);
-                curl_setopt($this->dbh, CURLOPT_HTTPGET, false);
-                curl_setopt($this->dbh, CURLOPT_CUSTOMREQUEST, null);
+                curl_setopt($this->dbResource, CURLOPT_POST, true);
+                curl_setopt($this->dbResource, CURLOPT_HTTPGET, false);
+                curl_setopt($this->dbResource, CURLOPT_CUSTOMREQUEST, null);
                 break;
             case "PATCH":
-                curl_setopt($this->dbh, CURLOPT_POST, false);
-                curl_setopt($this->dbh, CURLOPT_HTTPGET, false);
-                curl_setopt($this->dbh, CURLOPT_CUSTOMREQUEST, 'PATCH');
+                curl_setopt($this->dbResource, CURLOPT_POST, false);
+                curl_setopt($this->dbResource, CURLOPT_HTTPGET, false);
+                curl_setopt($this->dbResource, CURLOPT_CUSTOMREQUEST, 'PATCH');
                 break;
             case "PUT":
-                curl_setopt($this->dbh, CURLOPT_POST, false);
-                curl_setopt($this->dbh, CURLOPT_HTTPGET, false);
-                curl_setopt($this->dbh, CURLOPT_CUSTOMREQUEST, 'PUT');
+                curl_setopt($this->dbResource, CURLOPT_POST, false);
+                curl_setopt($this->dbResource, CURLOPT_HTTPGET, false);
+                curl_setopt($this->dbResource, CURLOPT_CUSTOMREQUEST, 'PUT');
                 break;
             case "DELETE":
-                curl_setopt($this->dbh, CURLOPT_POST, false);
-                curl_setopt($this->dbh, CURLOPT_HTTPGET, false);
-                curl_setopt($this->dbh, CURLOPT_CUSTOMREQUEST, 'DELETE');
+                curl_setopt($this->dbResource, CURLOPT_POST, false);
+                curl_setopt($this->dbResource, CURLOPT_HTTPGET, false);
+                curl_setopt($this->dbResource, CURLOPT_CUSTOMREQUEST, 'DELETE');
                 break;
             case "GET":
             default:
-                curl_setopt($this->dbh, CURLOPT_POST, false);
-                curl_setopt($this->dbh, CURLOPT_HTTPGET, true);
-                curl_setopt($this->dbh, CURLOPT_CUSTOMREQUEST, null);
+                curl_setopt($this->dbResource, CURLOPT_POST, false);
+                curl_setopt($this->dbResource, CURLOPT_HTTPGET, true);
+                curl_setopt($this->dbResource, CURLOPT_CUSTOMREQUEST, null);
                 break;
         }
         if($content) {
-            curl_setopt($this->dbh, CURLOPT_POSTFIELDS, $content);
+            curl_setopt($this->dbResource, CURLOPT_POSTFIELDS, $content);
         }
 
         return $this;
@@ -315,15 +315,15 @@ class OData extends DBD
 
     public function connect() {
         // if we never invoke connect and did not setup it, just call setup with DSN url
-        if(!is_resource($this->dbh)) {
-            $this->setupCurl($this->dsn);
+        if(!is_resource($this->dbResource)) {
+            $this->setupCurl($this->Config->getDsn());
         }
         // TODO: read keep-alive header and reset handler if not exist
-        $response = curl_exec($this->dbh);
-        $header_size = curl_getinfo($this->dbh, CURLINFO_HEADER_SIZE);
+        $response = curl_exec($this->dbResource);
+        $header_size = curl_getinfo($this->dbResource, CURLINFO_HEADER_SIZE);
         $this->header = trim(substr($response, 0, $header_size));
         $this->body = preg_replace("/\xEF\xBB\xBF/", "", substr($response, $header_size));
-        $this->httpcode = curl_getinfo($this->dbh, CURLINFO_HTTP_CODE);
+        $this->httpcode = curl_getinfo($this->dbResource, CURLINFO_HTTP_CODE);
 
         if($this->httpcode >= 200 && $this->httpcode < 300) {
             // do nothing
@@ -342,7 +342,7 @@ class OData extends DBD
      */
     public function disconnect() {
         if($this->isConnected()) {
-            curl_close($this->dbh);
+            curl_close($this->dbResource);
         }
 
         return $this;
@@ -364,7 +364,7 @@ class OData extends DBD
             $this->prepareUrl(func_get_args());
 
             // just initicate connect with prepared URL and HEADERS
-            $this->setupCurl($this->dsn . $this->requestUrl);
+            $this->setupCurl($this->Config->getDsn() . $this->requestUrl);
             // and make request
             $this->connect();
 
@@ -383,7 +383,7 @@ class OData extends DBD
                 $this->result = $this->doReplacements($json);
             }
 
-            $this->storeResultToache();
+            $this->storeResultToCache();
         }
         $this->query = null;
 
@@ -449,7 +449,7 @@ class OData extends DBD
         }
         */
 
-        $this->setupCurl($this->dsn . $table . '?$format=application/json;odata=nometadata&', "POST", json_encode($content, JSON_UNESCAPED_UNICODE));
+        $this->setupCurl($this->Config->getDsn() . $table . '?$format=application/json;odata=nometadata&', "POST", json_encode($content, JSON_UNESCAPED_UNICODE));
         $this->connect();
 
         return json_decode($this->body, true);
@@ -520,7 +520,7 @@ class OData extends DBD
             $url = implode("", $request);
         }
 
-        $this->setupCurl($this->dsn . $url . '?$format=application/json;odata=nometadata&', "PATCH", json_encode($values, JSON_UNESCAPED_UNICODE));
+        $this->setupCurl($this->Config->getDsn() . $url . '?$format=application/json;odata=nometadata&', "PATCH", json_encode($values, JSON_UNESCAPED_UNICODE));
         $this->connect();
 
         return json_decode($this->body, true);
@@ -657,7 +657,7 @@ class OData extends DBD
         return $data;
     }
 
-    protected function storeResultToache() {
+    protected function storeResultToCache() {
         if($this->result) {
             $this->rows = count($this->result);
             // If we want to store to the cache
@@ -678,7 +678,7 @@ class OData extends DBD
     }
 
     protected function parseError() {
-        $fail = $this->urlDecode(curl_getinfo($this->dbh, CURLINFO_EFFECTIVE_URL));
+        $fail = $this->urlDecode(curl_getinfo($this->dbResource, CURLINFO_EFFECTIVE_URL));
         if($this->body) {
             $error = json_decode($this->body, true);
             if($error && isset($error['odata.error']['message']['value'])) {

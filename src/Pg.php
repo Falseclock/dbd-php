@@ -98,9 +98,9 @@ class Pg extends DBD
      * @throws \DBD\Base\DBDPHPException
      */
     public function _connect() {
-        $this->dbh = pg_connect($this->dsn);
+        $this->dbResource = pg_connect($this->Config->getDsn());
 
-        if(!$this->dbh)
+        if(!$this->dbResource)
             throw new Exception("Can not connect to PostgreSQL server! ");
     }
 
@@ -226,7 +226,7 @@ class Pg extends DBD
      * @return bool
      */
     protected function _disconnect() {
-        return pg_close($this->dbh);
+        return pg_close($this->dbResource);
     }
 
     /**
@@ -235,8 +235,8 @@ class Pg extends DBD
      * @return string
      */
     protected function _errorMessage() {
-        if($this->dbh)
-            return pg_last_error($this->dbh);
+        if($this->dbResource)
+            return pg_last_error($this->dbResource);
         else
             return pg_last_error();
     }
@@ -293,7 +293,7 @@ class Pg extends DBD
      */
     protected function _query($statement) {
         try {
-            return @pg_query($this->dbh, $statement);
+            return @pg_query($this->dbResource, $statement);
         }
         catch(\Exception $e) {
             return false;
@@ -320,14 +320,14 @@ class Pg extends DBD
      * @throws \DBD\Base\DBDPHPException
      */
     public function connect() {
-        $dsn = "host={$this->dsn} ";
-        $dsn .= "dbname={$this->database} ";
-        $dsn .= $this->username ? "user={$this->username} " : "";
-        $dsn .= $this->password ? "password={$this->password} " : "";
-        $dsn .= $this->port ? "port={$this->port} " : "";
-        $dsn .= "options='--application_name=DBD-PHP' ";
+        $dsn = "host={$this->Config->getDsn()} ";
+        $dsn .= "dbname={$this->Config->getDatabase()} ";
+        $dsn .= $this->Config->getUsername() ? "user={$this->Config->getUsername()} " : "";
+        $dsn .= $this->Config->getPassword() ? "password={$this->Config->getPassword()} " : "";
+        $dsn .= $this->Config->getPort() ? "port={$this->Config->getPort()} " : "";
+        $dsn .= "options='--application_name={$this->Config->getIdentity()}' ";
 
-        $this->dsn = $dsn;
+        $this->Config->setDsn($dsn);
 
         if($this->Options->isOnDemand() == false) {
             $this->_connect();

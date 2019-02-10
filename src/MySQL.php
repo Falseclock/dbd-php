@@ -29,11 +29,11 @@ class MySQL extends DBD
     }
 
     protected function _begin() {
-        return mysqli_begin_transaction($this->dbh);
+        return mysqli_begin_transaction($this->dbResource);
     }
 
     protected function _commit() {
-        return mysqli_commit($this->dbh);
+        return mysqli_commit($this->dbResource);
     }
 
     protected function _compileInsert($table, $params, $return = "") {
@@ -45,12 +45,12 @@ class MySQL extends DBD
     }
 
     protected function _connect() {
-        $this->dbh = mysqli_connect($this->dsn, $this->username, $this->password, $this->database, $this->port);
+        $this->dbResource = mysqli_connect($this->Config->getDsn(), $this->Config->getUsername(), $this->Config->getPassword(), $this->Config->getDatabase(), $this->Config->getPort());
 
-        if(!$this->dbh)
+        if(!$this->dbResource)
             trigger_error("Can not connect to MySQL server: " . mysqli_connect_error(), E_USER_ERROR);
 
-        mysqli_autocommit($this->dbh, false);
+        mysqli_autocommit($this->dbResource, false);
     }
 
     protected function _convertTypes(&$data, $type) {
@@ -59,28 +59,28 @@ class MySQL extends DBD
     }
 
     protected function _disconnect() {
-        return mysqli_close($this->dbh);
+        return mysqli_close($this->dbResource);
     }
 
     protected function _errorMessage() {
-        return mysqli_error($this->dbh);
+        return mysqli_error($this->dbResource);
     }
 
     protected function _escape($string) {
         if(!isset($string) or $string === null) {
             return "NULL";
         }
-        $str = mysqli_real_escape_string($this->dbh, $string);
+        $str = mysqli_real_escape_string($this->dbResource, $string);
 
         return "'$str'";
     }
 
     protected function _fetchArray() {
-        return mysqli_fetch_array($this->dbh);
+        return mysqli_fetch_array($this->dbResource);
     }
 
     protected function _fetchAssoc() {
-        return mysqli_fetch_assoc($this->dbh);
+        return mysqli_fetch_assoc($this->dbResource);
     }
 
     protected function _numRows() {
@@ -93,7 +93,7 @@ class MySQL extends DBD
     }
 
     protected function _query($statement) {
-        return mysqli_query($this->dbh, $statement);
+        return mysqli_query($this->dbResource, $statement);
     }
 
     protected function _queryExplain($statement) {
@@ -101,7 +101,7 @@ class MySQL extends DBD
     }
 
     protected function _rollback() {
-        return mysqli_rollback($this->dbh);
+        return mysqli_rollback($this->dbResource);
     }
 
     protected function _convertIntFloat(&$data, $type) {
