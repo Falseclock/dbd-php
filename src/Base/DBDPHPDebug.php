@@ -45,7 +45,10 @@ final class DBDPHPDebug extends Singleton implements Instantiatable
 	}
 
 	private function difference($start, $end = null) {
-		if(!$end) {
+        if(!isset($start)) {
+            $start = "0.0 0";
+        }
+		if(!isset($end)) {
 			$end = microtime();
 		}
 		list($start_usec, $start_sec) = explode(" ", $start);
