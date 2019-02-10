@@ -104,7 +104,7 @@ class Pg extends DBD
 
     protected function _convertBoolean(&$data, $type) {
         if($type == 'row') {
-            if(isset($data) and count($data) > 0) {
+            if(isset($data) and is_array($data) and count($data) > 0) {
                 for($i = 0; $i < pg_num_fields($this->result); $i++) {
                     if(pg_field_type($this->result, $i) == 'bool') {
                         $dataKey = pg_field_name($this->result, $i);
