@@ -322,11 +322,11 @@ $db = $dsn->connect();
 // Bad example how SQL can be injected as every string parameter must be escaped 
 // manually or with $db->quote('must be null');
 $param = "'must be null'";
-$result = $db->du("UPDATE table SET column1 = NULL WHERE column2 = $param");
+$result = $db->doit("UPDATE table SET column1 = NULL WHERE column2 = $param");
 
 // more easiest, simple and safe for SQL injections way.
 // Number of affected tuples will be stored in $result variable
-$result = $db->du("UPDATE table SET column1 = ? WHERE column2 = ?", NULL, 'must be null');
+$result = $db->doit("UPDATE table SET column1 = ? WHERE column2 = ?", NULL, 'must be null');
 ?>
 ```
 

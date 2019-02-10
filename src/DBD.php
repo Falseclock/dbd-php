@@ -28,6 +28,7 @@
 namespace DBD;
 
 use DBD\Base\DBDConfig;
+use DBD\Base\DBDHelper;
 use DBD\Base\DBDOptions;
 use DBD\Base\DBDPHPDebug as Debug;
 use DBD\Base\DBDPHPException as Exception;
@@ -39,33 +40,43 @@ use DBD\Base\DBDPHPException as Exception;
  */
 abstract class DBD
 {
-    const UNDEFINED = "UNDEF";
+    const STORAGE_CACHE    = "cache";
+    const STORAGE_DATABASE = "database";
+    const UNDEFINED        = "UNDEF";
     //private $affected = 0;
     public static $debug = [ 'total_queries' => 0, 'total_cost' => 0, 'per_driver' => [] ];
     public        $rows  = 0;
-    /** @var \Psr\SimpleCache\CacheInterface|\DBD\Cache */
-    protected $CacheDriver = null;
-    /** @var DBDOptions $Options */
-    protected $Options;
-    /** @var DBDConfig $Config */
-    protected $Config;
-    protected $cache         = [
+    protected     $cache = [
         'key'      => null,
         'result'   => null,
         'compress' => null,
         'expire'   => null,
     ];
-    protected $dbResource    = null;
-    protected $fetch         = self::UNDEFINED;
-    protected $query         = "";
-    protected $result        = null;
-    protected $storage       = false;
-    protected $inTransaction = false;
+    /** @var resource $dbResource Database cor curl connection resource */
+    protected $dbResource;
+    /** @var string $query SQL query */
+    protected $query;
+    /** @var resource|string $result Query result data */
+    protected $result;
+    /** @var \Psr\SimpleCache\CacheInterface|\DBD\Cache */
+    protected $CacheDriver;
+    /** @var DBDOptions $Options */
+    protected $Options;
+    /** @var DBDConfig $Config */
+    protected $Config;
+    /** @var mixed $fetch */
+    private $fetch = self::UNDEFINED;
+    /** @var string $storage This param is used for identifying where data taken from */
+    private $storage;
+    /** @var bool $inTransaction Stores current transaction state */
+    private $inTransaction = false;
 
     /**
+     * Use if when you need to get DBD cache driver to handle stored cache outside of this class
+     *
      * @return \DBD\Cache|\Psr\SimpleCache\CacheInterface
      */
-    public function getCache() {
+    public function getCacheDriver() {
         return $this->CacheDriver;
     }
 
@@ -75,7 +86,7 @@ abstract class DBD
      * @return \DBD\DBD
      * @throws \DBD\Base\DBDPHPException
      */
-    public function setCache($cache) {
+    public function setCacheDriver($cache) {
 
         if($cache instanceof Cache || $cache instanceof \Psr\SimpleCache\CacheInterface) {
             $this->CacheDriver = $cache;
@@ -86,69 +97,136 @@ abstract class DBD
         throw new Exception('Unsupported caching interface. Extend DBD\\Cache or use PSR-16 Common Interface for Caching');
     }
 
+    /**
+     * @deprecated
+     * @see affectedRows
+     * @return int
+     */
     public function affected() {
+        return $this->affectedRows();
+    }
+
+    /**
+     * Returns number of affected rows during update or delete
+     *
+     * ```
+     * $sth = $db->prepare("DELETE FROM foo WHERE bar = ?");
+     * $sth->execute($someVar);
+     * if ($sth->affected()) {
+     *      // Do something
+     * }
+     * ```
+     *
+     * @return int
+     */
+    public function affectedRows() {
         return $this->_affectedRows();
     }
 
+    /**
+     * Must be implemented on child class. If no rows are affected then 0 should be returned
+     *
+     * @see affectedRows
+     * @return int
+     */
     abstract protected function _affectedRows();
 
     /**
      * Starts database transaction
      *
-     * @return $this
+     * @return bool
      * @throws \DBD\Base\DBDPHPException
      */
     public function begin() {
+        if($this->inTransaction == true) {
+            throw new Exception("Already in transaction");
+        }
         $this->connectionPreCheck();
         $this->result = $this->_begin();
-        if($this->result === false)
-            throw new Exception("Can not start transaction: " . $this->_errorMessage());
-
+        if($this->result === false) {
+            throw new Exception("Can't start transaction: " . $this->_errorMessage());
+        }
         $this->inTransaction = true;
 
-        return $this;
+        return true;
     }
 
     /**
      * Check connection existence and do connection if not
      *
-     * @return $this
+     * @return void
      */
     private function connectionPreCheck() {
         if(!$this->isConnected()) {
             $this->_connect();
         }
-
-        return $this;
     }
 
+    /**
+     * Must be implemented on child class.
+     *
+     * @see begin
+     * @return mixed
+     */
     abstract protected function _begin();
 
+    /**
+     * Must be implemented on child class. Should return last error message
+     *
+     * @return string
+     */
     abstract protected function _errorMessage();
 
+    /**
+     * Check whether connection is established or not
+     *
+     * @return bool true if var is a resource, false otherwise
+     */
     protected function isConnected() {
         return is_resource($this->dbResource);
     }
 
+    /**
+     * Must be implemented on child class. Always self extended instance
+     *
+     * @return \DBD\DBD
+     */
     abstract protected function _connect();
 
-    public function cache($key, $expire = null, $compress = null) {
+    /**
+     * Must be called after statement prepare
+     *
+     * ```
+     * $sth = $db->prepare("SELECT bank_id AS id, bank_name AS name FROM banks ORDER BY bank_name ASC");
+     * $sth->cache("AllBanks");
+     * $sth->execute();
+     * ```
+     *
+     * @param string                         $key
+     * @param int|float|\DateInterval|string $ttl
+     *
+     * @throws \DBD\Base\DBDPHPException
+     */
+    public function cache($key, $ttl = null) {
         if(!isset($key) or !$key) {
             throw new Exception("caching failed: key is not set or empty");
         }
+        if(!is_string($key)) {
+            throw new Exception("key is not string type");
+        }
         if(!isset($this->CacheDriver)) {
-            //return;
             throw new Exception("CacheDriver not initialized");
         }
+        if(!isset($this->query)) {
+            throw new Exception("SQL statement not prepared");
+        }
+
         if(preg_match("/^[\s\t\r\n]*select/i", $this->query)) {
             // set hash key
             $this->cache['key'] = $key;
 
-            if($compress !== null)
-                $this->cache['compress'] = $compress;
-
-            if($expire !== null)
-                $this->cache['expire'] = $expire;
+            if($ttl !== null)
+                $this->cache['expire'] = $ttl;
         }
         else {
             throw new Exception("caching failed: current query is not of SELECT type");
@@ -160,12 +238,14 @@ abstract class DBD
     /**
      * Commits a transaction that was begun
      *
-     * @return $this
+     * @return bool
      * @throws \DBD\Base\DBDPHPException
      */
     public function commit() {
+        if(!$this->isConnected()) {
+            throw new Exception("No connection established yet");
+        }
         if($this->inTransaction) {
-            $this->connectionPreCheck();
             $this->result = $this->_commit();
             if($this->result === false)
                 throw new Exception("Can not commit transaction: " . $this->_errorMessage());
@@ -175,14 +255,26 @@ abstract class DBD
         }
         $this->inTransaction = false;
 
-        return $this;
+        return true;
     }
 
+    /**
+     * Must be implemented on child class.
+     *
+     * @return bool true on success commit
+     */
     abstract protected function _commit();
 
     /**
-     * @param DBDConfig        $config
-     * @param array|DBDOptions $options
+     * Base and main method to start. Returns new instance of DBD driver
+     *
+     * ```
+     * $dbd = new DBD\Pg();
+     * $dbh = $dbd->create($config, $options);
+     * $db = $dbh->connect();
+     *
+     * @param DBDConfig  $config
+     * @param DBDOptions $options
      *
      * @return $this
      * @throws \DBD\Base\DBDPHPException
@@ -200,14 +292,16 @@ abstract class DBD
             throw new Exception("config is not instance of DBDConfig");
         }
 
-        if(!isset($options)) {
-            $db->Options = new DBDOptions;
-        }
         if($options instanceof DBDOptions) {
             $db->Options = $options;
         }
         else {
-            throw new Exception("options are not instance of DBDOptions");
+            if(!isset($options)) {
+                $db->Options = new DBDOptions;
+            }
+            else {
+                throw new Exception("options are not instance of DBDOptions");
+            }
         }
 
         return $db;
@@ -222,7 +316,7 @@ abstract class DBD
     public function disconnect() {
         if($this->isConnected()) {
             if($this->inTransaction) {
-                $this->rollback();
+                throw new Exception("Uncommitted transaction state");
             }
             $this->_disconnect();
             $this->dbResource = null;
@@ -232,43 +326,55 @@ abstract class DBD
     }
 
     /**
+     * Must be implemented on child class.
+     *
+     * @return bool true on successful disconnection
+     */
+    abstract protected function _disconnect();
+
+    /**
      * Rolls back a transaction that was begun
      *
-     * @return $this
+     * @return bool
+     *
      * @throws \DBD\Base\DBDPHPException
      */
     public function rollback() {
         if($this->inTransaction) {
             $this->connectionPreCheck();
             $this->result = $this->_rollback();
-            if($this->result === false)
+            if($this->result === false) {
                 throw new Exception("Can not end transaction " . pg_errormessage());
+            }
         }
         else {
             throw new Exception("No transaction to rollback");
         }
         $this->inTransaction = false;
 
-        return $this;
+        return true;
     }
 
-    abstract protected function _disconnect();
-
+    /**
+     * Must be implemented on child class.
+     *
+     * @return bool true on successful rollback
+     */
     abstract protected function _rollback();
 
     /**
-     * @deprecated
-     * @return int
-     * @throws \DBD\Base\DBDPHPException
-     * @throws \Psr\SimpleCache\InvalidArgumentException
-     * @throws \ReflectionException
-     */
-    public function du() {
-        return $this->doit(func_get_args());
-    }
-
-    /**
-     * @return int
+     * For simple SQL query, mostly delete or update, when you do not need to get results and only want to know affected rows
+     *
+     * Example 1:
+     * ```
+     * $affectedRows = $db->doit("UPDATE table SET column1 = ? WHERE column2 = ?", NULL, 'must be null');
+     * ```
+     * Example 2:
+     * ```
+     * $db->doit("DELETE FROM main_table);
+     * ```
+     *
+     * @return int Number of affected tuples will be stored in $result variable
      * @throws \DBD\Base\DBDPHPException
      * @throws \Psr\SimpleCache\InvalidArgumentException
      * @throws \ReflectionException
@@ -277,24 +383,31 @@ abstract class DBD
         if(!func_num_args())
             throw new Exception("query failed: statement is not set or empty");
 
-        list ($statement, $args) = $this->prepareArgs(func_get_args());
+        list ($statement, $args) = DBDHelper::prepareArgs(func_get_args());
 
         $sth = $this->query($statement, $args);
 
         return $sth->rows;
     }
 
-    private function prepareArgs($ARGS) {
-        $statement = array_shift($ARGS);
-        $args = $this->parseArgs($ARGS);
-
-        return [
-            $statement,
-            $args,
-        ];
-    }
-
     /**
+     * Like doit method, but return self instance
+     *
+     * Example 1:
+     * ```
+     * $sth = $db->query("SELECT * FROM invoices");
+     * while ($row = $sth->fetchrow()) {
+     *      //do something
+     * }
+     * ```
+     *
+     * Example 2:
+     *
+     * ```
+     * $sth = $db->query("UPDATE invoices SET invoice_uuid=?",'550e8400-e29b-41d4-a716-446655440000');
+     * echo($sth->affectedRows());
+     * ```
+     *
      * @return \DBD\DBD
      * @throws \DBD\Base\DBDPHPException
      * @throws \Psr\SimpleCache\InvalidArgumentException
@@ -304,7 +417,7 @@ abstract class DBD
         if(!func_num_args())
             throw new Exception("query failed: statement is not set or empty");
 
-        list ($statement, $args) = $this->prepareArgs(func_get_args());
+        list ($statement, $args) = DBDHelper::prepareArgs(func_get_args());
 
         $sth = $this->prepare($statement);
 
@@ -318,29 +431,12 @@ abstract class DBD
         return $sth;
     }
 
-    protected function parseArgs($ARGS) {
-        $args = [];
-
-        foreach($ARGS as $arg) {
-            if(is_array($arg)) {
-                foreach($arg as $subArg) {
-                    $args[] = $subArg;
-                }
-            }
-            else {
-                $args[] = $arg;
-            }
-        }
-
-        return $args;
-    }
-
     /**
      * Creates a prepared statement for later execution
      *
      * @param string $statement
      *
-     * @return DBD
+     * @return $this
      * @throws \DBD\Base\DBDPHPException
      */
     public function prepare($statement) {
@@ -383,7 +479,7 @@ abstract class DBD
                     $cost = Debug::me()->endTimer();
                     // To avoid errors as result by default is NULL
                     $this->result = 'cached';
-                    $this->storage = 'cache';
+                    $this->storage = self::STORAGE_CACHE;
                     $this->rows = count($this->cache['result']);
                 }
             }
@@ -402,7 +498,7 @@ abstract class DBD
 
             if($this->result !== false) {
                 $this->rows = $this->_numRows();
-                $this->storage = 'database';
+                $this->storage = self::STORAGE_DATABASE;
             }
             else {
                 throw new Exception ($this->_errorMessage(), $exec);
@@ -442,16 +538,16 @@ abstract class DBD
         if($this->Options->isUseDebug()) {
             $cost = isset($cost) ? $cost : 0;
 
-            $index = $this->storage == 'cache' ? 'Cache' : $this->getDriver();
+            $index = $this->storage == self::STORAGE_CACHE ? 'Cache' : (new \ReflectionClass($this))->getParentClass()->getShortName();
 
             $caller = $this->caller();
 
             @self::$debug['queries'][$index][] = [
-                'query'   => $this->cleanSql($exec),
+                'query'   => DBDHelper::cleanSql($exec),
                 'cost'    => $cost,
                 'caller'  => $caller[0],
                 'explain' => null,
-                'mark'    => $this->debugMark($cost),
+                'mark'    => DBDHelper::debugMark($cost),
             ];
             @self::$debug['total_queries'] += 1;
             @self::$debug['total_cost'] += $cost;
@@ -476,7 +572,7 @@ abstract class DBD
     private function getExec($ARGS) {
         $exec = $this->query;
         $binds = substr_count($this->query, "?");
-        $args = $this->parseArgs($ARGS);
+        $args = DBDHelper::parseArgs($ARGS);
 
         $numberOfArgs = count($args);
 
@@ -503,7 +599,7 @@ abstract class DBD
     abstract protected function _numRows();
 
     /**
-     * Will return the number of rows in a database result resource.
+     * Returns the number of rows in a database result resource.
      *
      * @return int
      */
@@ -551,14 +647,6 @@ abstract class DBD
     }
 
     /**
-     * @return string
-     * @throws \ReflectionException
-     */
-    private function getDriver() {
-        return (new \ReflectionClass($this))->getParentClass()->getShortName();
-    }
-
-    /**
      * @return array
      * @throws \ReflectionException
      */
@@ -593,43 +681,6 @@ abstract class DBD
         }
 
         return $return;
-    }
-
-    private function cleanSql($exec) {
-        $array = preg_split('/\R/u', $exec);
-
-        foreach($array as $idx => $line) {
-            //$array[$idx] = trim($array[$idx], "\s\t\n\r");
-            if(!$array[$idx] || preg_match('/^[\s\R\t]*?$/u', $array[$idx])) {
-                unset($array[$idx]);
-                continue;
-            }
-            if(preg_match('/^\s*?(UNION|CREATE|DELETE|UPDATE|SELECT|FROM|WHERE|JOIN|LIMIT|OFFSET|ORDER|GROUP)/i', $array[$idx])) {
-                $array[$idx] = ltrim($array[$idx]);
-            }
-            else {
-                $array[$idx] = "    " . ltrim($array[$idx]);
-            }
-        }
-
-        return implode("\n", $array);
-    }
-
-    private function debugMark($cost) {
-        switch(true) {
-            case ($cost >= 0 && $cost <= 20):
-                return 1;
-            case ($cost >= 21 && $cost <= 50):
-                return 2;
-            case ($cost >= 51 && $cost <= 90):
-                return 3;
-            case ($cost >= 91 && $cost <= 140):
-                return 4;
-            case ($cost >= 141 && $cost <= 200):
-                return 5;
-            default:
-                return 6;
-        }
     }
 
     abstract protected function _escape($string);
@@ -714,42 +765,12 @@ abstract class DBD
      * @throws \ReflectionException
      */
     public function insert($table, $args, $return = null) {
-        $params = $this->compileInsertArgs($args);
+        $params = DBDHelper::compileInsertArgs($args);
 
         $sth = $this->prepare($this->_compileInsert($table, $params, $return));
         $sth->execute($params['ARGS']);
 
         return $sth;
-    }
-
-    private function compileInsertArgs($data) {
-
-        $columns = "";
-        $values = "";
-        $args = [];
-
-        foreach($data as $c => $v) {
-            $pattern = "/[^\"a-zA-Z0-9_-]/";
-            $c = preg_replace($pattern, "", $c);
-            $columns .= "$c, ";
-            $values .= "?,";
-            if($v === true) {
-                $v = 'true';
-            }
-            if($v === false) {
-                $v = 'false';
-            }
-            $args[] = $v;
-        }
-
-        $columns = preg_replace("/, $/", "", $columns);
-        $values = preg_replace("/,$/", "", $values);
-
-        return [
-            'COLUMNS' => $columns,
-            'VALUES'  => $values,
-            'ARGS'    => $args,
-        ];
     }
 
     abstract protected function _compileInsert($table, $params, $return = "");
@@ -766,7 +787,7 @@ abstract class DBD
         $debug = self::$debug;
         if(count($debug['per_driver'])) {
             foreach($debug['per_driver'] as $key => $row) {
-                $debug['per_driver'][$key]['mark'] = $this->debugMark($row['cost'] / $row['total']);
+                $debug['per_driver'][$key]['mark'] = DBDHelper::debugMark($row['cost'] / $row['total']);
             }
         }
 
@@ -780,7 +801,7 @@ abstract class DBD
      * @throws \ReflectionException
      */
     public function select() {
-        list ($statement, $args) = $this->prepareArgs(func_get_args());
+        list ($statement, $args) = DBDHelper::prepareArgs(func_get_args());
 
         $sth = $this->query($statement, $args);
 
@@ -791,6 +812,9 @@ abstract class DBD
         return null;
     }
 
+    /**
+     * @return bool|mixed
+     */
     public function fetch() {
         if($this->fetch == self::UNDEFINED) {
 
@@ -831,7 +855,7 @@ abstract class DBD
         $table = $ARGS[0];
         $values = $ARGS[1];
 
-        $params = $this->compileUpdateArgs($values);
+        $params = DBDHelper::compileUpdateArgs($values);
 
         if(func_num_args() > 2) {
             $where = $ARGS[2];
@@ -851,26 +875,6 @@ abstract class DBD
         return $this->query($this->_compileUpdate($table, $params, $where, $return), $params['ARGS']);
     }
 
-    private function compileUpdateArgs($data) {
-
-        $columns = "";
-        $args = [];
-
-        $pattern = "/[^\"a-zA-Z0-9_-]/";
-        foreach($data as $k => $v) {
-            $k = preg_replace($pattern, "", $k);
-            $columns .= "$k = ?, ";
-            $args[] = $v;
-        }
-
-        $columns = preg_replace("/, $/", "", $columns);
-
-        return [
-            'COLUMNS' => $columns,
-            'ARGS'    => $args,
-        ];
-    }
-
     abstract protected function _compileUpdate($table, $params, $where, $return = "");
 
     abstract protected function _queryExplain($statement);
@@ -885,14 +889,13 @@ abstract class DBD
      *
      * @return void
      */
-    protected function extendMe($object, $statement = "") {
+    final protected function extendMe($object, $statement = "") {
         foreach(get_object_vars($object) as $key => $value) {
             $this->$key = $value;
         }
         $this->query = $statement;
 
         if(isset($this->CacheDriver)) {
-            $this->cache['compress'] = $this->CacheDriver->useCompression;
             $this->cache['expire'] = $this->CacheDriver->defaultTtl;
         }
     }

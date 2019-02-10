@@ -25,6 +25,7 @@
 
 namespace DBD;
 
+use DBD\Base\DBDHelper;
 use DBD\Base\DBDPHPException as Exception;
 use LSS\XML2Array;
 
@@ -549,7 +550,7 @@ class OData extends DBD
     protected function prepareUrl($ARGS) {
         // Check and prepare args
         $binds = substr_count($this->query, "?");
-        $args = $this->parseArgs($ARGS);
+        $args = DBDHelper::parseArgs($ARGS);
         $numargs = count($args);
 
         if($binds != $numargs) {
