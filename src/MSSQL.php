@@ -45,32 +45,11 @@ class MSSQL extends DBD
     protected $connectionInfo = [];
     protected $cursorType     = null;
 
-    /**
-     * @return MSSQLExtend
-     */
-    public function connect() {
-
-        if($this->Config->getDatabase())
-            $this->connectionInfo['Database'] = $this->Config->getDatabase();
-
-        if($this->Config->getUsername())
-            $this->connectionInfo['UID'] = $this->Config->getUsername();
-
-        if($this->Config->getPassword() != null)
-            $this->connectionInfo['PWD'] = $this->Config->getPassword();
-
-        if($this->Options->isOnDemand() == false) {
-            $this->_connect();
-        }
-
-        return new MSSQLExtend($this);
-    }
-
     protected function _affectedRows() {
         $return = sqlsrv_rows_affected($this->result);
 
         if($return === false) {
-            throw new Exception($this->_errorMessage(), $this->query );
+            throw new Exception($this->_errorMessage(), $this->query);
         }
         if($return === -1) {
             return 0;
@@ -104,12 +83,15 @@ class MSSQL extends DBD
         $this->dbResource = sqlsrv_connect($this->Config->getDsn(), $this->connectionInfo);
 
         if(!$this->dbResource)
-			throw new Exception($this->_errorMessage());
+            throw new Exception($this->_errorMessage());
     }
 
-    protected function _convertTypes(&$data, $type) {
-        // TODO: Implement _convertTypes() method.
-        return $data;
+    protected function _convertBoolean(&$data, $type) {
+        // TODO: Implement _convertBoolean() method.
+    }
+
+    protected function _convertIntFloat(&$data, $type) {
+        // TODO: Implement _convertIntFloat() method.
     }
 
     protected function _disconnect() {
@@ -160,18 +142,6 @@ class MSSQL extends DBD
         return sqlsrv_fetch_array($this->result, SQLSRV_FETCH_ASSOC);
     }
 
-    protected function _fieldName() {
-        // TODO: Implement _fieldName() method.
-    }
-
-    protected function _fieldType() {
-        // TODO: Implement _fieldType() method.
-    }
-
-    protected function _numFields() {
-        return sqlsrv_num_fields($this->result);
-    }
-
     protected function _numRows() {
         if(preg_match('/^(\s*?)(SELECT)\s*?.*?/i', $this->query)) {
             return sqlsrv_num_rows($this->result);
@@ -204,13 +174,43 @@ class MSSQL extends DBD
         return sqlsrv_rollback($this->dbResource);
     }
 
-	protected function _convertIntFloat(&$data, $type) {
-		// TODO: Implement _convertIntFloat() method.
-	}
+    /**
+     * @return MSSQLExtend
+     */
+    public function connect() {
 
-	protected function _convertBoolean(&$data, $type) {
-		// TODO: Implement _convertBoolean() method.
-	}
+        if($this->Config->getDatabase())
+            $this->connectionInfo['Database'] = $this->Config->getDatabase();
+
+        if($this->Config->getUsername())
+            $this->connectionInfo['UID'] = $this->Config->getUsername();
+
+        if($this->Config->getPassword() != null)
+            $this->connectionInfo['PWD'] = $this->Config->getPassword();
+
+        if($this->Options->isOnDemand() == false) {
+            $this->_connect();
+        }
+
+        return new MSSQLExtend($this);
+    }
+
+    protected function _convertTypes(&$data, $type) {
+        // TODO: Implement _convertTypes() method.
+        return $data;
+    }
+
+    protected function _fieldName() {
+        // TODO: Implement _fieldName() method.
+    }
+
+    protected function _fieldType() {
+        // TODO: Implement _fieldType() method.
+    }
+
+    protected function _numFields() {
+        return sqlsrv_num_fields($this->result);
+    }
 }
 
 /**

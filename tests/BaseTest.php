@@ -6,8 +6,8 @@ $TEST = [
     'memcache' => [
         [
             'host' => '127.0.0.1',
-            'port' => 11211
-        ]
+            'port' => 11211,
+        ],
     ],
     'database' => [
         [
@@ -25,8 +25,8 @@ $TEST = [
                 'HTMLError'          => false,
                 'ShowErrorStatement' => true,
                 'ConvertNumeric'     => true,
-                'UseDebug'           => true
-            ]
+                'UseDebug'           => true,
+            ],
         ],/*
         [
             'type'     => 'MSSQL',
@@ -62,9 +62,9 @@ $TEST = [
                 'HTMLError'          => false,
                 'ShowErrorStatement' => true,
                 'ConvertNumeric'     => true,
-                'UseDebug'           => true
-            ]
-        ]
+                'UseDebug'           => true,
+            ],
+        ],
     ],
 ];
 
@@ -85,7 +85,7 @@ $db_options = [
     'ShowErrorStatement' => true,
     'CacheDriver'        => $cache,
     'ConvertNumeric'     => true,
-    'UseDebug'           => true
+    'UseDebug'           => true,
 ];
 
 foreach($TEST['database'] as $database) {
@@ -96,9 +96,9 @@ foreach($TEST['database'] as $database) {
     }
 
     /** @var \DBD\Pg $dbd */
-    $dbd = new $driver();
+    $dbd = new $driver;
     $dbh = $dbd->create($database['host'], $database['port'], $database['database'], $database['user'], $database['password'], $database['options']);
-    $db  = $dbh->connect();
+    $db = $dbh->connect();
 
     (new Tests($db))->Begin()
                     ->Commit()
@@ -111,8 +111,7 @@ foreach($TEST['database'] as $database) {
                     ->CheckPlaceHolder()
                     ->CheckFetch()
                     ->CheckCache()
-                    ->TableDrop()
-    ;
+                    ->TableDrop();
 
     $db->disconnect();
 }
@@ -249,7 +248,7 @@ final class Tests
      */
     public function __construct($db) {
 
-        printf("--- Testing %s driver ---\n", (new Colors())->getColoredString(get_parent_class($db), "white"));
+        printf("--- Testing %s driver ---\n", (new Colors)->getColoredString(get_parent_class($db), "white"));
 
         $this->db = $db;
     }
@@ -263,6 +262,14 @@ final class Tests
         $this->testPass();
 
         return $this;
+    }
+
+    private function testHeader($string) {
+        printf("%-50s", $string);
+    }
+
+    private function testPass() {
+        printf("%s\n", (new Colors)->getColoredString("PASS", "light_green"));
     }
 
     public function CheckCache() {
@@ -359,6 +366,12 @@ final class Tests
         return $this;
     }
 
+    private function testFail($error = "") {
+        $this->db->rollback();
+        printf("%s\n", (new Colors)->getColoredString("FAIL: $error", "light_red"));
+        exit();
+    }
+
     public function CheckFetch() {
         $this->testHeader("Fetch operations");
 
@@ -367,9 +380,9 @@ final class Tests
         $sth = $db->prepare($this->queries['table_select_ph_char']);
         $sth->execute('A');
 
-        $i      = 0;
+        $i = 0;
         $expect = [ 1, 'A' ];
-        $real   = [];
+        $real = [];
         while($row = $sth->fetch()) {
             $real[] = $row;
             $i++;
@@ -571,7 +584,7 @@ final class Tests
 
         $insert = [
             'id'   => 1,
-            'name' => 'test name'
+            'name' => 'test name',
         ];
         for($i = 0; $i < 100; $i++) {
             $db->insert('test_purposes', $insert);
@@ -598,6 +611,10 @@ final class Tests
         }
 
         return $this;
+    }
+
+    private function testWarn($warn) {
+        printf("%s\n", (new Colors)->getColoredString("WARN: $warn", "yellow"));
     }
 
     public function TableInsertion() {
@@ -638,7 +655,7 @@ final class Tests
         // QUERY method ---------------------------------------------
         $i = 0;
         foreach($this->queries['table_insert'] as $query) {
-            $sth  = $db->query($query);
+            $sth = $db->query($query);
             $rows = $sth->rows();
 
             if($rows !== 1) {
@@ -692,7 +709,7 @@ final class Tests
         // QUERY method ---------------------------------------------
         $i = 0;
         foreach($this->queries['table_updates'] as $query) {
-            $sth  = $db->query($query);
+            $sth = $db->query($query);
             $rows = $sth->rows();
 
             if($rows !== 1) {
@@ -706,9 +723,9 @@ final class Tests
         $sth->execute();
         while($row = $sth->fetchrow()) {
             $update = [
-                'name' => $row['name'] . "_updated"
+                'name' => $row['name'] . "_updated",
             ];
-            $sta    = $db->update('test_purposes', $update, "id=?", $row['id']);
+            $sta = $db->update('test_purposes', $update, "id=?", $row['id']);
             if($sta->rows() !== 1) {
                 $this->testFail("update method returned " . $sta->rows() . ", which is not equal to 1");
             }
@@ -717,24 +734,6 @@ final class Tests
         $this->testPass();
 
         return $this;
-    }
-
-    private function testFail($error = "") {
-        $this->db->rollback();
-        printf("%s\n", (new Colors())->getColoredString("FAIL: $error", "light_red"));
-        exit();
-    }
-
-    private function testHeader($string) {
-        printf("%-50s", $string);
-    }
-
-    private function testPass() {
-        printf("%s\n", (new Colors())->getColoredString("PASS", "light_green"));
-    }
-
-    private function testWarn($warn) {
-        printf("%s\n", (new Colors())->getColoredString("WARN: $warn", "yellow"));
     }
 }
 
@@ -863,18 +862,6 @@ class Psr4AutoloaderClass
     }
 
     /**
-     * Register loader with SPL autoloader stack.
-     *
-     * @return void
-     */
-    public function register() {
-        spl_autoload_register([
-            $this,
-            'loadClass'
-        ]);
-    }
-
-    /**
      * Load the mapped file for a namespace prefix and relative class.
      *
      * @param string $prefix         The namespace prefix.
@@ -924,6 +911,19 @@ class Psr4AutoloaderClass
 
         return false;
     }
+
+    /**
+     * Register loader with SPL autoloader stack.
+     *
+     * @return void
+     */
+    public function register() {
+        spl_autoload_register(
+            [
+                $this,
+                'loadClass',
+            ]);
+    }
 }
 
 class Colors
@@ -933,30 +933,30 @@ class Colors
 
     public function __construct() {
         // Set up shell colors
-        $this->foreground_colors['black']        = '0;30';
-        $this->foreground_colors['dark_gray']    = '1;30';
-        $this->foreground_colors['blue']         = '0;34';
-        $this->foreground_colors['light_blue']   = '1;34';
-        $this->foreground_colors['green']        = '0;32';
-        $this->foreground_colors['light_green']  = '1;32';
-        $this->foreground_colors['cyan']         = '0;36';
-        $this->foreground_colors['light_cyan']   = '1;36';
-        $this->foreground_colors['red']          = '0;31';
-        $this->foreground_colors['light_red']    = '1;31';
-        $this->foreground_colors['purple']       = '0;35';
+        $this->foreground_colors['black'] = '0;30';
+        $this->foreground_colors['dark_gray'] = '1;30';
+        $this->foreground_colors['blue'] = '0;34';
+        $this->foreground_colors['light_blue'] = '1;34';
+        $this->foreground_colors['green'] = '0;32';
+        $this->foreground_colors['light_green'] = '1;32';
+        $this->foreground_colors['cyan'] = '0;36';
+        $this->foreground_colors['light_cyan'] = '1;36';
+        $this->foreground_colors['red'] = '0;31';
+        $this->foreground_colors['light_red'] = '1;31';
+        $this->foreground_colors['purple'] = '0;35';
         $this->foreground_colors['light_purple'] = '1;35';
-        $this->foreground_colors['brown']        = '0;33';
-        $this->foreground_colors['yellow']       = '1;33';
-        $this->foreground_colors['light_gray']   = '0;37';
-        $this->foreground_colors['white']        = '1;37';
+        $this->foreground_colors['brown'] = '0;33';
+        $this->foreground_colors['yellow'] = '1;33';
+        $this->foreground_colors['light_gray'] = '0;37';
+        $this->foreground_colors['white'] = '1;37';
 
-        $this->background_colors['black']      = '40';
-        $this->background_colors['red']        = '41';
-        $this->background_colors['green']      = '42';
-        $this->background_colors['yellow']     = '43';
-        $this->background_colors['blue']       = '44';
-        $this->background_colors['magenta']    = '45';
-        $this->background_colors['cyan']       = '46';
+        $this->background_colors['black'] = '40';
+        $this->background_colors['red'] = '41';
+        $this->background_colors['green'] = '42';
+        $this->background_colors['yellow'] = '43';
+        $this->background_colors['blue'] = '44';
+        $this->background_colors['magenta'] = '45';
+        $this->background_colors['cyan'] = '46';
         $this->background_colors['light_gray'] = '47';
     }
 

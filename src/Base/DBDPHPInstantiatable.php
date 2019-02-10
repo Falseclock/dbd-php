@@ -13,5 +13,5 @@ namespace DBD\Base;
 
 interface DBDPHPInstantiatable
 {
-	public static function me();
+    public static function me();
 }

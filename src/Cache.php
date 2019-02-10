@@ -123,7 +123,7 @@ abstract class Cache extends DBDPHPSingleton implements DBDPHPInstantiatable, Ca
                         case 'sec':
                         case 'second':
                         case 'seconds':
-                        return $value;
+                            return $value;
                     }
                 }
             }

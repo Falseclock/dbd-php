@@ -30,39 +30,39 @@ use DBD\Base\DBDPHPSingleton as Singleton;
 
 final class DBDPHPDebug extends Singleton implements Instantiatable
 {
-	protected $startTime = null;
+    protected $startTime = null;
 
-	/**
-	 * @return DBDPHPDebug
-	 * @throws \Exception
-	 */
-	public static function me() {
-		return Singleton::getInstance(__CLASS__);
-	}
+    /**
+     * @return DBDPHPDebug
+     * @throws \Exception
+     */
+    public static function me() {
+        return Singleton::getInstance(__CLASS__);
+    }
 
-	public function endTimer() {
-		return $this->difference($this->startTime);
-	}
+    public function endTimer() {
+        return $this->difference($this->startTime);
+    }
 
-	private function difference($start, $end = null) {
+    private function difference($start, $end = null) {
         if(!isset($start)) {
             $start = "0.0 0";
         }
-		if(!isset($end)) {
-			$end = microtime();
-		}
-		list($start_usec, $start_sec) = explode(" ", $start);
-		list($end_usec, $end_sec) = explode(" ", $end);
-		$diff_sec = intval($end_sec) - intval($start_sec);
-		$diff_usec = floatval($end_usec) - floatval($start_usec);
+        if(!isset($end)) {
+            $end = microtime();
+        }
+        list($start_usec, $start_sec) = explode(" ", $start);
+        list($end_usec, $end_sec) = explode(" ", $end);
+        $diff_sec = intval($end_sec) - intval($start_sec);
+        $diff_usec = floatval($end_usec) - floatval($start_usec);
 
-		//return floatval($diff_sec) + $diff_usec;
-		return round(((floatval($diff_sec) + $diff_usec) * 1000), 3);
-	}
+        //return floatval($diff_sec) + $diff_usec;
+        return round(((floatval($diff_sec) + $diff_usec) * 1000), 3);
+    }
 
-	public function startTimer() {
-		$this->startTime = microtime();
+    public function startTimer() {
+        $this->startTime = microtime();
 
-		return $this->startTime;
-	}
+        return $this->startTime;
+    }
 }

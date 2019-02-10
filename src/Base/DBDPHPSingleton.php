@@ -34,7 +34,7 @@ abstract class DBDPHPSingleton
         }
 
         if(!isset(self::$instances[$class])) {
-            $object = $args ? new $class($args) : new $class();
+            $object = $args ? new $class($args) : new $class;
 
             if(!($object instanceof DBDPHPSingleton)) {
                 throw new Exception("Class '{$class}' is something not a Singleton's child");
