@@ -56,7 +56,7 @@ abstract class DBD
     protected $dbResource;
     /** @var string $query SQL query */
     protected $query;
-    /** @var resource|string $result Query result data */
+    /** @var resource|string|array $result Query result data */
     protected $result;
     /** @var \Psr\SimpleCache\CacheInterface|\DBD\Cache */
     protected $CacheDriver;
@@ -102,7 +102,7 @@ abstract class DBD
      * @see affectedRows
      * @return int
      */
-    final public function affected() {
+    public function affected() {
         return $this->affectedRows();
     }
 
@@ -119,7 +119,7 @@ abstract class DBD
      *
      * @return int
      */
-    final public function affectedRows() {
+    public function affectedRows() {
         return $this->_affectedRows();
     }
 
@@ -137,7 +137,7 @@ abstract class DBD
      * @return bool
      * @throws \DBD\Base\DBDPHPException
      */
-    final public function begin() {
+    public function begin() {
         if($this->inTransaction == true) {
             throw new Exception("Already in transaction");
         }
@@ -207,7 +207,7 @@ abstract class DBD
      *
      * @throws \DBD\Base\DBDPHPException
      */
-    final public function cache($key, $ttl = null) {
+    public function cache($key, $ttl = null) {
         if(!isset($key) or !$key) {
             throw new Exception("caching failed: key is not set or empty");
         }
@@ -241,7 +241,7 @@ abstract class DBD
      * @return bool
      * @throws \DBD\Base\DBDPHPException
      */
-    final public function commit() {
+    public function commit() {
         if(!$this->isConnected()) {
             throw new Exception("No connection established yet");
         }
@@ -339,7 +339,7 @@ abstract class DBD
      *
      * @throws \DBD\Base\DBDPHPException
      */
-    final public function rollback() {
+    public function rollback() {
         if($this->inTransaction) {
             $this->connectionPreCheck();
             $this->result = $this->_rollback();
@@ -379,7 +379,7 @@ abstract class DBD
      * @throws \Psr\SimpleCache\InvalidArgumentException
      * @throws \ReflectionException
      */
-    final public function doit() {
+    public function doIt() {
         if(!func_num_args())
             throw new Exception("query failed: statement is not set or empty");
 
@@ -413,7 +413,7 @@ abstract class DBD
      * @throws \Psr\SimpleCache\InvalidArgumentException
      * @throws \ReflectionException
      */
-    final public function query() {
+    public function query() {
         if(!func_num_args())
             throw new Exception("query failed: statement is not set or empty");
 
@@ -439,7 +439,7 @@ abstract class DBD
      * @return $this
      * @throws \DBD\Base\DBDPHPException
      */
-    final public function prepare($statement) {
+    public function prepare($statement) {
         if(!isset($statement) or empty($statement))
             throw new Exception("prepare failed: statement is not set or empty");
 
@@ -456,7 +456,7 @@ abstract class DBD
      * @throws \Psr\SimpleCache\InvalidArgumentException
      * @throws \ReflectionException
      */
-    final public function execute() {
+    public function execute() {
         // Set result to false
         $this->result = false;
         $this->fetch = self::UNDEFINED;
@@ -515,7 +515,7 @@ abstract class DBD
 
                 // If we have data from query
                 if($this->rows()) {
-                    $this->cache['result'] = $this->fetchrowset();
+                    $this->cache['result'] = $this->fetchRowSet();
                 }
                 else {
                     // select is empty
@@ -603,7 +603,7 @@ abstract class DBD
      *
      * @return int
      */
-    final public function rows() {
+    public function rows() {
         if($this->cache['key'] === null) {
             if(preg_match('/^(\s*?)select\s*?.*?\s*?from/is', $this->query)) {
                 return $this->_numRows();
@@ -616,11 +616,11 @@ abstract class DBD
         }
     }
 
-    final public function fetchrowset($key = null) {
+    public function fetchRowSet($key = null) {
         $array = [];
 
         if($this->cache['key'] === null) {
-            while($row = $this->fetchrow()) {
+            while($row = $this->fetchRow()) {
                 if($key) {
                     $array[$row[$key]] = $row;
                 }
@@ -685,7 +685,7 @@ abstract class DBD
 
     abstract protected function _escape($string);
 
-    final public function fetchrow() {
+    public function fetchRow() {
         if($this->cache['key'] === null) {
             $return = $this->_fetchAssoc();
 
@@ -717,11 +717,11 @@ abstract class DBD
 
     abstract protected function _convertBoolean(&$data, $type);
 
-    final public function fetcharrayset() {
+    public function fetchArraySet() {
         $array = [];
 
         if($this->cache['key'] === null) {
-            while($row = $this->fetchrow()) {
+            while($row = $this->fetchRow()) {
                 $entry = [];
                 foreach($row as $key => $value) {
                     $entry[] = $value;
@@ -764,7 +764,7 @@ abstract class DBD
      * @throws \Psr\SimpleCache\InvalidArgumentException
      * @throws \ReflectionException
      */
-    final public function insert($table, $args, $return = null) {
+    public function insert($table, $args, $return = null) {
         $params = DBDHelper::compileInsertArgs($args);
 
         $sth = $this->prepare($this->_compileInsert($table, $params, $return));
@@ -800,7 +800,7 @@ abstract class DBD
      * @throws \Psr\SimpleCache\InvalidArgumentException
      * @throws \ReflectionException
      */
-    final public function select() {
+    public function select() {
         list ($statement, $args) = DBDHelper::prepareArgs(func_get_args());
 
         $sth = $this->query($statement, $args);
@@ -815,7 +815,7 @@ abstract class DBD
     /**
      * @return bool|mixed
      */
-    final public function fetch() {
+    public function fetch() {
         if($this->fetch == self::UNDEFINED) {
 
             if($this->cache['key'] === null) {
@@ -847,7 +847,7 @@ abstract class DBD
      * @throws \Psr\SimpleCache\InvalidArgumentException
      * @throws \ReflectionException
      */
-    final public function update() {
+    public function update() {
         $binds = 0;
         $where = null;
         $return = null;

@@ -283,13 +283,13 @@ final class Tests
         if($sth->getResult() != "cached" && $sth->getStorage() != "database") {
             $this->testFail("cache test1 failed");
         }
-        $result1 = $sth->fetchrowset();
+        $result1 = $sth->fetchRowSet();
 
         $sth->execute();
         if($sth->getResult() != "cached" && $sth->getStorage() != "cache") {
             $this->testFail("cache test2 failed");
         }
-        $result2 = $sth->fetchrowset();
+        $result2 = $sth->fetchRowSet();
 
         $sta = $db->prepare($this->queries['table_select_all']);
         $sta->cache('test_purposed', '5s');
@@ -297,7 +297,7 @@ final class Tests
         if($sth->getResult() != "cached" && $sth->getStorage() != "cache") {
             $this->testFail("cache test3 failed");
         }
-        $result3 = $sta->fetchrowset();
+        $result3 = $sta->fetchRowSet();
 
         $result4 = DBD\Cache\MemCache::me()::me()->get('test_purposed');
 
@@ -324,13 +324,13 @@ final class Tests
         if($sth->getResult() != "cached" && $sth->getStorage() != "database") {
             $this->testFail("cache test6 failed");
         }
-        $result1 = $sth->fetchrow();
+        $result1 = $sth->fetchRow();
 
         $sth->execute();
         if($sth->getResult() != "cached" && $sth->getStorage() != "cache") {
             $this->testFail("cache test7 failed");
         }
-        $result2 = $sth->fetchrow();
+        $result2 = $sth->fetchRow();
 
         $sta = $db->prepare($this->queries['table_select_all']);
         $sta->cache('test_purposed', '5s');
@@ -338,7 +338,7 @@ final class Tests
         if($sth->getResult() != "cached" && $sth->getStorage() != "cache") {
             $this->testFail("cache test8 failed");
         }
-        $result3 = $sta->fetchrow();
+        $result3 = $sta->fetchRow();
 
         $result4 = DBD\Cache\MemCache::me()->get('test_purposed')[0];
 
@@ -406,9 +406,9 @@ final class Tests
 
         $db = $this->db;
 
-        $db->doit($this->queries['table_delete']);
+        $db->doIt($this->queries['table_delete']);
         foreach($this->queries['table_insert'] as $query) {
-            if($db->doit($query) !== 1) {
+            if($db->doIt($query) !== 1) {
                 $this->testFail("doit method returned not equal 1");
             }
         }
@@ -430,28 +430,28 @@ final class Tests
         $sth = $db->prepare($this->queries['table_select_ph']);
         $sth->execute(1);
 
-        if(count($sth->fetchrowset()) != 1) {
+        if(count($sth->fetchRowSet()) != 1) {
             $this->testFail("fetchrowset-1.0 method returned " . $sth->rows() . " instead of 1");
         }
 
         $sth = $db->prepare($this->queries['table_select_ph_char']);
         $sth->execute('A');
 
-        if(count($sth->fetchrowset()) != 2) {
+        if(count($sth->fetchRowSet()) != 2) {
             $this->testFail("fetchrowset-1.1 method returned " . $sth->rows() . " instead of 2");
         }
 
         $sth = $db->prepare($this->queries['table_select_ph']);
         $sth->execute(1);
 
-        if(count($sth->fetchrowset('name')) != 1) {
+        if(count($sth->fetchRowSet('name')) != 1) {
             $this->testFail("fetchrowset-2.0 method returned " . $sth->rows() . " instead of 1");
         }
 
         $sth = $db->prepare($this->queries['table_select_ph_char']);
         $sth->execute('A');
 
-        if(count($sth->fetchrowset('name')) != 2) {
+        if(count($sth->fetchRowSet('name')) != 2) {
             $this->testFail("fetchrowset-2.1 method returned " . $sth->rows() . " instead of 2");
         }
 
@@ -464,8 +464,8 @@ final class Tests
 
         $this->testHeader("Transaction COMMIT");
 
-        $this->db->doit($this->queries['table_create']);
-        $this->db->doit($this->queries['table_drop']);
+        $this->db->doIt($this->queries['table_create']);
+        $this->db->doIt($this->queries['table_drop']);
 
         $this->db->commit();
 
@@ -479,7 +479,7 @@ final class Tests
         $this->testHeader("Transaction ROLLBACK");
 
         $this->db->begin();
-        $this->db->doit($this->queries['table_create']);
+        $this->db->doIt($this->queries['table_create']);
         $this->db->rollback();
 
         $this->testPass();
@@ -499,15 +499,15 @@ final class Tests
         if($sth->rows() !== 0) {
             $this->testFail("prepare method returned " . $sth->rows());
         }
-        $this->db->doit($this->queries['table_drop']);
+        $this->db->doIt($this->queries['table_drop']);
 
         //--------------------------------
         // Table creation through do
-        $result = $this->db->doit($this->queries['table_create']);
+        $result = $this->db->doIt($this->queries['table_create']);
         if($result !== 0) {
             $this->testFail("do method returned {$result}");
         }
-        $this->db->doit($this->queries['table_drop']);
+        $this->db->doIt($this->queries['table_drop']);
 
         //--------------------------------
         // Table creation through query
@@ -516,7 +516,7 @@ final class Tests
         if($sth->rows() !== 0) {
             $this->testFail("query method returned " . $sth->rows());
         }
-        $this->db->doit($this->queries['table_drop']);
+        $this->db->doIt($this->queries['table_drop']);
 
         //--------------------------------
         // Table creation through prepare without drop
@@ -567,7 +567,7 @@ final class Tests
         $this->testHeader("Table drop");
 
         $db = $this->db;
-        $db->doit($this->queries['table_drop']);
+        $db->doIt($this->queries['table_drop']);
 
         $this->testPass();
 
@@ -580,7 +580,7 @@ final class Tests
 
         $this->testHeader("Insert method");
 
-        $db->doit($this->queries['table_delete']);
+        $db->doIt($this->queries['table_delete']);
 
         $insert = [
             'id'   => 1,
@@ -625,12 +625,12 @@ final class Tests
         // DO method ---------------------------------------------
         $i = 0;
         foreach($this->queries['table_insert'] as $query) {
-            if($db->doit($query) !== 1) {
+            if($db->doIt($query) !== 1) {
                 $this->testFail("do method returned not equal 1");
             }
             $i++;
         }
-        if($db->doit($this->queries['table_delete']) !== $i) {
+        if($db->doIt($this->queries['table_delete']) !== $i) {
             $this->testFail("DO insert not equal $i");
         }
         // PREPARE->EXECUTE ---------------------------------------------
@@ -680,13 +680,13 @@ final class Tests
         $this->testHeader("Table updates");
 
         foreach($this->queries['table_insert'] as $query) {
-            $db->doit($query);
+            $db->doIt($query);
         }
 
         // DO method ---------------------------------------------
         $i = 0;
         foreach($this->queries['table_updates'] as $query) {
-            if($db->doit($query) !== 1) {
+            if($db->doIt($query) !== 1) {
                 $this->testFail("do method returned not equal 1");
             }
             $i++;
@@ -721,7 +721,7 @@ final class Tests
         // UPDATE method ---------------------------
         $sth = $db->prepare($this->queries['table_select_all']);
         $sth->execute();
-        while($row = $sth->fetchrow()) {
+        while($row = $sth->fetchRow()) {
             $update = [
                 'name' => $row['name'] . "_updated",
             ];

@@ -204,15 +204,21 @@ class OData extends DBD
 
     /*--------------------------------------------------------------*/
 
-    protected function _affectedRows() {
-        // TODO: Implement _affectedRows() method.
+    public function du() {
+        return $this;
     }
 
     /*--------------------------------------------------------------*/
 
+    protected function _affectedRows() {
+        // TODO: Implement _affectedRows() method.
+    }
+
     protected function _begin() {
         // TODO: Implement _begin() method.
     }
+
+    /*--------------------------------------------------------------*/
 
     protected function _commit() {
         // TODO: Implement _commit() method.
@@ -349,12 +355,6 @@ class OData extends DBD
         return $this;
     }
 
-    /*--------------------------------------------------------------*/
-
-    public function du() {
-        return $this;
-    }
-
     public function execute() {
 
         $this->tryGetFromCache();
@@ -395,14 +395,14 @@ class OData extends DBD
         return $this;
     }
 
-    public function fetchrow() {
+    public function fetchRow() {
         return array_shift($this->result);
     }
 
-    public function fetchrowset($key = null) {
+    public function fetchRowSet($key = null) {
 
         $array = [];
-        while($row = $this->fetchrow()) {
+        while($row = $this->fetchRow()) {
             if($key) {
                 $array[$row[$key]] = $row;
             }
