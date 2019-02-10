@@ -28,16 +28,94 @@ namespace DBD\Base;
 use DBD\Base\DBDPHPInstantiatable as Instantiatable;
 use DBD\Base\DBDPHPSingleton as Singleton;
 
-final class DBDPHPDebug extends Singleton implements Instantiatable
+final class DBDQuery
 {
-    protected $startTime = null;
+    public $query;
+    public $cost;
+    public $caller;
+    public $mark;
+    public $driver;
+
+    public function __construct($query, $cost, $caller, $mark, $driver) {
+        $this->query = $query;
+        $this->cost = $cost;
+        $this->caller = $caller;
+        $this->mark = $mark;
+        $this->driver = $driver;
+    }
+}
+
+final class DBDDebug extends Singleton implements Instantiatable
+{
+    /** @var DBDQuery[] $queries */
+    private static $queries;
+    /** @var int $totalQueries */
+    private static $totalQueries = 0;
+    /** @var float $totalCost */
+    private static $totalCost = 0;
+    /** @var float $startTime */
+    private $startTime = null;
 
     /**
-     * @return DBDPHPDebug
+     * @return DBDDebug
      * @throws \Exception
      */
     public static function me() {
         return Singleton::getInstance(__CLASS__);
+    }
+
+    /**
+     * @return DBDQuery[]
+     */
+    public static function getQueries() {
+        return self::$queries;
+    }
+
+    /**
+     * @param DBDQuery $queries
+     */
+    public static function addQueries($queries) {
+        self::$queries[] = $queries;
+    }
+
+    /**
+     * @return int
+     */
+    public static function getTotalQueries() {
+        return self::$totalQueries;
+    }
+
+    /**
+     * @param $count
+     */
+    public static function addTotalQueries($count) {
+        self::$totalQueries += $count;
+    }
+
+    /**
+     * @return float
+     */
+    public static function getTotalCost() {
+        return self::$totalCost;
+    }
+
+    /**
+     * @param int|float $cost
+     */
+    public static function addTotalCost($cost) {
+        self::$totalCost += $cost;
+    }
+
+    /**
+     * @return array
+     */
+    public static function getPerDriver() {
+        $return = [];
+        foreach(self::$queries as $query) {
+            $return[$query->driver][] = $query;
+        }
+
+        return $return;
     }
 
     public function endTimer() {
@@ -51,13 +129,12 @@ final class DBDPHPDebug extends Singleton implements Instantiatable
         if(!isset($end)) {
             $end = microtime();
         }
-        list($start_usec, $start_sec) = explode(" ", $start);
-        list($end_usec, $end_sec) = explode(" ", $end);
-        $diff_sec = intval($end_sec) - intval($start_sec);
-        $diff_usec = floatval($end_usec) - floatval($start_usec);
+        list($startBase, $startSec) = explode(" ", $start);
+        list($endBase, $endSec) = explode(" ", $end);
+        $diffSec = intval($endSec) - intval($startSec);
+        $diffBase = floatval($endBase) - floatval($startBase);
 
-        //return floatval($diff_sec) + $diff_usec;
-        return round(((floatval($diff_sec) + $diff_usec) * 1000), 3);
+        return round(((floatval($diffSec) + $diffBase) * 1000), 3);
     }
 
     public function startTimer() {

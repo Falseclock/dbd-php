@@ -28,25 +28,19 @@
 namespace DBD;
 
 use DBD\Base\DBDConfig;
+use DBD\Base\DBDDebug as Debug;
 use DBD\Base\DBDHelper;
 use DBD\Base\DBDOptions;
-use DBD\Base\DBDPHPDebug as Debug;
 use DBD\Base\DBDPHPException as Exception;
+use DBD\Base\DBDQuery;
 
-/**
- * Class DBD
- *
- * @package DBD
- */
 abstract class DBD
 {
-    const STORAGE_CACHE    = "cache";
+    const STORAGE_CACHE    = "Cache";
     const STORAGE_DATABASE = "database";
     const UNDEFINED        = "UNDEF";
-    //private $affected = 0;
-    public static $debug = [ 'total_queries' => 0, 'total_cost' => 0, 'per_driver' => [] ];
-    public        $rows  = 0;
-    protected     $cache = [
+    public    $rows  = 0;
+    protected $cache = [
         'key'      => null,
         'result'   => null,
         'compress' => null,
@@ -94,7 +88,7 @@ abstract class DBD
             return $this;
         }
 
-        throw new Exception('Unsupported caching interface. Extend DBD\\Cache or use PSR-16 Common Interface for Caching');
+        throw new Exception("Unsupported caching interface. Extend DBD\\Cache or use PSR-16 Common Interface for Caching");
     }
 
     /**
@@ -478,7 +472,7 @@ abstract class DBD
                 if($this->cache['result'] && $this->cache['result'] !== false) {
                     $cost = Debug::me()->endTimer();
                     // To avoid errors as result by default is NULL
-                    $this->result = 'cached';
+                    $this->result = "cached";
                     $this->storage = self::STORAGE_CACHE;
                     $this->rows = count($this->cache['result']);
                 }
@@ -486,7 +480,7 @@ abstract class DBD
         }
 
         // If not found in cache, then let's get from DB
-        if($this->result != 'cached') {
+        if($this->result != "cached") {
 
             $this->connectionPreCheck();
             if($this->Options->isUseDebug()) {
@@ -523,7 +517,7 @@ abstract class DBD
                 }
 
                 // reverting all back, cause we stored data to cache
-                $this->result = 'cached';
+                $this->result = "cached";
                 $this->cache['key'] = $storedKey;
 
                 // Setting up our cache
@@ -538,26 +532,12 @@ abstract class DBD
         if($this->Options->isUseDebug()) {
             $cost = isset($cost) ? $cost : 0;
 
-            $index = $this->storage == self::STORAGE_CACHE ? 'Cache' : (new \ReflectionClass($this))->getParentClass()->getShortName();
+            $driver = $this->storage == self::STORAGE_CACHE ? self::STORAGE_CACHE : (new \ReflectionClass($this))->getParentClass()->getShortName();
+            $caller = DBDHelper::caller($this);
 
-            $caller = $this->caller();
-
-            @self::$debug['queries'][$index][] = [
-                'query'   => DBDHelper::cleanSql($exec),
-                'cost'    => $cost,
-                'caller'  => $caller[0],
-                'explain' => null,
-                'mark'    => DBDHelper::debugMark($cost),
-            ];
-            @self::$debug['total_queries'] += 1;
-            @self::$debug['total_cost'] += $cost;
-            if(!isset($debug['per_driver'][$index])) {
-                self::$debug['per_driver'] = [
-                    $index => [ 'total' => 0, 'cost' => 0 ],
-                ];
-            }
-            @self::$debug['per_driver'][$index]['total'] += 1;
-            @self::$debug['per_driver'][$index]['cost'] += $cost;
+            Debug::addQueries(new DBDQuery(DBDHelper::cleanSql($exec), $cost, $caller[0], DBDHelper::debugMark($cost), $driver));
+            Debug::addTotalQueries(1);
+            Debug::addTotalCost($cost);
         }
 
         return $this->result;
@@ -605,7 +585,7 @@ abstract class DBD
      */
     public function rows() {
         if($this->cache['key'] === null) {
-            if(preg_match('/^(\s*?)select\s*?.*?\s*?from/is', $this->query)) {
+            if(preg_match("/^(\s*?)select\s*?.*?\s*?from/is", $this->query)) {
                 return $this->_numRows();
             }
 
@@ -646,43 +626,6 @@ abstract class DBD
         return $array;
     }
 
-    /**
-     * @return array
-     * @throws \ReflectionException
-     */
-    protected function caller() {
-        $return = [];
-        $debug = debug_backtrace();
-
-        // working directory
-        $wd = is_link($_SERVER["DOCUMENT_ROOT"]) ? readlink($_SERVER["DOCUMENT_ROOT"]) : $_SERVER["DOCUMENT_ROOT"];
-        $wd = str_replace(DIRECTORY_SEPARATOR, "/", $wd);
-
-        $myFilename = $debug[0]['file'];
-        $myFilename = str_replace(DIRECTORY_SEPARATOR, "/", $myFilename);
-        $myFilename = str_replace($wd, '', $myFilename);
-
-        $child = (new \ReflectionClass($this))->getShortName();
-
-        foreach($debug as $ind => $call) {
-            // our filename
-            if(isset($call['file'])) {
-                $call['file'] = str_replace(DIRECTORY_SEPARATOR, "/", $call['file']);
-                $call['file'] = str_replace($wd, '', $call['file']);
-
-                if($myFilename != $call['file'] && !preg_match('/' . $child . '\.\w+$/', $call['file'])) {
-                    $return[] = [
-                        'file'     => $call['file'],
-                        'line'     => $call['line'],
-                        'function' => $call['function'],
-                    ];
-                }
-            }
-        }
-
-        return $return;
-    }
-
     abstract protected function _escape($string);
 
     public function fetchRow() {
@@ -690,7 +633,7 @@ abstract class DBD
             $return = $this->_fetchAssoc();
 
             if($this->Options->isConvertNumeric() || $this->Options->isConvertBoolean()) {
-                return $this->_convertTypes($return, 'row');
+                return $this->_convertTypes($return, "row");
             }
 
             return $return;
@@ -776,25 +719,6 @@ abstract class DBD
     abstract protected function _compileInsert($table, $params, $return = "");
 
     /**
-     * @deprecated
-     * @return string
-     */
-    public function printDebug() {
-        return null;
-    }
-
-    public function getDebug() {
-        $debug = self::$debug;
-        if(count($debug['per_driver'])) {
-            foreach($debug['per_driver'] as $key => $row) {
-                $debug['per_driver'][$key]['mark'] = DBDHelper::debugMark($row['cost'] / $row['total']);
-            }
-        }
-
-        return $debug;
-    }
-
-    /**
      * @return bool|mixed
      * @throws \DBD\Base\DBDPHPException
      * @throws \Psr\SimpleCache\InvalidArgumentException
@@ -823,7 +747,7 @@ abstract class DBD
                 $return = $this->_fetchArray();
 
                 if($this->Options->isConvertNumeric() || $this->Options->isConvertBoolean()) {
-                    $return = $this->_convertTypes($return, 'row');
+                    $return = $this->_convertTypes($return, "row");
                 }
 
                 $this->fetch = $return;

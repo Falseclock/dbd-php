@@ -33,7 +33,7 @@ final class DBDHelper
      *
      * @return string
      */
-    public final static function cleanSql($statement) {
+    final public static function cleanSql($statement) {
         $array = preg_split('/\R/u', $statement);
 
         foreach($array as $idx => $line) {
@@ -58,7 +58,7 @@ final class DBDHelper
      *
      * @return int
      */
-    public final static function debugMark($cost) {
+    final public static function debugMark($cost) {
         switch(true) {
             case ($cost >= 0 && $cost <= 20):
                 return 1;
@@ -80,7 +80,7 @@ final class DBDHelper
      *
      * @return array
      */
-    public final static function prepareArgs($ARGS) {
+    final public static function prepareArgs($ARGS) {
         // Shift query from passed arguments. Query is always first
         $statement = array_shift($ARGS);
         // Build array of arguments
@@ -97,7 +97,7 @@ final class DBDHelper
      *
      * @return array
      */
-    public final static function parseArgs($ARGS) {
+    final public static function parseArgs($ARGS) {
         $args = [];
 
         foreach($ARGS as $arg) {
@@ -119,7 +119,7 @@ final class DBDHelper
      *
      * @return array
      */
-    public final static function compileInsertArgs($data) {
+    final public static function compileInsertArgs($data) {
 
         $columns = "";
         $values = "";
@@ -149,7 +149,7 @@ final class DBDHelper
         ];
     }
 
-    public final static function compileUpdateArgs($data) {
+    final public static function compileUpdateArgs($data) {
         $columns = "";
         $args = [];
 
@@ -166,5 +166,42 @@ final class DBDHelper
             'COLUMNS' => $columns,
             'ARGS'    => $args,
         ];
+    }
+
+    /**
+     * @return array
+     * @throws \ReflectionException
+     */
+    final public static function caller($context) {
+        $return = [];
+        $debug = debug_backtrace();
+
+        // working directory
+        $wd = is_link($_SERVER["DOCUMENT_ROOT"]) ? readlink($_SERVER["DOCUMENT_ROOT"]) : $_SERVER["DOCUMENT_ROOT"];
+        $wd = str_replace(DIRECTORY_SEPARATOR, "/", $wd);
+
+        $myFilename = $debug[0]['file'];
+        $myFilename = str_replace(DIRECTORY_SEPARATOR, "/", $myFilename);
+        $myFilename = str_replace($wd, '', $myFilename);
+
+        $child = (new \ReflectionClass($context))->getShortName();
+
+        foreach($debug as $ind => $call) {
+            // our filename
+            if(isset($call['file'])) {
+                $call['file'] = str_replace(DIRECTORY_SEPARATOR, "/", $call['file']);
+                $call['file'] = str_replace($wd, '', $call['file']);
+
+                if($myFilename != $call['file'] && !preg_match('/' . $child . '\.\w+$/', $call['file'])) {
+                    $return[] = [
+                        'file'     => $call['file'],
+                        'line'     => $call['line'],
+                        'function' => $call['function'],
+                    ];
+                }
+            }
+        }
+
+        return $return;
     }
 }
