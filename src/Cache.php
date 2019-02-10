@@ -31,10 +31,11 @@ use Psr\SimpleCache\CacheInterface;
 
 abstract class Cache extends DBDPHPSingleton implements DBDPHPInstantiatable, CacheInterface
 {
+    const DEFAULT_TTL = 10;
     /** @var bool $useCompression if caching server supports compression */
     public $useCompression = false;
     /** @var int $defaultTtl */
-    public $defaultTtl = 10;
+    public $defaultTtl = self::DEFAULT_TTL;
     /** @var mixed[] Server list with variable options */
     public $servers = null;
 
@@ -145,7 +146,7 @@ abstract class Cache extends DBDPHPSingleton implements DBDPHPInstantiatable, Ca
      *
      * @return $this
      */
-    public function setup($servers = [], $useCompression = false, $defaultTtl = 300) {
+    public function setup($servers = [], $useCompression = false, $defaultTtl = self::DEFAULT_TTL) {
         $this->servers = $servers;
         $this->useCompression = $useCompression;
         $this->defaultTtl = $defaultTtl;
