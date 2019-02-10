@@ -66,15 +66,15 @@ class DBDPHPException extends Exception
         parent::__construct($message, $this->code);
     }
 
+    public function getFullTrace() {
+        return $this->fullTrace;
+    }
+
     public function getQuery() {
         return $this->query;
     }
 
     public function getShortTrace() {
         return $this->shortTrace;
-    }
-
-    public function getFullTrace() {
-        return $this->fullTrace;
     }
 }

@@ -52,17 +52,17 @@ final class DBDConfig
     /**
      * @return string
      */
-    public function getIdentity() {
-        return $this->identity;
+    public function getDatabase() {
+        return $this->database;
     }
 
     /**
-     * @param string $identity
+     * @param string $database
      *
      * @return \DBD\Base\DBDConfig
      */
-    public function setIdentity($identity) {
-        $this->identity = $identity;
+    public function setDatabase($database) {
+        $this->database = $database;
 
         return $this;
     }
@@ -86,55 +86,19 @@ final class DBDConfig
     }
 
     /**
-     * @return int
-     */
-    public function getPort() {
-        return $this->port;
-    }
-
-    /**
-     * @param int $port
-     *
-     * @return \DBD\Base\DBDConfig
-     */
-    public function setPort($port) {
-        $this->port = $port;
-
-        return $this;
-    }
-
-    /**
      * @return string
      */
-    public function getDatabase() {
-        return $this->database;
+    public function getIdentity() {
+        return $this->identity;
     }
 
     /**
-     * @param string $database
+     * @param string $identity
      *
      * @return \DBD\Base\DBDConfig
      */
-    public function setDatabase($database) {
-        $this->database = $database;
-
-        return $this;
-    }
-
-    /**
-     * @return string|null
-     */
-    public function getUsername() {
-        return $this->username;
-    }
-
-    /**
-     * @param string $username
-     *
-     * @return \DBD\Base\DBDConfig
-     */
-    public function setUsername($username) {
-        $this->username = $username;
+    public function setIdentity($identity) {
+        $this->identity = $identity;
 
         return $this;
     }
@@ -153,6 +117,42 @@ final class DBDConfig
      */
     public function setPassword($password) {
         $this->password = $password;
+
+        return $this;
+    }
+
+    /**
+     * @return int
+     */
+    public function getPort() {
+        return $this->port;
+    }
+
+    /**
+     * @param int $port
+     *
+     * @return \DBD\Base\DBDConfig
+     */
+    public function setPort($port) {
+        $this->port = $port;
+
+        return $this;
+    }
+
+    /**
+     * @return string|null
+     */
+    public function getUsername() {
+        return $this->username;
+    }
+
+    /**
+     * @param string $username
+     *
+     * @return \DBD\Base\DBDConfig
+     */
+    public function setUsername($username) {
+        $this->username = $username;
 
         return $this;
     }

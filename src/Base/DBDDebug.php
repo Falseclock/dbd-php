@@ -57,21 +57,6 @@ final class DBDDebug extends Singleton implements Instantiatable
     private $startTime = null;
 
     /**
-     * @return DBDDebug
-     * @throws \Exception
-     */
-    public static function me() {
-        return Singleton::getInstance(__CLASS__);
-    }
-
-    /**
-     * @return DBDQuery[]
-     */
-    public static function getQueries() {
-        return self::$queries;
-    }
-
-    /**
      * @param DBDQuery $queries
      */
     public static function addQueries($queries) {
@@ -79,10 +64,10 @@ final class DBDDebug extends Singleton implements Instantiatable
     }
 
     /**
-     * @return int
+     * @param int|float $cost
      */
-    public static function getTotalQueries() {
-        return self::$totalQueries;
+    public static function addTotalCost($cost) {
+        self::$totalCost += $cost;
     }
 
     /**
@@ -92,18 +77,8 @@ final class DBDDebug extends Singleton implements Instantiatable
         self::$totalQueries += $count;
     }
 
-    /**
-     * @return float
-     */
-    public static function getTotalCost() {
-        return self::$totalCost;
-    }
-
-    /**
-     * @param int|float $cost
-     */
-    public static function addTotalCost($cost) {
-        self::$totalCost += $cost;
+    public function endTimer() {
+        return $this->difference($this->startTime);
     }
 
     /**
@@ -118,8 +93,39 @@ final class DBDDebug extends Singleton implements Instantiatable
         return $return;
     }
 
-    public function endTimer() {
-        return $this->difference($this->startTime);
+    /**
+     * @return DBDQuery[]
+     */
+    public static function getQueries() {
+        return self::$queries;
+    }
+
+    /**
+     * @return float
+     */
+    public static function getTotalCost() {
+        return self::$totalCost;
+    }
+
+    /**
+     * @return int
+     */
+    public static function getTotalQueries() {
+        return self::$totalQueries;
+    }
+
+    /**
+     * @return DBDDebug
+     * @throws \Exception
+     */
+    public static function me() {
+        return Singleton::getInstance(__CLASS__);
+    }
+
+    public function startTimer() {
+        $this->startTime = microtime();
+
+        return $this->startTime;
     }
 
     private function difference($start, $end = null) {
@@ -135,11 +141,5 @@ final class DBDDebug extends Singleton implements Instantiatable
         $diffBase = floatval($endBase) - floatval($startBase);
 
         return round(((floatval($diffSec) + $diffBase) * 1000), 3);
-    }
-
-    public function startTimer() {
-        $this->startTime = microtime();
-
-        return $this->startTime;
     }
 }

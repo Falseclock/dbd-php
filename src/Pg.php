@@ -35,6 +35,42 @@ use DBD\Base\DBDPHPException as Exception;
 class Pg extends DBD
 {
     /**
+     * Do real connection. Can be invoked if OnDemand is set to TRUE
+     *
+     * @return void
+     * @throws \DBD\Base\DBDPHPException
+     */
+    public function _connect() {
+        $this->dbResource = pg_connect($this->Config->getDsn());
+
+        if(!$this->dbResource)
+            throw new Exception("Can not connect to PostgreSQL server! ");
+    }
+
+    /**
+     * Replacement for constructor
+     *
+     * @return \DBD\PgExtend
+     * @throws \DBD\Base\DBDPHPException
+     */
+    public function connect() {
+        $dsn = "host={$this->Config->getDsn()} ";
+        $dsn .= "dbname={$this->Config->getDatabase()} ";
+        $dsn .= $this->Config->getUsername() ? "user={$this->Config->getUsername()} " : "";
+        $dsn .= $this->Config->getPassword() ? "password={$this->Config->getPassword()} " : "";
+        $dsn .= $this->Config->getPort() ? "port={$this->Config->getPort()} " : "";
+        $dsn .= "options='--application_name={$this->Config->getIdentity()}' ";
+
+        $this->Config->setDsn($dsn);
+
+        if($this->Options->isOnDemand() == false) {
+            $this->_connect();
+        }
+
+        return new PgExtend($this);
+    }
+
+    /**
      * returns the number of tuples (instances/records/rows) affected by INSERT, UPDATE, and DELETE queries.
      *
      * @return int
@@ -87,19 +123,6 @@ class Pg extends DBD
     protected function _compileUpdate($table, $params, $where, $return = "") {
         /** @noinspection SqlWithoutWhere */
         return "UPDATE $table SET {$params['COLUMNS']}" . ($where ? " WHERE $where" : "") . ($return ? " RETURNING {$return}" : "");
-    }
-
-    /**
-     * Do real connection. Can be invoked if OnDemand is set to TRUE
-     *
-     * @return void
-     * @throws \DBD\Base\DBDPHPException
-     */
-    public function _connect() {
-        $this->dbResource = pg_connect($this->Config->getDsn());
-
-        if(!$this->dbResource)
-            throw new Exception("Can not connect to PostgreSQL server! ");
     }
 
     protected function _convertBoolean(&$data, $type) {
@@ -298,10 +321,6 @@ class Pg extends DBD
         }
     }
 
-    protected function _queryExplain($statement) {
-        //TODO: return @pg_query($this->dbh, "EXPLAIN $statement");
-    }
-
     /**
      * Sends ROLLBACK; command
      *
@@ -309,29 +328,6 @@ class Pg extends DBD
      */
     protected function _rollback() {
         return $this->_query("ROLLBACK;");
-    }
-
-    /**
-     * Replacement for constructor
-     *
-     * @return \DBD\PgExtend
-     * @throws \DBD\Base\DBDPHPException
-     */
-    public function connect() {
-        $dsn = "host={$this->Config->getDsn()} ";
-        $dsn .= "dbname={$this->Config->getDatabase()} ";
-        $dsn .= $this->Config->getUsername() ? "user={$this->Config->getUsername()} " : "";
-        $dsn .= $this->Config->getPassword() ? "password={$this->Config->getPassword()} " : "";
-        $dsn .= $this->Config->getPort() ? "port={$this->Config->getPort()} " : "";
-        $dsn .= "options='--application_name={$this->Config->getIdentity()}' ";
-
-        $this->Config->setDsn($dsn);
-
-        if($this->Options->isOnDemand() == false) {
-            $this->_connect();
-        }
-
-        return new PgExtend($this);
     }
 }
 

@@ -32,6 +32,14 @@ namespace DBD;
  */
 class MySQL extends DBD
 {
+    public function connect() {
+        if($this->Options->isOnDemand() == false) {
+            $this->_connect();
+        }
+
+        return new MySQLExtend($this);
+    }
+
     protected function _affectedRows() {
         return mysqli_affected_rows($this->result);
     }
@@ -107,20 +115,8 @@ class MySQL extends DBD
         return mysqli_query($this->dbResource, $statement);
     }
 
-    protected function _queryExplain($statement) {
-        // TODO: Implement _queryExplain() method.
-    }
-
     protected function _rollback() {
         return mysqli_rollback($this->dbResource);
-    }
-
-    public function connect() {
-        if($this->Options->isOnDemand() == false) {
-            $this->_connect();
-        }
-
-        return new MySQLExtend($this);
     }
 
     protected function _convertTypes(&$data, $type) {

@@ -45,6 +45,28 @@ class MSSQL extends DBD
     protected $connectionInfo = [];
     protected $cursorType     = null;
 
+    /**
+     * @return MSSQLExtend
+     * @throws \DBD\Base\DBDPHPException
+     */
+    public function connect() {
+
+        if($this->Config->getDatabase())
+            $this->connectionInfo['Database'] = $this->Config->getDatabase();
+
+        if($this->Config->getUsername())
+            $this->connectionInfo['UID'] = $this->Config->getUsername();
+
+        if($this->Config->getPassword() != null)
+            $this->connectionInfo['PWD'] = $this->Config->getPassword();
+
+        if($this->Options->isOnDemand() == false) {
+            $this->_connect();
+        }
+
+        return new MSSQLExtend($this);
+    }
+
     protected function _affectedRows() {
         $return = sqlsrv_rows_affected($this->result);
 
@@ -166,33 +188,8 @@ class MSSQL extends DBD
         return @sqlsrv_query($this->dbResource, $statement);
     }
 
-    protected function _queryExplain($statement) {
-        // TODO: Implement _queryExplain() method.
-    }
-
     protected function _rollback() {
         return sqlsrv_rollback($this->dbResource);
-    }
-
-    /**
-     * @return MSSQLExtend
-     */
-    public function connect() {
-
-        if($this->Config->getDatabase())
-            $this->connectionInfo['Database'] = $this->Config->getDatabase();
-
-        if($this->Config->getUsername())
-            $this->connectionInfo['UID'] = $this->Config->getUsername();
-
-        if($this->Config->getPassword() != null)
-            $this->connectionInfo['PWD'] = $this->Config->getPassword();
-
-        if($this->Options->isOnDemand() == false) {
-            $this->_connect();
-        }
-
-        return new MSSQLExtend($this);
     }
 
     protected function _convertTypes(&$data, $type) {

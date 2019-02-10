@@ -74,26 +74,39 @@ final class DBDOptions
     }
 
     /**
-     * @param array|\DBD\Base\DBDOptions|null $options
-     *
-     * @throws \Exception
+     * @return bool
      */
-    public function setup($options = null) {
-        if(isset($options)) {
-            if(is_array($options)) {
-                foreach($options as $key => $value) {
-                    if(property_exists($this, $key)) {
-                        $this->$key = $value;
-                    }
-                    else {
-                        throw new \Exception("Unknown option '{$key}' provided");
-                    }
-                }
-            }
-            else {
-                throw new \Exception("DBDOptions should be constructed with array");
-            }
-        }
+    public function isConvertBoolean() {
+        return $this->ConvertBoolean;
+    }
+
+    /**
+     * @param bool $ConvertBoolean
+     *
+     * @return \DBD\Base\DBDOptions
+     */
+    public function setConvertBoolean($ConvertBoolean) {
+        $this->ConvertBoolean = $ConvertBoolean;
+
+        return $this;
+    }
+
+    /**
+     * @return bool
+     */
+    public function isConvertNumeric() {
+        return $this->ConvertNumeric;
+    }
+
+    /**
+     * @param bool $ConvertNumeric
+     *
+     * @return \DBD\Base\DBDOptions
+     */
+    public function setConvertNumeric($ConvertNumeric) {
+        $this->ConvertNumeric = $ConvertNumeric;
+
+        return $this;
     }
 
     /**
@@ -171,42 +184,6 @@ final class DBDOptions
     /**
      * @return bool
      */
-    public function isConvertNumeric() {
-        return $this->ConvertNumeric;
-    }
-
-    /**
-     * @param bool $ConvertNumeric
-     *
-     * @return \DBD\Base\DBDOptions
-     */
-    public function setConvertNumeric($ConvertNumeric) {
-        $this->ConvertNumeric = $ConvertNumeric;
-
-        return $this;
-    }
-
-    /**
-     * @return bool
-     */
-    public function isConvertBoolean() {
-        return $this->ConvertBoolean;
-    }
-
-    /**
-     * @param bool $ConvertBoolean
-     *
-     * @return \DBD\Base\DBDOptions
-     */
-    public function setConvertBoolean($ConvertBoolean) {
-        $this->ConvertBoolean = $ConvertBoolean;
-
-        return $this;
-    }
-
-    /**
-     * @return bool
-     */
     public function isUseDebug() {
         return $this->UseDebug;
     }
@@ -220,5 +197,28 @@ final class DBDOptions
         $this->UseDebug = $UseDebug;
 
         return $this;
+    }
+
+    /**
+     * @param array|\DBD\Base\DBDOptions|null $options
+     *
+     * @throws \Exception
+     */
+    public function setup($options = null) {
+        if(isset($options)) {
+            if(is_array($options)) {
+                foreach($options as $key => $value) {
+                    if(property_exists($this, $key)) {
+                        $this->$key = $value;
+                    }
+                    else {
+                        throw new \Exception("Unknown option '{$key}' provided");
+                    }
+                }
+            }
+            else {
+                throw new \Exception("DBDOptions should be constructed with array");
+            }
+        }
     }
 }

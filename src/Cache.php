@@ -39,15 +39,8 @@ abstract class Cache extends DBDPHPSingleton implements DBDPHPInstantiatable, Ca
     /** @var mixed[] Server list with variable options */
     public $servers = null;
 
-    /**
-     * Disallow to construct, callCache::me()->setup()->connect();
-     *
-     * @example MemCache::me()->setup()->connect();
-     * @return $this
-     * @throws \Exception
-     */
-    public static function me() {
-        return DBDPHPSingleton::getInstance(get_called_class());
+    public function __destruct() {
+        $this->disconnect();
     }
 
     /**
@@ -133,11 +126,15 @@ abstract class Cache extends DBDPHPSingleton implements DBDPHPInstantiatable, Ca
     }
 
     /**
-     * Opens cached server connection
+     * Disallow to construct, callCache::me()->setup()->connect();
      *
-     * @return bool Returns <b>TRUE</b> on success or <b>FALSE</b> on failure.
+     * @example MemCache::me()->setup()->connect();
+     * @return $this
+     * @throws \Exception
      */
-    abstract public function connect();
+    public static function me() {
+        return DBDPHPSingleton::getInstance(get_called_class());
+    }
 
     /**
      * @param array $servers
@@ -154,9 +151,12 @@ abstract class Cache extends DBDPHPSingleton implements DBDPHPInstantiatable, Ca
         return $this;
     }
 
-    public function __destruct() {
-        $this->disconnect();
-    }
+    /**
+     * Opens cached server connection
+     *
+     * @return bool Returns <b>TRUE</b> on success or <b>FALSE</b> on failure.
+     */
+    abstract public function connect();
 
     /**
      * Close cached server connection

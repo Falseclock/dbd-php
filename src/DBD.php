@@ -66,29 +66,22 @@ abstract class DBD
     private $inTransaction = false;
 
     /**
-     * Use if when you need to get DBD cache driver to handle stored cache outside of this class
+     * Copies object variables after extended class construction
      *
-     * @return \DBD\Cache|\Psr\SimpleCache\CacheInterface
-     */
-    public function getCacheDriver() {
-        return $this->CacheDriver;
-    }
-
-    /**
-     * @param \DBD\Cache|\Psr\SimpleCache\CacheInterface $cache
+     * @param        $object
+     * @param string $statement
      *
-     * @return \DBD\DBD
-     * @throws \DBD\Base\DBDPHPException
+     * @return void
      */
-    public function setCacheDriver($cache) {
-
-        if($cache instanceof Cache || $cache instanceof \Psr\SimpleCache\CacheInterface) {
-            $this->CacheDriver = $cache;
-
-            return $this;
+    final protected function extendMe($object, $statement = "") {
+        foreach(get_object_vars($object) as $key => $value) {
+            $this->$key = $value;
         }
+        $this->query = $statement;
 
-        throw new Exception("Unsupported caching interface. Extend DBD\\Cache or use PSR-16 Common Interface for Caching");
+        if(isset($this->CacheDriver)) {
+            $this->cache['expire'] = $this->CacheDriver->defaultTtl;
+        }
     }
 
     /**
@@ -118,14 +111,6 @@ abstract class DBD
     }
 
     /**
-     * Must be implemented on child class. If no rows are affected then 0 should be returned
-     *
-     * @see affectedRows
-     * @return int
-     */
-    abstract protected function _affectedRows();
-
-    /**
      * Starts database transaction
      *
      * @return bool
@@ -144,48 +129,6 @@ abstract class DBD
 
         return true;
     }
-
-    /**
-     * Check connection existence and do connection if not
-     *
-     * @return void
-     */
-    private function connectionPreCheck() {
-        if(!$this->isConnected()) {
-            $this->_connect();
-        }
-    }
-
-    /**
-     * Must be implemented on child class.
-     *
-     * @see begin
-     * @return mixed
-     */
-    abstract protected function _begin();
-
-    /**
-     * Must be implemented on child class. Should return last error message
-     *
-     * @return string
-     */
-    abstract protected function _errorMessage();
-
-    /**
-     * Check whether connection is established or not
-     *
-     * @return bool true if var is a resource, false otherwise
-     */
-    protected function isConnected() {
-        return is_resource($this->dbResource);
-    }
-
-    /**
-     * Must be implemented on child class. Always self extended instance
-     *
-     * @return \DBD\DBD
-     */
-    abstract protected function _connect();
 
     /**
      * Must be called after statement prepare
@@ -253,13 +196,6 @@ abstract class DBD
     }
 
     /**
-     * Must be implemented on child class.
-     *
-     * @return bool true on success commit
-     */
-    abstract protected function _commit();
-
-    /**
      * Base and main method to start. Returns new instance of DBD driver
      *
      * ```
@@ -320,43 +256,6 @@ abstract class DBD
     }
 
     /**
-     * Must be implemented on child class.
-     *
-     * @return bool true on successful disconnection
-     */
-    abstract protected function _disconnect();
-
-    /**
-     * Rolls back a transaction that was begun
-     *
-     * @return bool
-     *
-     * @throws \DBD\Base\DBDPHPException
-     */
-    public function rollback() {
-        if($this->inTransaction) {
-            $this->connectionPreCheck();
-            $this->result = $this->_rollback();
-            if($this->result === false) {
-                throw new Exception("Can not end transaction " . pg_errormessage());
-            }
-        }
-        else {
-            throw new Exception("No transaction to rollback");
-        }
-        $this->inTransaction = false;
-
-        return true;
-    }
-
-    /**
-     * Must be implemented on child class.
-     *
-     * @return bool true on successful rollback
-     */
-    abstract protected function _rollback();
-
-    /**
      * For simple SQL query, mostly delete or update, when you do not need to get results and only want to know affected rows
      *
      * Example 1:
@@ -382,64 +281,6 @@ abstract class DBD
         $sth = $this->query($statement, $args);
 
         return $sth->rows;
-    }
-
-    /**
-     * Like doit method, but return self instance
-     *
-     * Example 1:
-     * ```
-     * $sth = $db->query("SELECT * FROM invoices");
-     * while ($row = $sth->fetchrow()) {
-     *      //do something
-     * }
-     * ```
-     *
-     * Example 2:
-     *
-     * ```
-     * $sth = $db->query("UPDATE invoices SET invoice_uuid=?",'550e8400-e29b-41d4-a716-446655440000');
-     * echo($sth->affectedRows());
-     * ```
-     *
-     * @return \DBD\DBD
-     * @throws \DBD\Base\DBDPHPException
-     * @throws \Psr\SimpleCache\InvalidArgumentException
-     * @throws \ReflectionException
-     */
-    public function query() {
-        if(!func_num_args())
-            throw new Exception("query failed: statement is not set or empty");
-
-        list ($statement, $args) = DBDHelper::prepareArgs(func_get_args());
-
-        $sth = $this->prepare($statement);
-
-        if(is_array($args)) {
-            $sth->execute($args);
-        }
-        else {
-            $sth->execute();
-        }
-
-        return $sth;
-    }
-
-    /**
-     * Creates a prepared statement for later execution
-     *
-     * @param string $statement
-     *
-     * @return $this
-     * @throws \DBD\Base\DBDPHPException
-     */
-    public function prepare($statement) {
-        if(!isset($statement) or empty($statement))
-            throw new Exception("prepare failed: statement is not set or empty");
-
-        $className = get_class($this);
-
-        return new $className($this, $statement);
     }
 
     /**
@@ -544,55 +385,71 @@ abstract class DBD
     }
 
     /**
-     * @param $ARGS
-     *
-     * @return string
-     * @throws \DBD\Base\DBDPHPException
+     * @return bool|mixed
      */
-    private function getExec($ARGS) {
-        $exec = $this->query;
-        $binds = substr_count($this->query, "?");
-        $args = DBDHelper::parseArgs($ARGS);
+    public function fetch() {
+        if($this->fetch == self::UNDEFINED) {
 
-        $numberOfArgs = count($args);
+            if($this->cache['key'] === null) {
 
-        if($binds != $numberOfArgs) {
-            throw new Exception("Execute failed: called with $numberOfArgs bind variables when $binds are needed");
-        }
+                $return = $this->_fetchArray();
 
-        if($numberOfArgs) {
-            $query = str_split($this->query);
-
-            foreach($query as $ind => $str) {
-                if($str == '?') {
-                    $query[$ind] = $this->_escape(array_shift($args));
+                if($this->Options->isConvertNumeric() || $this->Options->isConvertBoolean()) {
+                    $return = $this->convertTypes($return, "row");
                 }
+
+                $this->fetch = $return;
             }
-            $exec = implode("", $query);
+            else {
+                $this->fetch = array_shift($this->cache['result']);
+            }
+        }
+        if(!count($this->fetch)) {
+            return false;
         }
 
-        return $exec;
+        return array_shift($this->fetch);
     }
 
-    abstract protected function _query($statement);
+    public function fetchArraySet() {
+        $array = [];
 
-    abstract protected function _numRows();
-
-    /**
-     * Returns the number of rows in a database result resource.
-     *
-     * @return int
-     */
-    public function rows() {
         if($this->cache['key'] === null) {
-            if(preg_match("/^(\s*?)select\s*?.*?\s*?from/is", $this->query)) {
-                return $this->_numRows();
+            while($row = $this->fetchRow()) {
+                $entry = [];
+                foreach($row as $key => $value) {
+                    $entry[] = $value;
+                }
+                $array[] = $entry;
             }
-
-            return $this->_affectedRows();
         }
         else {
-            return count($this->cache['result']);
+            $cache = $this->cache['result'];
+            $this->cache['result'] = [];
+            foreach($cache as $row) {
+                $entry = [];
+                foreach($row as $key => $value) {
+                    $entry[] = $value;
+                }
+                $array[] = $entry;
+            }
+        }
+
+        return $array;
+    }
+
+    public function fetchRow() {
+        if($this->cache['key'] === null) {
+            $return = $this->_fetchAssoc();
+
+            if($this->Options->isConvertNumeric() || $this->Options->isConvertBoolean()) {
+                return $this->convertTypes($return, "row");
+            }
+
+            return $return;
+        }
+        else {
+            return array_shift($this->cache['result']);
         }
     }
 
@@ -626,65 +483,30 @@ abstract class DBD
         return $array;
     }
 
-    abstract protected function _escape($string);
-
-    public function fetchRow() {
-        if($this->cache['key'] === null) {
-            $return = $this->_fetchAssoc();
-
-            if($this->Options->isConvertNumeric() || $this->Options->isConvertBoolean()) {
-                return $this->_convertTypes($return, "row");
-            }
-
-            return $return;
-        }
-        else {
-            return array_shift($this->cache['result']);
-        }
+    /**
+     * Use if when you need to get DBD cache driver to handle stored cache outside of this class
+     *
+     * @return \DBD\Cache|\Psr\SimpleCache\CacheInterface
+     */
+    public function getCacheDriver() {
+        return $this->CacheDriver;
     }
 
-    abstract protected function _fetchAssoc();
+    /**
+     * @param \DBD\Cache|\Psr\SimpleCache\CacheInterface $cache
+     *
+     * @return \DBD\DBD
+     * @throws \DBD\Base\DBDPHPException
+     */
+    public function setCacheDriver($cache) {
 
-    private function _convertTypes(&$data, $type) {
-        if($this->Options->isConvertNumeric()) {
-            $this->_convertIntFloat($data, $type);
-        }
-        if($this->Options->isConvertBoolean()) {
-            $this->_convertBoolean($data, $type);
-        }
+        if($cache instanceof Cache || $cache instanceof \Psr\SimpleCache\CacheInterface) {
+            $this->CacheDriver = $cache;
 
-        return $data;
-    }
-
-    abstract protected function _convertIntFloat(&$data, $type);
-
-    abstract protected function _convertBoolean(&$data, $type);
-
-    public function fetchArraySet() {
-        $array = [];
-
-        if($this->cache['key'] === null) {
-            while($row = $this->fetchRow()) {
-                $entry = [];
-                foreach($row as $key => $value) {
-                    $entry[] = $value;
-                }
-                $array[] = $entry;
-            }
-        }
-        else {
-            $cache = $this->cache['result'];
-            $this->cache['result'] = [];
-            foreach($cache as $row) {
-                $entry = [];
-                foreach($row as $key => $value) {
-                    $entry[] = $value;
-                }
-                $array[] = $entry;
-            }
+            return $this;
         }
 
-        return $array;
+        throw new Exception("Unsupported caching interface. Extend DBD\\Cache or use PSR-16 Common Interface for Caching");
     }
 
     public function getResult() {
@@ -716,7 +538,104 @@ abstract class DBD
         return $sth;
     }
 
-    abstract protected function _compileInsert($table, $params, $return = "");
+    /**
+     * Creates a prepared statement for later execution
+     *
+     * @param string $statement
+     *
+     * @return $this
+     * @throws \DBD\Base\DBDPHPException
+     */
+    public function prepare($statement) {
+        if(!isset($statement) or empty($statement))
+            throw new Exception("prepare failed: statement is not set or empty");
+
+        $className = get_class($this);
+
+        return new $className($this, $statement);
+    }
+
+    /**
+     * Like doit method, but return self instance
+     *
+     * Example 1:
+     * ```
+     * $sth = $db->query("SELECT * FROM invoices");
+     * while ($row = $sth->fetchrow()) {
+     *      //do something
+     * }
+     * ```
+     *
+     * Example 2:
+     *
+     * ```
+     * $sth = $db->query("UPDATE invoices SET invoice_uuid=?",'550e8400-e29b-41d4-a716-446655440000');
+     * echo($sth->affectedRows());
+     * ```
+     *
+     * @return \DBD\DBD
+     * @throws \DBD\Base\DBDPHPException
+     * @throws \Psr\SimpleCache\InvalidArgumentException
+     * @throws \ReflectionException
+     */
+    public function query() {
+        if(!func_num_args())
+            throw new Exception("query failed: statement is not set or empty");
+
+        list ($statement, $args) = DBDHelper::prepareArgs(func_get_args());
+
+        $sth = $this->prepare($statement);
+
+        if(is_array($args)) {
+            $sth->execute($args);
+        }
+        else {
+            $sth->execute();
+        }
+
+        return $sth;
+    }
+
+    /**
+     * Rolls back a transaction that was begun
+     *
+     * @return bool
+     *
+     * @throws \DBD\Base\DBDPHPException
+     */
+    public function rollback() {
+        if($this->inTransaction) {
+            $this->connectionPreCheck();
+            $this->result = $this->_rollback();
+            if($this->result === false) {
+                throw new Exception("Can not end transaction " . pg_errormessage());
+            }
+        }
+        else {
+            throw new Exception("No transaction to rollback");
+        }
+        $this->inTransaction = false;
+
+        return true;
+    }
+
+    /**
+     * Returns the number of rows in a database result resource.
+     *
+     * @return int
+     */
+    public function rows() {
+        if($this->cache['key'] === null) {
+            if(preg_match("/^(\s*?)select\s*?.*?\s*?from/is", $this->query)) {
+                return $this->_numRows();
+            }
+
+            return $this->_affectedRows();
+        }
+        else {
+            return count($this->cache['result']);
+        }
+    }
 
     /**
      * @return bool|mixed
@@ -735,35 +654,6 @@ abstract class DBD
 
         return null;
     }
-
-    /**
-     * @return bool|mixed
-     */
-    public function fetch() {
-        if($this->fetch == self::UNDEFINED) {
-
-            if($this->cache['key'] === null) {
-
-                $return = $this->_fetchArray();
-
-                if($this->Options->isConvertNumeric() || $this->Options->isConvertBoolean()) {
-                    $return = $this->_convertTypes($return, "row");
-                }
-
-                $this->fetch = $return;
-            }
-            else {
-                $this->fetch = array_shift($this->cache['result']);
-            }
-        }
-        if(!count($this->fetch)) {
-            return false;
-        }
-
-        return array_shift($this->fetch);
-    }
-
-    abstract protected function _fetchArray();
 
     /**
      * @return \DBD\DBD
@@ -799,28 +689,260 @@ abstract class DBD
         return $this->query($this->_compileUpdate($table, $params, $where, $return), $params['ARGS']);
     }
 
-    abstract protected function _compileUpdate($table, $params, $where, $return = "");
-
-    abstract protected function _queryExplain($statement);
-
-    abstract protected function connect();
+    /**
+     * Check whether connection is established or not
+     *
+     * @return bool true if var is a resource, false otherwise
+     */
+    protected function isConnected() {
+        return is_resource($this->dbResource);
+    }
 
     /**
-     * Copies object variables after extended class construction
-     *
-     * @param        $object
-     * @param string $statement
+     * Check connection existence and do connection if not
      *
      * @return void
      */
-    final protected function extendMe($object, $statement = "") {
-        foreach(get_object_vars($object) as $key => $value) {
-            $this->$key = $value;
-        }
-        $this->query = $statement;
-
-        if(isset($this->CacheDriver)) {
-            $this->cache['expire'] = $this->CacheDriver->defaultTtl;
+    private function connectionPreCheck() {
+        if(!$this->isConnected()) {
+            $this->_connect();
         }
     }
+
+    private function convertTypes(&$data, $type) {
+        if($this->Options->isConvertNumeric()) {
+            $this->_convertIntFloat($data, $type);
+        }
+        if($this->Options->isConvertBoolean()) {
+            $this->_convertBoolean($data, $type);
+        }
+
+        return $data;
+    }
+
+    /**
+     * @param $ARGS
+     *
+     * @return string
+     * @throws \DBD\Base\DBDPHPException
+     */
+    private function getExec($ARGS) {
+        $exec = $this->query;
+        $binds = substr_count($this->query, "?");
+        $args = DBDHelper::parseArgs($ARGS);
+
+        $numberOfArgs = count($args);
+
+        if($binds != $numberOfArgs) {
+            throw new Exception("Execute failed: called with $numberOfArgs bind variables when $binds are needed");
+        }
+
+        if($numberOfArgs) {
+            $query = str_split($this->query);
+
+            foreach($query as $ind => $str) {
+                if($str == '?') {
+                    $query[$ind] = $this->_escape(array_shift($args));
+                }
+            }
+            $exec = implode("", $query);
+        }
+
+        return $exec;
+    }
+
+    /**
+     * @see affectedRows
+     * @see rows
+     * @see Pg::_affectedRows
+     * @see MSSQL::_affectedRows
+     * @see MySQL::_affectedRows
+     * @see OData::_affectedRows
+     * @return int number of updated or deleted rows
+     */
+    abstract protected function _affectedRows();
+
+    /**
+     * @see begin
+     * @see Pg::_begin
+     * @see MSSQL::_begin
+     * @see MySQL::_begin
+     * @see OData::_begin
+     * @return bool true on success begin
+     */
+    abstract protected function _begin();
+
+    /**
+     * @see commit
+     * @see Pg::_commit
+     * @see MSSQL::_commit
+     * @see MySQL::_commit
+     * @see OData::_commit
+     * @return bool true on success commit
+     */
+    abstract protected function _commit();
+
+    /**
+     * @see insert
+     * @see Pg::_compileInsert
+     * @see MSSQL::_compileInsert
+     * @see MySQL::_compileInsert
+     * @see OData::_compileInsert
+     *
+     * @param        $table
+     * @param        $params
+     * @param string $return
+     *
+     * @return mixed
+     */
+    abstract protected function _compileInsert($table, $params, $return = "");
+
+    /**
+     * @see update
+     * @see Pg::_compileUpdate
+     * @see MSSQL::_compileUpdate
+     * @see MySQL::_compileUpdate
+     * @see OData::_compileUpdate
+     *
+     * @param        $table
+     * @param        $params
+     * @param        $where
+     * @param string $return
+     *
+     * @return mixed
+     */
+    abstract protected function _compileUpdate($table, $params, $where, $return = "");
+
+    /**
+     * @see connectionPreCheck
+     * @see Pg::_connect
+     * @see MSSQL::_connect
+     * @see MySQL::_connect
+     * @see OData::_connect
+     * @return \DBD\DBD
+     */
+    abstract protected function _connect();
+
+    /**
+     * @see convertTypes
+     * @see Pg::_convertBoolean
+     * @see MSSQL::_convertBoolean
+     * @see MySQL::_convertBoolean
+     * @see OData::_convertBoolean
+     *
+     * @param $data
+     * @param $type
+     *
+     * @return mixed
+     */
+    abstract protected function _convertBoolean(&$data, $type);
+
+    /**
+     * @see convertTypes
+     * @see Pg::_convertIntFloat
+     * @see MSSQL::_convertIntFloat
+     * @see MySQL::_convertIntFloat
+     * @see OData::_convertIntFloat
+     *
+     * @param $data
+     * @param $type
+     *
+     * @return mixed
+     */
+    abstract protected function _convertIntFloat(&$data, $type);
+
+    /**
+     * @see disconnect
+     * @see Pg::_disconnect
+     * @see MSSQL::_disconnect
+     * @see MySQL::_disconnect
+     * @see OData::_disconnect
+     * @return bool true on successful disconnection
+     */
+    abstract protected function _disconnect();
+
+    /**
+     * @see Pg::_errorMessage
+     * @see MSSQL::_errorMessage
+     * @see MySQL::_errorMessage
+     * @see OData::_errorMessage
+     * @return string
+     */
+    abstract protected function _errorMessage();
+
+    /**
+     * @see getExec
+     * @see Pg::_escape
+     * @see MSSQL::_escape
+     * @see MySQL::_escape
+     * @see OData::_escape
+     *
+     * @param $string
+     *
+     * @return mixed
+     */
+    abstract protected function _escape($string);
+
+    /**
+     * @see fetch
+     * @see Pg::_fetchArray
+     * @see MSSQL::_fetchArray
+     * @see MySQL::_fetchArray
+     * @see OData::_fetchArray
+     * @return mixed
+     */
+    abstract protected function _fetchArray();
+
+    /**
+     * @see fetchRow
+     * @see Pg::_fetchAssoc
+     * @see MSSQL::_fetchAssoc
+     * @see MySQL::_fetchAssoc
+     * @see OData::_fetchAssoc
+     * @return mixed
+     */
+    abstract protected function _fetchAssoc();
+
+    /**
+     * @see execute
+     * @see rows
+     * @see Pg::_numRows
+     * @see MSSQL::_numRows
+     * @see MySQL::_numRows
+     * @see OData::_numRows
+     * @return mixed
+     */
+    abstract protected function _numRows();
+
+    /**
+     * @see execute
+     * @see Pg::_query
+     * @see MSSQL::_query
+     * @see MySQL::_query
+     * @see OData::_query
+     *
+     * @param $statement
+     *
+     * @return mixed
+     */
+    abstract protected function _query($statement);
+
+    /**
+     * @see rollback
+     * @see Pg::_rollback
+     * @see MSSQL::_rollback
+     * @see MySQL::_rollback
+     * @see OData::_rollback
+     * @return bool true on successful rollback
+     */
+    abstract protected function _rollback();
+
+    /**
+     * @see Pg::connect
+     * @see MSSQL::connect
+     * @see MySQL::connect
+     * @see OData::connect
+     * @return mixed
+     */
+    abstract protected function connect();
 }
