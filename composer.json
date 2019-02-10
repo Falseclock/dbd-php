@@ -29,6 +29,7 @@
   "require": {
     "php": "^5.4 || ^7.0",
     "ext-memcache": "*",
+    "psr/simple-cache": "*",
     "openlss/lib-array2xml": "0.5.*"
   },
   "require-dev": {

@@ -25,80 +25,150 @@
 
 namespace DBD\Cache;
 
-use DBD\Cache as Cache;
-use DBD\Cache\CacheInterface as CacheInterface;
+use DBD\Cache;
 
-class MemCache extends Cache implements CacheInterface
+class MemCache extends Cache
 {
     /** @var \Memcache $link */
-    public $link = null;
+    private $link = null;
 
-    public function close() {
-        return $this->link->close();
-    }
-
-    public function delete($key) {
-        return $this->link->delete($key);
-    }
-
-    public function disconnect() {
-        return $this->close();
-    }
-
-    public function exist($key) {
-        return $this->link->get($key) === false ? false : true;
-    }
-
-    public function get($key) {
-        return $this->link->get($key);
-    }
-
-    public function getStats() {
-        return $this->link->getStats();
+    /**
+     * Wipes clean the entire cache's keys.
+     *
+     * @return void True on success and false on failure.
+     * @throws \Exception
+     */
+    public function clear() {
+        throw new \Exception("Memcached does not support clear method");
     }
 
     /**
-     * @return $this
+     * Establishes connection to Memcached server
+     *
+     * @return \DBD\Cache\MemCache
      */
-    public function open() {
+    public function connect() {
 
-        $this->link = new \Memcache();
+        $this->link = new \Memcache;
 
-        foreach($this->SERVERS as $server) {
+        foreach($this->servers as $server) {
             $this->link->addServer($server['host'], $server['port']);
         }
 
         return $this;
     }
 
-    public function replace($key, $var, $expire = null) {
-        $expire = preg_replace_callback("/(\d+)\s*(.*)?/", function($matches) {
-            return Cache::secCalc($matches);
-        }, $expire);
-
-        if(!$expire)
-            $expire = $this->EXPIRE;
-
-        // If we trying to replace non exist cache, just set it
-        if(!$this->link->replace($key, $var, $this->COMPRESS, $expire))
-            $this->set($key, $var, $expire);
+    /**
+     * Delete an item from the cache by its unique key.
+     *
+     * @param string $key The unique cache key of the item to delete.
+     *
+     * @return bool True if the item was successfully removed. False if there was an error.
+     *
+     */
+    public function delete($key) {
+        return $this->link->delete($key);
     }
 
     /**
-     * @param string $key
-     * @param mixed  $variable
-     * @param null   $expire
+     * Deletes multiple cache items in a single operation.
      *
-     * @return mixed
+     * @param iterable $keys A list of string-based keys to be deleted.
+     *
+     * @return void True if the items were successfully removed. False if there was an error.
+     * @throws \Exception
      */
-    public function set($key, $variable, $expire = null) {
-        $expire = preg_replace_callback("/(\d+)\s*(.*)?/", function($matches) {
-            return Cache::secCalc($matches);
-        }, $expire);
+    public function deleteMultiple($keys) {
+        throw new \Exception("Not supported method");
+    }
 
-        if(!$expire)
-            $expire = $this->EXPIRE;
+    /**
+     * (PECL memcache &gt;= 0.4.0)
+     * Close memcached server connection
+     *
+     * @link https://php.net/manual/en/memcache.close.php
+     * @return boolean Returns <b>TRUE</b> on success or <b>FALSE</b> on failure.
+     */
+    public function disconnect() {
+        return $this->link->close();
+    }
 
-        return $this->link->set($key, $variable, $this->COMPRESS, $expire);
+    /**
+     * Fetches a value from the cache.
+     *
+     * @param string $key     The unique key of this item in the cache.
+     * @param mixed  $default Default value to return if the key does not exist.
+     *
+     * @return mixed The value of the item from the cache, or $default in case of cache miss.
+     *
+     */
+    public function get($key, $default = null) {
+        $value = $this->link->get($key);
+        if($value === false && isset($default)) {
+            return $default;
+        }
+
+        return $value;
+    }
+
+    /**
+     * Obtains multiple cache items by their unique keys.
+     *
+     * @param iterable $keys    A list of keys that can obtained in a single operation.
+     * @param mixed    $default Default value to return for keys that do not exist.
+     *
+     * @return void A list of key => value pairs. Cache keys that do not exist or are stale will have $default as value.
+     * @throws \Exception
+     */
+    public function getMultiple($keys, $default = null) {
+        throw new \Exception("Not supported method");
+    }
+
+    /**
+     * Determines whether an item is present in the cache.
+     *
+     * NOTE: It is recommended that has() is only to be used for cache warming type purposes
+     * and not to be used within your live applications operations for get/set, as this method
+     * is subject to a race condition where your has() will return true and immediately after,
+     * another script can remove it making the state of your app out of date.
+     *
+     * @param string $key The cache item key.
+     *
+     * @return bool
+     *
+     */
+    public function has($key) {
+        return $this->link->get($key) === false ? false : true;
+    }
+
+    /**
+     * Persists data in the cache, uniquely referenced by a key with an optional expiration TTL time.
+     *
+     * @param string                       $key   The key of the item to store.
+     * @param mixed                        $value The value of the item to store, must be serializable.
+     * @param null|int|float|\DateInterval $ttl   Optional. The TTL value of this item. If no value is sent and
+     *                                            the driver supports TTL then the library may set a default value
+     *                                            for it or let the driver take care of that.
+     *
+     * @return bool True on success and false on failure.
+     *
+     */
+    public function set($key, $value, $ttl = null) {
+        return $this->link->set($key, $value, $this->useCompression, $this->getTtl($ttl));
+    }
+
+    /**
+     * Persists a set of key => value pairs in the cache, with an optional TTL.
+     *
+     * @param iterable               $values A list of key => value pairs for a multiple-set operation.
+     * @param null|int|\DateInterval $ttl    Optional. The TTL value of this item. If no value is sent and
+     *                                       the driver supports TTL then the library may set a default value
+     *                                       for it or let the driver take care of that.
+     *
+     * @return void True on success and false on failure.
+     * @throws \Exception
+     */
+    public function setMultiple($values, $ttl = null) {
+        throw new \Exception("Not supported method");
     }
 }

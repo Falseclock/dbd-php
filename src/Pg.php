@@ -36,42 +36,6 @@ use DBD\Base\DBDPHPException as Exception;
  */
 class Pg extends DBD
 {
-	/**
-	 * Do real connection. Can be invoked if OnDemand is set to TRUE
-	 *
-	 * @return void
-	 * @throws \DBD\Base\DBDPHPException
-	 */
-    public function _connect() {
-        $this->dbh = pg_connect($this->dsn);
-
-        if(!$this->dbh)
-			throw new Exception("Can not connect to PostgreSQL server! ");
-    }
-
-	/**
-	 * Replacement for constructor
-	 *
-	 * @return \DBD\PgExtend
-	 * @throws \DBD\Base\DBDPHPException
-	 */
-    public function connect() {
-        $dsn = "host={$this->dsn} ";
-        $dsn .= "dbname={$this->database} ";
-        $dsn .= $this->username ? "user={$this->username} " : "";
-        $dsn .= $this->password ? "password={$this->password} " : "";
-        $dsn .= $this->port ? "port={$this->port} " : "";
-        $dsn .= "options='--application_name=DBD-PHP' ";
-
-        $this->dsn = $dsn;
-
-        if($this->options['OnDemand'] == false) {
-            $this->_connect();
-        }
-
-        return new PgExtend($this);
-    }
-
     /**
      * returns the number of tuples (instances/records/rows) affected by INSERT, UPDATE, and DELETE queries.
      *
@@ -123,89 +87,22 @@ class Pg extends DBD
      * @return string
      */
     protected function _compileUpdate($table, $params, $where, $return = "") {
-		/** @noinspection SqlWithoutWhere */
-		return "UPDATE $table SET {$params['COLUMNS']}" . ($where ? " WHERE $where" : "") . ($return ? " RETURNING {$return}" : "");
+        /** @noinspection SqlWithoutWhere */
+        return "UPDATE $table SET {$params['COLUMNS']}" . ($where ? " WHERE $where" : "") . ($return ? " RETURNING {$return}" : "");
     }
 
-	/**
-	 * Convert integer, double and float values to corresponding PHP types. By default Postgres returns them as string
-	 *
-	 * @param $data
-	 * @param $type
-	 *
-	 * @return mixed
-	 * @throws \DBD\Base\DBDPHPException
-	 */
-	protected function _convertIntFloat(&$data, $type) {
-		// TODO: in case of fetchrowset do not get each time and use static variable
-		// FIXME: numeric vs int
-		if($data && pg_num_fields($this->result) != count($data)) {
+    /**
+     * Do real connection. Can be invoked if OnDemand is set to TRUE
+     *
+     * @return void
+     * @throws \DBD\Base\DBDPHPException
+     */
+    public function _connect() {
+        $this->dbh = pg_connect($this->dsn);
 
-			$names = [];
-			for($i = 0; $i < pg_num_fields($this->result); $i++) {
-				$names[pg_field_name($this->result, $i)]++;
-			}
-			$names = array_filter($names, function($v) {
-				return $v > 1;
-			});
-
-			$dublications = "";
-
-			foreach($names as $key => $value) {
-				$dublications .= "[<b>{$key}</b>] => <b style='color:crimson'>{$value}</b><br />";
-			}
-
-			throw new Exception("Statement result has " . pg_num_fields($this->result) . " columns while fetched row only " . count($data) . ". 
-				Fetching it associative reduces number of columns. 
-				Rename column with `AS` inside statement or fetch as indexed array.\n\n
-				Dublicating columns are: {$dublications}\n");
-		}
-
-		$types = [];
-
-		$map = [
-			'int'       => 'integer',
-			'int2'      => 'integer',
-			'int4'      => 'integer',
-			'int8'      => 'integer',
-			'serial4'   => 'integer',
-			'serial8'   => 'integer',
-			'smallint'  => 'integer',
-			'bigint'    => 'integer',
-			'bigserial' => 'integer',
-			'serial'    => 'integer',
-			'numeric'   => 'float',
-			'decimal'   => 'float',
-			'real'      => 'float',
-			'float'     => 'float',
-			'float4'    => 'float',
-			'float8'    => 'float'
-		];
-
-		if($type == 'row') {
-			if($data) {
-				// count how many fields we have and get their types
-				for($i = 0; $i < pg_num_fields($this->result); $i++) {
-					$types[] = pg_field_type($this->result, $i);
-				}
-
-				// Identify on which column we are
-				$i = 0;
-				//        row    idx      value
-				foreach($data as $key => $value) {
-					// if type of current column exist in map array
-					if(array_key_exists($types[$i], $map)) {
-						// using data key, cause can be
-						//printf("Type: %s\n",$types[$i]);
-						$data[$key] = ($map[$types[$i]] == 'integer' ? intval($value) : floatval($value));
-					}
-					$i++;
-				}
-			}
-		}
-
-		return $data;
-	}
+        if(!$this->dbh)
+            throw new Exception("Can not connect to PostgreSQL server! ");
+    }
 
     protected function _convertBoolean(&$data, $type) {
         if($type == 'row') {
@@ -232,6 +129,88 @@ class Pg extends DBD
                             throw new Exception("Unexpected boolean value");
                         }
                     }
+                }
+            }
+        }
+
+        return $data;
+    }
+
+    /**
+     * Convert integer, double and float values to corresponding PHP types. By default Postgres returns them as string
+     *
+     * @param $data
+     * @param $type
+     *
+     * @return mixed
+     * @throws \DBD\Base\DBDPHPException
+     */
+    protected function _convertIntFloat(&$data, $type) {
+        // TODO: in case of fetchrowset do not get each time and use static variable
+        // FIXME: numeric vs int
+        if($data && pg_num_fields($this->result) != count($data)) {
+
+            $names = [];
+            for($i = 0; $i < pg_num_fields($this->result); $i++) {
+                $names[pg_field_name($this->result, $i)]++;
+            }
+            $names = array_filter(
+                $names, function($v) {
+                return $v > 1;
+            });
+
+            $duplications = "";
+
+            foreach($names as $key => $value) {
+                $duplications .= "[{$key}] => {$value}, ";
+            }
+
+            throw new Exception(
+                "Statement result has " . pg_num_fields($this->result) . " columns while fetched row only " . count($data) . ". 
+				Fetching it associative reduces number of columns. 
+				Rename column with `AS` inside statement or fetch as indexed array.\n\n
+				Duplicating columns are: {$duplications}\n");
+        }
+
+        $types = [];
+
+        $map = [
+            'int'       => 'integer',
+            'int2'      => 'integer',
+            'int4'      => 'integer',
+            'int8'      => 'integer',
+            'serial4'   => 'integer',
+            'serial8'   => 'integer',
+            'smallint'  => 'integer',
+            'bigint'    => 'integer',
+            'bigserial' => 'integer',
+            'serial'    => 'integer',
+            'numeric'   => 'float',
+            'decimal'   => 'float',
+            'real'      => 'float',
+            'float'     => 'float',
+            'float4'    => 'float',
+            'float8'    => 'float',
+        ];
+
+        if($type == 'row') {
+            if($data) {
+                // count how many fields we have and get their types
+                for($i = 0; $i < pg_num_fields($this->result); $i++) {
+                    $types[] = pg_field_type($this->result, $i);
+                }
+
+                // Identify on which column we are
+                $i = 0;
+                //        row    idx      value
+                foreach($data as $key => $value) {
+                    // if type of current column exist in map array
+                    if(array_key_exists($types[$i], $map)) {
+                        // using data key, cause can be
+                        //printf("Type: %s\n",$types[$i]);
+                        $data[$key] = ($map[$types[$i]] == 'integer' ? intval($value) : floatval($value));
+                    }
+                    $i++;
                 }
             }
         }
@@ -303,19 +282,20 @@ class Pg extends DBD
         return pg_affected_rows($this->result);
     }
 
-	/**
-	 * Executes the query on the specified database connection.
-	 *
-	 * @param $statement
-	 *
-	 * @return resource|bool
-	 */
+    /**
+     * Executes the query on the specified database connection.
+     *
+     * @param $statement
+     *
+     * @return resource|bool
+     */
     protected function _query($statement) {
-    	try {
-			return @pg_query($this->dbh, $statement);
-		} catch(\Exception $e) {
-    		return false;
-		}
+        try {
+            return @pg_query($this->dbh, $statement);
+        }
+        catch(\Exception $e) {
+            return false;
+        }
     }
 
     protected function _queryExplain($statement) {
@@ -329,6 +309,29 @@ class Pg extends DBD
      */
     protected function _rollback() {
         return $this->_query("ROLLBACK;");
+    }
+
+    /**
+     * Replacement for constructor
+     *
+     * @return \DBD\PgExtend
+     * @throws \DBD\Base\DBDPHPException
+     */
+    public function connect() {
+        $dsn = "host={$this->dsn} ";
+        $dsn .= "dbname={$this->database} ";
+        $dsn .= $this->username ? "user={$this->username} " : "";
+        $dsn .= $this->password ? "password={$this->password} " : "";
+        $dsn .= $this->port ? "port={$this->port} " : "";
+        $dsn .= "options='--application_name=DBD-PHP' ";
+
+        $this->dsn = $dsn;
+
+        if($this->options['OnDemand'] == false) {
+            $this->_connect();
+        }
+
+        return new PgExtend($this);
     }
 }
 

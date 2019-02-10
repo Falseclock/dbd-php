@@ -74,7 +74,7 @@ $TEST = [
 
 $cache = null;
 if($TEST['memcache']) {
-    $cache = DBD\Cache\MemCache::me()->create($TEST['memcache'], false, "10 sec")->open();
+    $cache = DBD\Cache\MemCache::me()->setup($TEST['memcache'], false, "10 sec")->connect();
 }
 
 $db_options = [
@@ -117,7 +117,7 @@ foreach($TEST['database'] as $database) {
     $db->disconnect();
 }
 
-$cache->close();
+$cache->disconnect();
 
 final class Tests
 {
