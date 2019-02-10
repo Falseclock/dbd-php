@@ -74,6 +74,7 @@ abstract class DBD
     /**
      * @param \DBD\Cache|\Psr\SimpleCache\CacheInterface $cache
      *
+     * @return \DBD\DBD
      * @throws \DBD\Base\DBDPHPException
      */
     public function setCache($cache) {
@@ -81,7 +82,7 @@ abstract class DBD
         if($cache instanceof Cache || $cache instanceof \Psr\SimpleCache\CacheInterface) {
             $this->CacheDriver = $cache;
 
-            return;
+            return $this;
         }
 
         throw new Exception('Unsupported caching interface. Extend DBD\\Cache or use PSR-16 Common Interface for Caching');

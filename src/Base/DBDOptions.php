@@ -44,15 +44,26 @@ final class DBDOptions
     /** @var bool $UseDebug */
     private $UseDebug = false;
 
+    /**
+     * DBDOptions constructor.
+     *
+     * @param array|\DBD\Base\DBDOptions|null $options
+     *
+     * @throws \Exception
+     */
     public function __construct($options = null) {
-        if(isset($options) and is_array($options)) {
-            foreach($options as $key => $value) {
-                if(property_exists($this, $key)) {
-                    $this->$key = $value;
+        if(isset($options)) {
+            if (is_array($options)) {
+                foreach($options as $key => $value) {
+                    if(property_exists($this, $key)) {
+                        $this->$key = $value;
+                    }
+                    else {
+                        throw new \Exception("Unknown option '{$key}' provided");
+                    }
                 }
-                else {
-                    throw new \Exception("Unknown option '{$key}' provided");
-                }
+            } else {
+                throw new \Exception("DBDOptions should be constructed with array");
             }
         }
     }
