@@ -17,7 +17,7 @@ namespace DBD;
 class MySQL extends DBD
 {
     public function connect() {
-        if($this->options['OnDemand'] == false) {
+        if($this->Options->isOnDemand() == false) {
             $this->_connect();
         }
 
@@ -102,6 +102,14 @@ class MySQL extends DBD
 
     protected function _rollback() {
         return mysqli_rollback($this->dbh);
+    }
+
+    protected function _convertIntFloat(&$data, $type) {
+        // TODO: Implement _convertIntFloat() method.
+    }
+
+    protected function _convertBoolean(&$data, $type) {
+        // TODO: Implement _convertBoolean() method.
     }
 }
 

@@ -327,7 +327,7 @@ class Pg extends DBD
 
         $this->dsn = $dsn;
 
-        if($this->options['OnDemand'] == false) {
+        if($this->Options->isOnDemand() == false) {
             $this->_connect();
         }
 

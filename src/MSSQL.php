@@ -57,7 +57,7 @@ class MSSQL extends DBD
         if($this->password != null)
             $this->connectionInfo['PWD'] = $this->password;
 
-        if($this->options['OnDemand'] == false) {
+        if($this->Options->isOnDemand() == false) {
             $this->_connect();
         }
 

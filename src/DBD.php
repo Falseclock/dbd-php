@@ -27,6 +27,7 @@
 
 namespace DBD;
 
+use DBD\Base\DBDOptions;
 use DBD\Base\DBDPHPDebug as Debug;
 use DBD\Base\DBDPHPException as Exception;
 
@@ -43,6 +44,8 @@ abstract class DBD
     public        $rows  = 0;
     /** @var \Psr\SimpleCache\CacheInterface|\DBD\Cache */
     protected $CacheDriver = null;
+    /** @var \DBD\Base\DBDOptions $Options */
+    protected $Options;
     protected $cache       = [
         'key'      => null,
         'result'   => null,
@@ -53,17 +56,6 @@ abstract class DBD
     protected $dbh         = null;
     protected $dsn         = null;
     protected $fetch       = self::UNDEFINED;
-    protected $options     = [
-        'OnDemand'           => false,
-        'PrintError'         => true,
-        'RaiseError'         => true,
-        'ShowErrorStatement' => false,
-        'HTMLError'          => false,
-        'ConvertNumeric'     => false,
-        'ConvertBoolean'     => false,
-        'UseDebug'           => false,
-        'ErrorHandler'       => null,
-    ];
     protected $password    = null;
     protected $port        = null;
     protected $query       = "";
@@ -190,17 +182,17 @@ abstract class DBD
     abstract protected function _commit();
 
     /**
-     * @param string $dsn
-     * @param string $port
-     * @param string $database
-     * @param string $username
-     * @param string $password
-     * @param array  $options
+     * @param string                     $dsn
+     * @param string                     $port
+     * @param string                     $database
+     * @param string                     $username
+     * @param string                     $password
+     * @param array|\DBD\Base\DBDOptions $options
      *
      * @return $this
      * @throws \Exception
      */
-    public function create($dsn, $port, $database, $username, $password, $options = []) {
+    public function create($dsn, $port, $database, $username, $password, $options = null) {
         $driver = get_class($this);
 
         /** @var \DBD\DBD $db */
@@ -210,24 +202,20 @@ abstract class DBD
     }
 
     /**
-     * @param $options
+     * @param array|\DBD\Base\DBDOptions $options
      *
      * @return $this
      * @throws \Exception
      */
     private function setOptions($options) {
-        foreach($options as $key => $value) {
-            if(is_string($key)) {
-                if(array_key_exists($key, $this->options)) {
-                    $this->options[$key] = $value;
-                }
-                else {
-                    throw new Exception("Unknown option provided");
-                }
-            }
-            else {
-                throw new Exception("Option must be a string");
-            }
+        if(!isset($options)) {
+            $this->Options = new DBDOptions;
+        }
+        if($options instanceof DBDOptions) {
+            $this->Options = $options;
+        }
+        if(is_array($options)) {
+            $this->Options = new DBDOptions($options);
         }
 
         return $this;
@@ -429,7 +417,7 @@ abstract class DBD
         if(isset($this->CacheDriver)) {
             if($this->cache['key'] !== null) {
                 // Get data from cache
-                if($this->options['UseDebug']) {
+                if($this->Options->isUseDebug()) {
                     Debug::me()->startTimer();
                 }
                 $this->cache['result'] = $this->CacheDriver->get($this->cache['key']);
@@ -449,7 +437,7 @@ abstract class DBD
         if($this->result != 'cached') {
 
             $this->connectionPreCheck();
-            if($this->options['UseDebug']) {
+            if($this->Options->isUseDebug()) {
                 Debug::me()->startTimer();
             }
             // Execute query to the database
@@ -495,7 +483,7 @@ abstract class DBD
             throw new Exception($this->_errorMessage(), $exec);
         }
 
-        if($this->options['UseDebug']) {
+        if($this->Options->isUseDebug()) {
             $cost = isset($cost) ? $cost : 0;
 
             $index = $this->storage == 'cache' ? 'Cache' : $this->getDriver();
@@ -694,7 +682,7 @@ abstract class DBD
         if($this->cache['key'] === null) {
             $return = $this->_fetchAssoc();
 
-            if($this->options['ConvertNumeric'] || $this->options['ConvertBoolean']) {
+            if($this->Options->isConvertNumeric() || $this->Options->isConvertBoolean()) {
                 return $this->_convertTypes($return, 'row');
             }
 
@@ -708,10 +696,10 @@ abstract class DBD
     abstract protected function _fetchAssoc();
 
     private function _convertTypes(&$data, $type) {
-        if($this->options['ConvertNumeric']) {
+        if($this->Options->isConvertNumeric()) {
             $this->_convertIntFloat($data, $type);
         }
-        if($this->options['ConvertBoolean']) {
+        if($this->Options->isConvertBoolean()) {
             $this->_convertBoolean($data, $type);
         }
 
@@ -747,21 +735,6 @@ abstract class DBD
         }
 
         return $array;
-    }
-
-    /**
-     * @param $key
-     *
-     * @return mixed
-     * @throws \Exception
-     */
-    public function getOption($key) {
-        if(array_key_exists($key, $this->options)) {
-            return $this->options[$key];
-        }
-        else {
-            throw new Exception("Unknown option provided");
-        }
     }
 
     public function getResult() {
@@ -869,7 +842,7 @@ abstract class DBD
 
                 $return = $this->_fetchArray();
 
-                if($this->options['ConvertNumeric'] || $this->options['ConvertBoolean']) {
+                if($this->Options->isConvertNumeric() || $this->Options->isConvertBoolean()) {
                     $return = $this->_convertTypes($return, 'row');
                 }
 
@@ -887,24 +860,6 @@ abstract class DBD
     }
 
     abstract protected function _fetchArray();
-
-    /**
-     * @param $key
-     * @param $value
-     *
-     * @return mixed
-     * @throws \Exception
-     */
-    public function setOption($key, $value) {
-        if(array_key_exists($key, $this->options)) {
-            $this->options[$key] = $value;
-
-            return $value;
-        }
-        else {
-            throw new Exception("Unknown option provided : '{$key}'");
-        }
-    }
 
     /**
      * @return \DBD\DBD
