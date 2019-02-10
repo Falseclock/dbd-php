@@ -35,11 +35,10 @@ class MemCache extends Cache
     /**
      * Wipes clean the entire cache's keys.
      *
-     * @return void True on success and false on failure.
-     * @throws \Exception
+     * @return bool True on success and false on failure.
      */
     public function clear() {
-        throw new \Exception("Memcached does not support clear method");
+        return $this->link->flush();
     }
 
     /**
