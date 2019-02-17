@@ -25,6 +25,8 @@
 
 namespace DBD\Base;
 
+use DBD\DBD;
+
 final class DBDHelper
 {
     /**
@@ -149,26 +151,59 @@ final class DBDHelper
         ];
     }
 
-    final public static function compileUpdateArgs($data) {
-        $columns = "";
-        $args = [];
+    /**
+     * Parses array of values for update
+     *
+     * @param          $data
+     *
+     * @param \DBD\DBD $driver
+     *
+     * @return array
+     * @throws \DBD\Base\DBDPHPException
+     */
+    final public static function compileUpdateArgs($data, DBD $driver) {
+        $className = get_class($driver);
+        $defaultFormat = "%s = ?";
+        $format = null;
 
-        $pattern = "/[^\"a-zA-Z0-9_-]/";
-        foreach($data as $k => $v) {
-            $k = preg_replace($pattern, "", $k);
-            $columns .= "$k = ?, ";
-            $args[] = $v;
+        if(defined("{$className}::CAST_FORMAT")) {
+            /** @noinspection PhpUndefinedFieldInspection */
+            $format = $driver::CAST_FORMAT;
         }
 
-        $columns = preg_replace("/, $/", "", $columns);
+        $columns = [];
+        $args = [];
+
+        foreach($data as $columnName => $columnValue) {
+            if(is_array($columnValue)) {
+                switch(count($columnValue)) {
+                    case 1:
+                        $columns[] = sprintf($defaultFormat, $columnName);
+                        $args[] = $columnValue[0];
+                        break;
+                    case 2:
+                        $columns[] = sprintf($format ? $format : $defaultFormat, $columnName, $columnValue[1]);
+                        $args[] = $columnValue[0];
+                        break;
+                    default:
+                        throw new DBDPHPException("Unknown format or record for update");
+                }
+            }
+            else {
+                $columns[] = sprintf($defaultFormat, $columnName);
+                $args[] = $columnValue;
+            }
+        }
 
         return [
-            'COLUMNS' => $columns,
+            'COLUMNS' => implode(", ", $columns),
             'ARGS'    => $args,
         ];
     }
 
     /**
+     * @param $context
+     *
      * @return array
      * @throws \ReflectionException
      */

@@ -656,6 +656,63 @@ abstract class DBD
     }
 
     /**
+     * Simplifies update procedures. Method makes updates of the rows by giving parameters and prepared values. Returns self instance.
+     *
+     * Example 1:
+     *
+     * ```php
+     * $update = [
+     *     'invoice_date'   => $doc['Date'],
+     *     'invoice_number' => [ $doc['Number'] ],
+     *     'invoice_amount' => [ $doc['Amount'], 'numeric' ],
+     * ];
+     * // this will update all rows in a table
+     * $sth = $db->update('invoices', $update);
+     * echo($sth->rows);
+     *
+     * Example 2:
+     *
+     * ```php
+     * $update = array(
+     *     'invoice_date'   => [ $doc['Date'], 'date' ] ,
+     *     'invoice_number' => [ $doc['Number'], 'int' ]
+     *     'invoice_amount' => $doc['Amount']
+     * );
+     * // this will update all rows in a table where invoice_uuid equals to some value
+     * $sth = $db->update('invoices', $update, "invoice_uuid=  ?", $doc['UUID']);
+     * echo ($sth->rows);
+     * ```
+     *
+     * Example 3:
+     * ```php
+     * $update = array(
+     *     'invoice_date'   => [ $doc['Date'], 'timestamp' ],
+     *     'invoice_number' => [ $doc['Number'] ],
+     *     'invoice_amount' => [ $doc['Amount'] ]
+     * );
+     * // this will update all rows in a table where invoice_uuid is null
+     * // query will return invoice_id
+     * $sth = $db->update('invoices', $update, "invoice_uuid IS NULL", "invoice_id");
+     * while ($row = $sth->fetchrow()) {
+     *     printf("Updated invoice with ID=%d\n", $row['invoice_id']);
+     * }
+     * ```
+     *
+     * Example 4:
+     * ```php
+     * $update = [
+     *     'invoice_date'   => $doc['Date'],
+     *     'invoice_number' => $doc['Number'],
+     *     'invoice_amount' => $doc['Amount'],
+     * ];
+     * // this will update all rows in a table where invoice_uuid equals to some value
+     * // query will return invoice_id
+     * $sth = $db->update('invoices', $update, "invoice_uuid = ?", $doc['UUID'], "invoice_id, invoice_uuid");
+     * while($row = $sth->fetchrow()) {
+     *     printf("Updated invoice with ID=%d and UUID=%s\n", $row['invoice_id'], $row['invoice_uuid']);
+     * }
+     * ```
+     *
      * @return \DBD\DBD
      * @throws \DBD\Base\DBDPHPException
      * @throws \Psr\SimpleCache\InvalidArgumentException
@@ -669,7 +726,7 @@ abstract class DBD
         $table = $ARGS[0];
         $values = $ARGS[1];
 
-        $params = DBDHelper::compileUpdateArgs($values);
+        $params = DBDHelper::compileUpdateArgs($values, $this);
 
         if(func_num_args() > 2) {
             $where = $ARGS[2];

@@ -34,6 +34,7 @@ use DBD\Base\DBDPHPException as Exception;
  */
 class Pg extends DBD
 {
+    const CAST_FORMAT = "%s = ?::%s";
     /**
      * Do real connection. Can be invoked if OnDemand is set to TRUE
      *
@@ -168,7 +169,6 @@ class Pg extends DBD
      */
     protected function _convertIntFloat(&$data, $type) {
         // TODO: in case of fetchrowset do not get each time and use static variable
-        // FIXME: numeric vs int
         if($data && pg_num_fields($this->result) != count($data)) {
 
             $names = [];
