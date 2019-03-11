@@ -51,7 +51,7 @@ class Pg extends DBD
     /**
      * Replacement for constructor
      *
-     * @return \DBD\PgExtend
+     * @return \DBD\Pg
      * @throws \DBD\Base\DBDPHPException
      */
     public function connect() {
@@ -68,7 +68,7 @@ class Pg extends DBD
             $this->_connect();
         }
 
-        return new PgExtend($this);
+        return $this;
     }
 
     /**
@@ -328,23 +328,5 @@ class Pg extends DBD
      */
     protected function _rollback() {
         return $this->_query("ROLLBACK;");
-    }
-}
-
-/**
- * Class PgExtend
- *
- * @package DBD
- */
-final class PgExtend extends Pg implements DBI
-{
-    /**
-     * PgExtend constructor.
-     *
-     * @param        $object
-     * @param string $statement
-     */
-    public function __construct($object, $statement = "") {
-        parent::extendMe($object, $statement);
     }
 }

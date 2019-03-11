@@ -25,30 +25,12 @@
  * SOFTWARE.
  */
 
-
 namespace DBD;
 
-/**
- * Class <DRIVER_NAME>
- *
- * @package DBD
- */
-class <DRIVER_NAME> extends DBD{
+class <DRIVER_NAME> extends DBD implements DBI {
 	
     public function connect()
     {
-        return new <DRIVER_NAME>Extend($this);
-    }
-}
-
-/**
- * Class <DRIVER_NAME>Extend
- *
- * @package DBD
- */
-final class <DRIVER_NAME>Extend extends <DRIVER_NAME> implements DBI
-{
-    public function __construct($object, $statement = "") {
-        parent::extendMe($object, $statement);
+        return $this;
     }
 }

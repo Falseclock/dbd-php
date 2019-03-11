@@ -37,7 +37,7 @@ class MySQL extends DBD
             $this->_connect();
         }
 
-        return new MySQLExtend($this);
+        return $this;
     }
 
     protected function _affectedRows() {
@@ -122,17 +122,5 @@ class MySQL extends DBD
     protected function _convertTypes(&$data, $type) {
         // TODO: Implement _convertTypes() method.
         return $data;
-    }
-}
-
-/**
- * Class MySQLExtend
- *
- * @package DBD
- */
-final class MySQLExtend extends MySQL implements DBI
-{
-    public function __construct($object, $statement = "") {
-        parent::extendMe($object, $statement);
     }
 }

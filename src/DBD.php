@@ -64,24 +64,40 @@ abstract class DBD
     private $storage;
     /** @var bool $inTransaction Stores current transaction state */
     private $inTransaction = false;
-
     /**
      * Copies object variables after extended class construction
      *
-     * @param        $object
+     * @param        $context
      * @param string $statement
      *
      * @return void
      */
-    final protected function extendMe($object, $statement = "") {
-        foreach(get_object_vars($object) as $key => $value) {
-            $this->$key = $value;
-        }
-        $this->query = $statement;
+    /*    final protected function extendMe($context, $statement = "") {
+            foreach(get_object_vars($context) as $key => $value) {
+                $this->$key = $value;
+            }
+            $this->query = $statement;
 
-        if(isset($this->CacheDriver)) {
-            $this->cache['expire'] = $this->CacheDriver->defaultTtl;
-        }
+            if(isset($this->CacheDriver)) {
+                $this->cache['expire'] = $this->CacheDriver->defaultTtl;
+            }
+        }*/
+
+    final private function extendMe(DBD $context, string $statement) {
+
+        $className = get_class($context);
+
+        /** @var \DBD\DBD $class */
+        $class = new $className;
+
+        $class->Config = &$context->Config;
+        $class->Options = &$context->Options;
+        $class->dbResource = &$context->dbResource;
+        $class->CacheDriver = &$context->CacheDriver;
+        $class->inTransaction = &$context->inTransaction;
+        $class->query = $statement;
+
+        return $class;
     }
 
     /**
@@ -546,9 +562,7 @@ abstract class DBD
         if(!isset($statement) or empty($statement))
             throw new Exception("prepare failed: statement is not set or empty");
 
-        $className = get_class($this);
-
-        return new $className($this, $statement);
+        return $this->extendMe($this, $statement);
     }
 
     /**

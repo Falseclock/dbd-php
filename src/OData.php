@@ -66,7 +66,7 @@ class OData extends DBD
             $this->parseError();
         }
 
-        return new OdataExtend($this);
+        return $this;
     }
 
     /**
@@ -708,12 +708,5 @@ class OData extends DBD
         $string = str_replace($replacements, $entities, $string);
 
         return $string;
-    }
-}
-
-final class OdataExtend extends OData implements DBI
-{
-    public function __construct($object, $statement = "") {
-        parent::extendMe($object, $statement);
     }
 }

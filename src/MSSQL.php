@@ -46,7 +46,7 @@ class MSSQL extends DBD
     protected $cursorType     = null;
 
     /**
-     * @return MSSQLExtend
+     * @return MSSQL
      * @throws \DBD\Base\DBDPHPException
      */
     public function connect() {
@@ -64,7 +64,7 @@ class MSSQL extends DBD
             $this->_connect();
         }
 
-        return new MSSQLExtend($this);
+        return $this;
     }
 
     protected function _affectedRows() {
@@ -207,23 +207,5 @@ class MSSQL extends DBD
 
     protected function _numFields() {
         return sqlsrv_num_fields($this->result);
-    }
-}
-
-/**
- * Class MSSQLExtend
- *
- * @package DBD
- */
-final class MSSQLExtend extends MSSQL implements DBI
-{
-    public function __construct($object, $statement = "") {
-        parent::extendMe($object, $statement);
-    }
-
-    public function cursor($cursorType) {
-        $this->cursorType = $cursorType;
-
-        return;
     }
 }
