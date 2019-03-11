@@ -210,31 +210,27 @@ abstract class DBD
      * @throws \DBD\Base\DBDPHPException
      */
     public function create($config, $options = null) {
-        $driver = get_class($this);
-
-        /** @var \DBD\DBD $db */
-        $db = new $driver;
 
         if($config instanceof DBDConfig) {
-            $db->Config = $config;
+            $this->Config = $config;
         }
         else {
             throw new Exception("config is not instance of DBDConfig");
         }
 
         if($options instanceof DBDOptions) {
-            $db->Options = $options;
+            $this->Options = $options;
         }
         else {
             if(!isset($options)) {
-                $db->Options = new DBDOptions;
+                $this->Options = new DBDOptions;
             }
             else {
                 throw new Exception("options are not instance of DBDOptions");
             }
         }
 
-        return $db;
+        return $this;
     }
 
     /**
