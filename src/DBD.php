@@ -86,7 +86,31 @@ abstract class DBD
     private $inTransaction = false;
 
     /**
+     * DBD constructor.
+     * ```
+     * $db = new DBD/Pg($config, $options);
+     * $db->connect();
+     * ```
+     *
+     * @param \DBD\Base\DBDConfig       $config
+     * @param \DBD\Base\DBDOptions|null $options
+     */
+    final public function __construct(DBDConfig $config, DBDOptions $options = null) {
+
+        $this->Config = $config;
+        $this->CacheDriver = $config->getCacheDriver();
+
+        if(isset($options)) {
+            $this->Options = $options;
+        }
+        else {
+            $this->Options = new DBDOptions;
+        }
+    }
+
+    /**
      * Copies object variables after extended class construction
+     * FIXME: may be clone?
      *
      * @param \DBD\DBD $context
      * @param string   $statement
@@ -98,7 +122,7 @@ abstract class DBD
         $className = get_class($context);
 
         /** @var \DBD\DBD $class */
-        $class = new $className;
+        $class = new $className($context->Config, $context->Options);
 
         $class->Config = &$context->Config;
         $class->Options = &$context->Options;
@@ -108,32 +132,6 @@ abstract class DBD
         $class->query = $statement;
 
         return $class;
-    }
-
-    /**
-     * @param DBDConfig  $config
-     * @param DBDOptions $options
-     *
-     * @return $this
-     * @throws \DBD\Base\DBDPHPException
-     */
-    final protected function setup(DBDConfig $config, DBDOptions $options = null) {
-
-        if(isset($this->Config)) {
-            throw new Exception("You calling connect method twice");
-        }
-
-        $this->Config = $config;
-        $this->CacheDriver = $config->getCacheDriver();
-
-        if(isset($options)) {
-            $this->Options = $options;
-        }
-        else {
-            $this->Options = new DBDOptions;
-        }
-
-        return $this;
     }
 
     /**
@@ -825,12 +823,9 @@ abstract class DBD
      * @see MySQL::connect
      * @see OData::connect
      *
-     * @param \DBD\Base\DBDConfig       $config
-     * @param \DBD\Base\DBDOptions|null $options
-     *
      * @return $this
      */
-    abstract public function connect(DBDConfig $config, DBDOptions $options = null);
+    abstract public function connect();
 
     /**
      * @see affectedRows

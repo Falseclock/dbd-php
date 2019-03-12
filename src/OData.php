@@ -25,9 +25,7 @@
 
 namespace DBD;
 
-use DBD\Base\DBDConfig;
 use DBD\Base\DBDHelper;
-use DBD\Base\DBDOptions;
 use DBD\Base\DBDPHPException as Exception;
 use LSS\XML2Array;
 
@@ -36,7 +34,7 @@ class OData extends DBD
     protected $body         = null;
     protected $dataKey      = null;
     protected $header       = null;
-    protected $httpcode     = null;
+    protected $httpCode     = null;
     protected $metadata     = null;
     protected $replacements = null;
     protected $requestUrl   = null;
@@ -50,15 +48,11 @@ class OData extends DBD
     }
 
     /**
-     * @param \DBD\Base\DBDConfig       $config
-     * @param \DBD\Base\DBDOptions|null $options
      *
      * @return $this|\DBD\DBD
      * @throws \DBD\Base\DBDPHPException
      */
-    public function connect(DBDConfig $config, DBDOptions $options = null) {
-
-        $this->setup($config, $options);
+    public function connect() {
 
         // if we never invoke connect and did not setup it, just call setup with DSN url
         if(!is_resource($this->dbResource)) {
@@ -69,9 +63,9 @@ class OData extends DBD
         $header_size = curl_getinfo($this->dbResource, CURLINFO_HEADER_SIZE);
         $this->header = trim(substr($response, 0, $header_size));
         $this->body = preg_replace("/\xEF\xBB\xBF/", "", substr($response, $header_size));
-        $this->httpcode = curl_getinfo($this->dbResource, CURLINFO_HTTP_CODE);
+        $this->httpCode = curl_getinfo($this->dbResource, CURLINFO_HTTP_CODE);
 
-        if($this->httpcode >= 200 && $this->httpcode < 300) {
+        if($this->httpCode >= 200 && $this->httpCode < 300) {
             // do nothing
         }
         else {
@@ -375,7 +369,7 @@ class OData extends DBD
         $this->replacements = null;
         $this->result = null;
         $this->requestUrl = null;
-        $this->httpcode = null;
+        $this->httpCode = null;
         $this->header = null;
         $this->body = null;
     }
@@ -704,7 +698,7 @@ class OData extends DBD
             }
         }
         else {
-            throw new Exception("HTTP STATUS: {$this->httpcode}\n" . strtok($this->header, "\n"), $this->query);
+            throw new Exception("HTTP STATUS: {$this->httpCode}\n" . strtok($this->header, "\n"), $this->query);
         }
     }
 

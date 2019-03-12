@@ -25,8 +25,6 @@
 
 namespace DBD;
 
-use DBD\Base\DBDConfig;
-use DBD\Base\DBDOptions;
 use DBD\Base\DBDPHPException as Exception;
 
 /**
@@ -39,30 +37,12 @@ class Pg extends DBD
     const CAST_FORMAT = "%s = ?::%s";
 
     /**
-     * Do real connection. Can be invoked if OnDemand is set to TRUE
-     *
-     * @return void
-     * @throws \DBD\Base\DBDPHPException
-     */
-    protected function _connect() {
-        $this->dbResource = pg_connect($this->Config->getDsn());
-
-        if(!$this->dbResource)
-            throw new Exception("Can not connect to PostgreSQL server! ");
-    }
-
-    /**
-     * Replacement for constructor
-     *
-     * @param \DBD\Base\DBDConfig       $config
-     * @param \DBD\Base\DBDOptions|null $options
+     * Setup connection to the resource
      *
      * @return \DBD\Pg
      * @throws \DBD\Base\DBDPHPException
      */
-    public function connect(DBDConfig $config, DBDOptions $options = null) {
-
-        $this->setup($config, $options);
+    public function connect() {
 
         $dsn = "host={$this->Config->getDsn()} ";
         $dsn .= "dbname={$this->Config->getDatabase()} ";
@@ -78,6 +58,19 @@ class Pg extends DBD
         }
 
         return $this;
+    }
+
+    /**
+     * Do real connection. Can be invoked if OnDemand is set to TRUE
+     *
+     * @return void
+     * @throws \DBD\Base\DBDPHPException
+     */
+    protected function _connect() {
+        $this->dbResource = pg_connect($this->Config->getDsn());
+
+        if(!$this->dbResource)
+            throw new Exception("Can not connect to PostgreSQL server! ");
     }
 
     /**

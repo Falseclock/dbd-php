@@ -76,16 +76,16 @@ final class YellowERP extends OData
 
         $this->header = substr($response, 0, $header_size);
         $this->body = substr($response, $header_size);
-        $this->httpcode = curl_getinfo($this->dbResource, CURLINFO_HTTP_CODE);
+        $this->httpCode = curl_getinfo($this->dbResource, CURLINFO_HTTP_CODE);
         //$url            = curl_getinfo($this->dbh, CURLINFO_EFFECTIVE_URL);
 
         if($this->reuseSessions && !self::$sessionExist) {
 
             //if ($this->httpcode  == 0) { throw new Exception("No connection to: '$url', {$this->body}"); }
-            if($this->httpcode == 406) {
+            if($this->httpCode == 406) {
                 throw new Exception("406 Not Acceptable. YellowERP can't initiate new session");
             }
-            if($this->httpcode == 400 || $this->httpcode == 404 || $this->httpcode == 0) {
+            if($this->httpCode == 400 || $this->httpCode == 404 || $this->httpCode == 0) {
                 file_put_contents($this->sessionFile, null);
                 self::$ibsession = null;
 
@@ -106,7 +106,7 @@ final class YellowERP extends OData
             self::$retry = 0;
         }
 
-        if($this->httpcode >= 200 && $this->httpcode < 300) {
+        if($this->httpCode >= 200 && $this->httpCode < 300) {
             if($this->reuseSessions && !self::$sessionExist) {
                 curl_setopt($this->dbResource, CURLOPT_COOKIE, "ibsession=" . self::$ibsession);
                 @setcookie('IBSession', self::$ibsession, time() + 60 * 60 * 24, '/');
@@ -114,7 +114,7 @@ final class YellowERP extends OData
             }
         }
         else {
-            if(!$this->reuseSessions && $this->httpcode == 0 && self::$retry < $this->maxRetries) {
+            if(!$this->reuseSessions && $this->httpCode == 0 && self::$retry < $this->maxRetries) {
                 self::$retry++;
 
                 return $this->connect();

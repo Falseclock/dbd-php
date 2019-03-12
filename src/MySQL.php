@@ -26,9 +26,6 @@
 
 namespace DBD;
 
-use DBD\Base\DBDConfig;
-use DBD\Base\DBDOptions;
-
 /**
  * Class MySQL
  *
@@ -37,14 +34,10 @@ use DBD\Base\DBDOptions;
 class MySQL extends DBD
 {
     /**
-     * @param \DBD\Base\DBDConfig       $config
-     * @param \DBD\Base\DBDOptions|null $options
      *
      * @return $this|\DBD\DBD
      */
-    public function connect(DBDConfig $config, DBDOptions $options = null) {
-
-        $this->setup($config, $options);
+    public function connect() {
 
         if($this->Options->isOnDemand() == false) {
             $this->_connect();
