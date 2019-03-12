@@ -27,7 +27,7 @@
 
 namespace DBD;
 
-class <DRIVER_NAME> extends DBD implements DBI {
+class <DRIVER_NAME> extends DBD {
 	
     public function connect()
     {
