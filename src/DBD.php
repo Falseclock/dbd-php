@@ -39,7 +39,9 @@ abstract class DBD
     const STORAGE_CACHE    = "Cache";
     const STORAGE_DATABASE = "database";
     const UNDEFINED        = "UNDEF";
-    public    $rows  = 0;
+    public $rows = 0;
+    /** @var \Psr\SimpleCache\CacheInterface|\DBD\Cache */
+    public    $CacheDriver;
     protected $cache = [
         'key'      => null,
         'result'   => null,
@@ -52,8 +54,6 @@ abstract class DBD
     protected $query;
     /** @var resource|string|array $result Query result data */
     protected $result;
-    /** @var \Psr\SimpleCache\CacheInterface|\DBD\Cache */
-    protected $CacheDriver;
     /** @var DBDOptions $Options */
     protected $Options;
     /** @var DBDConfig $Config */
@@ -64,25 +64,15 @@ abstract class DBD
     private $storage;
     /** @var bool $inTransaction Stores current transaction state */
     private $inTransaction = false;
+
     /**
      * Copies object variables after extended class construction
      *
-     * @param        $context
-     * @param string $statement
+     * @param \DBD\DBD $context
+     * @param string   $statement
      *
-     * @return void
+     * @return \DBD\DBD
      */
-    /*    final protected function extendMe($context, $statement = "") {
-            foreach(get_object_vars($context) as $key => $value) {
-                $this->$key = $value;
-            }
-            $this->query = $statement;
-
-            if(isset($this->CacheDriver)) {
-                $this->cache['expire'] = $this->CacheDriver->defaultTtl;
-            }
-        }*/
-
     final private function extendMe(DBD $context, string $statement) {
 
         $className = get_class($context);
@@ -98,6 +88,27 @@ abstract class DBD
         $class->query = $statement;
 
         return $class;
+    }
+
+    /**
+     * @param DBDConfig  $config
+     * @param DBDOptions $options
+     *
+     * @return $this
+     */
+    final protected function setup(DBDConfig $config, DBDOptions $options = null) {
+
+        $this->Config = $config;
+        $this->CacheDriver = $config->getCacheDriver();
+
+        if(isset($options)) {
+            $this->Options = $options;
+        }
+        else {
+            $this->Options = new DBDOptions;
+        }
+
+        return $this;
     }
 
     /**
@@ -209,44 +220,6 @@ abstract class DBD
         $this->inTransaction = false;
 
         return true;
-    }
-
-    /**
-     * Base and main method to start. Returns new instance of DBD driver
-     *
-     * ```
-     * $dbd = new DBD\Pg();
-     * $dbh = $dbd->create($config, $options);
-     * $db = $dbh->connect();
-     *
-     * @param DBDConfig  $config
-     * @param DBDOptions $options
-     *
-     * @return $this
-     * @throws \DBD\Base\DBDPHPException
-     */
-    public function create($config, $options = null) {
-
-        if($config instanceof DBDConfig) {
-            $this->Config = $config;
-        }
-        else {
-            throw new Exception("config is not instance of DBDConfig");
-        }
-
-        if($options instanceof DBDOptions) {
-            $this->Options = $options;
-        }
-        else {
-            if(!isset($options)) {
-                $this->Options = new DBDOptions;
-            }
-            else {
-                throw new Exception("options are not instance of DBDOptions");
-            }
-        }
-
-        return $this;
     }
 
     /**
@@ -493,32 +466,6 @@ abstract class DBD
         }
 
         return $array;
-    }
-
-    /**
-     * Use if when you need to get DBD cache driver to handle stored cache outside of this class
-     *
-     * @return \DBD\Cache|\Psr\SimpleCache\CacheInterface
-     */
-    public function getCacheDriver() {
-        return $this->CacheDriver;
-    }
-
-    /**
-     * @param \DBD\Cache|\Psr\SimpleCache\CacheInterface $cache
-     *
-     * @return \DBD\DBD
-     * @throws \DBD\Base\DBDPHPException
-     */
-    public function setCacheDriver($cache) {
-
-        if($cache instanceof Cache || $cache instanceof \Psr\SimpleCache\CacheInterface) {
-            $this->CacheDriver = $cache;
-
-            return $this;
-        }
-
-        throw new Exception("Unsupported caching interface. Extend DBD\\Cache or use PSR-16 Common Interface for Caching");
     }
 
     public function getResult() {
@@ -819,6 +766,25 @@ abstract class DBD
     }
 
     /**
+     * Base and main method to start. Returns self instance of DBD driver
+     *
+     * ```
+     * $db = (new DBD\Pg())->connect($config, $options);
+     * ```
+     *
+     * @see Pg::connect
+     * @see MSSQL::connect
+     * @see MySQL::connect
+     * @see OData::connect
+     *
+     * @param \DBD\Base\DBDConfig       $config
+     * @param \DBD\Base\DBDOptions|null $options
+     *
+     * @return $this
+     */
+    abstract public function connect(DBDConfig $config, DBDOptions $options = null);
+
+    /**
      * @see affectedRows
      * @see rows
      * @see Pg::_affectedRows
@@ -1003,13 +969,4 @@ abstract class DBD
      * @return bool true on successful rollback
      */
     abstract protected function _rollback();
-
-    /**
-     * @see Pg::connect
-     * @see MSSQL::connect
-     * @see MySQL::connect
-     * @see OData::connect
-     * @return mixed
-     */
-    abstract protected function connect();
 }

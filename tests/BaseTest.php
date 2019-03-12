@@ -97,7 +97,7 @@ foreach($TEST['database'] as $database) {
 
     /** @var \DBD\Pg $dbd */
     $dbd = new $driver;
-    $dbh = $dbd->create($database['host'], $database['port'], $database['database'], $database['user'], $database['password'], $database['options']);
+    $dbh = $dbd->setup($database['host'], $database['port'], $database['database'], $database['user'], $database['password'], $database['options']);
     $db = $dbh->connect();
 
     (new Tests($db))->Begin()

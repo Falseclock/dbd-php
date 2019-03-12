@@ -25,6 +25,8 @@
 
 namespace DBD\Base;
 
+use Exception;
+
 final class DBDConfig
 {
     /** @var string $dsn */
@@ -39,6 +41,8 @@ final class DBDConfig
     private $password;
     /** @var string $identity Connection Name */
     private $identity = "DBD-PHP";
+    /** @var \Psr\SimpleCache\CacheInterface|\DBD\Cache $cacheDriver */
+    private $cacheDriver = null;
 
     public function __construct($dsn, $port, $database, $username, $password, $identity = null) {
         $this->dsn = $dsn;
@@ -47,6 +51,29 @@ final class DBDConfig
         $this->username = $username;
         $this->password = $password;
         $this->identity = isset($identity) ? $identity : $this->identity;
+    }
+
+    /**
+     * @return \DBD\Cache|\Psr\SimpleCache\CacheInterface
+     */
+    public function getCacheDriver() {
+        return $this->cacheDriver;
+    }
+
+    /**
+     * @param \DBD\Cache|\Psr\SimpleCache\CacheInterface $cacheDriver
+     *
+     * @return \DBD\Base\DBDConfig
+     * @throws \Exception
+     */
+    public function setCacheDriver($cacheDriver) {
+        if($cacheDriver instanceof \DBD\Cache || $cacheDriver instanceof \Psr\SimpleCache\CacheInterface) {
+            $this->cacheDriver = $cacheDriver;
+
+            return $this;
+        }
+
+        throw new Exception("Unsupported caching interface. Extend DBD\\Cache or use PSR-16 Common Interface for Caching");
     }
 
     /**

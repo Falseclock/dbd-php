@@ -1,4 +1,5 @@
-<?php
+<?php /** @noinspection PhpComposerExtensionStubsInspection */
+
 /*************************************************************************************
  *   MIT License                                                                     *
  *                                                                                   *
@@ -25,6 +26,9 @@
 
 namespace DBD;
 
+use DBD\Base\DBDConfig;
+use DBD\Base\DBDOptions;
+
 /**
  * Class MySQL
  *
@@ -32,7 +36,16 @@ namespace DBD;
  */
 class MySQL extends DBD
 {
-    public function connect() {
+    /**
+     * @param \DBD\Base\DBDConfig       $config
+     * @param \DBD\Base\DBDOptions|null $options
+     *
+     * @return $this|\DBD\DBD
+     */
+    public function connect(DBDConfig $config, DBDOptions $options = null) {
+
+        $this->setup($config, $options);
+
         if($this->Options->isOnDemand() == false) {
             $this->_connect();
         }

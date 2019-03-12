@@ -25,7 +25,9 @@
 
 namespace DBD;
 
+use DBD\Base\DBDConfig;
 use DBD\Base\DBDHelper;
+use DBD\Base\DBDOptions;
 use DBD\Base\DBDPHPException as Exception;
 use LSS\XML2Array;
 
@@ -47,7 +49,17 @@ class OData extends DBD
         throw new Exception("COMMIT not supported by OData");
     }
 
-    public function connect() {
+    /**
+     * @param \DBD\Base\DBDConfig       $config
+     * @param \DBD\Base\DBDOptions|null $options
+     *
+     * @return $this|\DBD\DBD
+     * @throws \DBD\Base\DBDPHPException
+     */
+    public function connect(DBDConfig $config, DBDOptions $options = null) {
+
+        $this->setup($config, $options);
+
         // if we never invoke connect and did not setup it, just call setup with DSN url
         if(!is_resource($this->dbResource)) {
             $this->setupCurl($this->Config->getDsn());

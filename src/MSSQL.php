@@ -27,6 +27,8 @@
 
 namespace DBD;
 
+use DBD\Base\DBDConfig;
+use DBD\Base\DBDOptions;
 use DBD\Base\DBDPHPException as Exception;
 
 /**
@@ -46,10 +48,15 @@ class MSSQL extends DBD
     protected $cursorType     = null;
 
     /**
+     * @param \DBD\Base\DBDConfig       $config
+     * @param \DBD\Base\DBDOptions|null $options
+     *
      * @return MSSQL
      * @throws \DBD\Base\DBDPHPException
      */
-    public function connect() {
+    public function connect(DBDConfig $config, DBDOptions $options = null) {
+
+        $this->setup($config, $options);
 
         if($this->Config->getDatabase())
             $this->connectionInfo['Database'] = $this->Config->getDatabase();

@@ -25,6 +25,8 @@
 
 namespace DBD;
 
+use DBD\Base\DBDConfig;
+use DBD\Base\DBDOptions;
 use DBD\Base\DBDPHPException as Exception;
 
 /**
@@ -35,13 +37,14 @@ use DBD\Base\DBDPHPException as Exception;
 class Pg extends DBD
 {
     const CAST_FORMAT = "%s = ?::%s";
+
     /**
      * Do real connection. Can be invoked if OnDemand is set to TRUE
      *
      * @return void
      * @throws \DBD\Base\DBDPHPException
      */
-    public function _connect() {
+    protected function _connect() {
         $this->dbResource = pg_connect($this->Config->getDsn());
 
         if(!$this->dbResource)
@@ -51,10 +54,16 @@ class Pg extends DBD
     /**
      * Replacement for constructor
      *
+     * @param \DBD\Base\DBDConfig       $config
+     * @param \DBD\Base\DBDOptions|null $options
+     *
      * @return \DBD\Pg
      * @throws \DBD\Base\DBDPHPException
      */
-    public function connect() {
+    public function connect(DBDConfig $config, DBDOptions $options = null) {
+
+        $this->setup($config, $options);
+
         $dsn = "host={$this->Config->getDsn()} ";
         $dsn .= "dbname={$this->Config->getDatabase()} ";
         $dsn .= $this->Config->getUsername() ? "user={$this->Config->getUsername()} " : "";
@@ -64,7 +73,7 @@ class Pg extends DBD
 
         $this->Config->setDsn($dsn);
 
-        if($this->Options->isOnDemand() == false) {
+        if($this->Options->isOnDemand() === false) {
             $this->_connect();
         }
 
