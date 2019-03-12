@@ -34,14 +34,34 @@ use DBD\Base\DBDOptions;
 use DBD\Base\DBDPHPException as Exception;
 use DBD\Base\DBDQuery;
 
+/**
+ * Class DBD
+ *
+ * @package DBD
+ */
 abstract class DBD
 {
-    const STORAGE_CACHE    = "Cache";
+    /**
+     *
+     */
+    const STORAGE_CACHE = "Cache";
+    /**
+     *
+     */
     const STORAGE_DATABASE = "database";
-    const UNDEFINED        = "UNDEF";
+    /**
+     *
+     */
+    const UNDEFINED = "UNDEF";
+    /**
+     * @var int
+     */
     public $rows = 0;
     /** @var \Psr\SimpleCache\CacheInterface|\DBD\Cache */
-    public    $CacheDriver;
+    public $CacheDriver;
+    /**
+     * @var array
+     */
     protected $cache = [
         'key'      => null,
         'result'   => null,
@@ -95,8 +115,13 @@ abstract class DBD
      * @param DBDOptions $options
      *
      * @return $this
+     * @throws \DBD\Base\DBDPHPException
      */
     final protected function setup(DBDConfig $config, DBDOptions $options = null) {
+
+        if(isset($this->Config)) {
+            throw new Exception("You calling connect method twice");
+        }
 
         $this->Config = $config;
         $this->CacheDriver = $config->getCacheDriver();
@@ -112,12 +137,12 @@ abstract class DBD
     }
 
     /**
-     * @deprecated
-     * @see affectedRows
-     * @return int
+     * Same as affectedRows but returns boolean
+     *
+     * @return bool
      */
     public function affected() {
-        return $this->affectedRows();
+        return $this->affectedRows() > 0;
     }
 
     /**
@@ -126,7 +151,7 @@ abstract class DBD
      * ```
      * $sth = $db->prepare("DELETE FROM foo WHERE bar = ?");
      * $sth->execute($someVar);
-     * if ($sth->affected()) {
+     * if ($sth->affectedRows()) {
      *      // Do something
      * }
      * ```
@@ -358,7 +383,7 @@ abstract class DBD
         if($this->Options->isUseDebug()) {
             $cost = isset($cost) ? $cost : 0;
 
-            $driver = $this->storage == self::STORAGE_CACHE ? self::STORAGE_CACHE : (new \ReflectionClass($this))->getParentClass()->getShortName();
+            $driver = $this->storage == self::STORAGE_CACHE ? self::STORAGE_CACHE : (new \ReflectionClass($this))->getShortName();
             $caller = DBDHelper::caller($this);
 
             Debug::addQueries(new DBDQuery(DBDHelper::cleanSql($exec), $cost, $caller[0], DBDHelper::debugMark($cost), $driver));
@@ -396,6 +421,9 @@ abstract class DBD
         return array_shift($this->fetch);
     }
 
+    /**
+     * @return array
+     */
     public function fetchArraySet() {
         $array = [];
 
@@ -423,6 +451,9 @@ abstract class DBD
         return $array;
     }
 
+    /**
+     * @return mixed
+     */
     public function fetchRow() {
         if($this->cache['key'] === null) {
             $return = $this->_fetchAssoc();
@@ -438,6 +469,11 @@ abstract class DBD
         }
     }
 
+    /**
+     * @param null $key
+     *
+     * @return array|mixed
+     */
     public function fetchRowSet($key = null) {
         $array = [];
 
@@ -468,10 +504,16 @@ abstract class DBD
         return $array;
     }
 
+    /**
+     * @return array|resource|string
+     */
     public function getResult() {
         return $this->result;
     }
 
+    /**
+     * @return string
+     */
     public function getStorage() {
         return $this->storage;
     }
@@ -723,6 +765,12 @@ abstract class DBD
         }
     }
 
+    /**
+     * @param $data
+     * @param $type
+     *
+     * @return mixed
+     */
     private function convertTypes(&$data, $type) {
         if($this->Options->isConvertNumeric()) {
             $this->_convertIntFloat($data, $type);
