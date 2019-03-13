@@ -51,11 +51,11 @@ class MySQL extends DBD
     }
 
     protected function _begin() {
-        return mysqli_begin_transaction($this->dbResource);
+        return mysqli_begin_transaction($this->resourceLink);
     }
 
     protected function _commit() {
-        return mysqli_commit($this->dbResource);
+        return mysqli_commit($this->resourceLink);
     }
 
     protected function _compileInsert($table, $params, $return = "") {
@@ -67,12 +67,12 @@ class MySQL extends DBD
     }
 
     protected function _connect() {
-        $this->dbResource = mysqli_connect($this->Config->getDsn(), $this->Config->getUsername(), $this->Config->getPassword(), $this->Config->getDatabase(), $this->Config->getPort());
+        $this->resourceLink = mysqli_connect($this->Config->getDsn(), $this->Config->getUsername(), $this->Config->getPassword(), $this->Config->getDatabase(), $this->Config->getPort());
 
-        if(!$this->dbResource)
+        if(!$this->resourceLink)
             trigger_error("Can not connect to MySQL server: " . mysqli_connect_error(), E_USER_ERROR);
 
-        mysqli_autocommit($this->dbResource, false);
+        mysqli_autocommit($this->resourceLink, false);
     }
 
     protected function _convertBoolean(&$data, $type) {
@@ -84,28 +84,28 @@ class MySQL extends DBD
     }
 
     protected function _disconnect() {
-        return mysqli_close($this->dbResource);
+        return mysqli_close($this->resourceLink);
     }
 
     protected function _errorMessage() {
-        return mysqli_error($this->dbResource);
+        return mysqli_error($this->resourceLink);
     }
 
     protected function _escape($string) {
         if(!isset($string) or $string === null) {
             return "NULL";
         }
-        $str = mysqli_real_escape_string($this->dbResource, $string);
+        $str = mysqli_real_escape_string($this->resourceLink, $string);
 
         return "'$str'";
     }
 
     protected function _fetchArray() {
-        return mysqli_fetch_array($this->dbResource);
+        return mysqli_fetch_array($this->resourceLink);
     }
 
     protected function _fetchAssoc() {
-        return mysqli_fetch_assoc($this->dbResource);
+        return mysqli_fetch_assoc($this->resourceLink);
     }
 
     protected function _numRows() {
@@ -118,11 +118,11 @@ class MySQL extends DBD
     }
 
     protected function _query($statement) {
-        return mysqli_query($this->dbResource, $statement);
+        return mysqli_query($this->resourceLink, $statement);
     }
 
     protected function _rollback() {
-        return mysqli_rollback($this->dbResource);
+        return mysqli_rollback($this->resourceLink);
     }
 
     protected function _convertTypes(&$data, $type) {

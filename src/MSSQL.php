@@ -82,11 +82,11 @@ class MSSQL extends DBD
     }
 
     protected function _begin() {
-        return sqlsrv_begin_transaction($this->dbResource);
+        return sqlsrv_begin_transaction($this->resourceLink);
     }
 
     protected function _commit() {
-        return sqlsrv_commit($this->dbResource);
+        return sqlsrv_commit($this->resourceLink);
     }
 
     protected function _compileInsert($table, $params, $return = "") {
@@ -103,9 +103,9 @@ class MSSQL extends DBD
      * @return void
      */
     protected function _connect() {
-        $this->dbResource = sqlsrv_connect($this->Config->getDsn(), $this->connectionInfo);
+        $this->resourceLink = sqlsrv_connect($this->Config->getDsn(), $this->connectionInfo);
 
-        if(!$this->dbResource)
+        if(!$this->resourceLink)
             throw new Exception($this->_errorMessage());
     }
 
@@ -118,7 +118,7 @@ class MSSQL extends DBD
     }
 
     protected function _disconnect() {
-        return sqlsrv_close($this->dbResource);
+        return sqlsrv_close($this->resourceLink);
     }
 
     protected function _errorMessage() {
@@ -177,20 +177,20 @@ class MSSQL extends DBD
     protected function _query($statement) {
 
         if($this->cursorType !== null) {
-            return @sqlsrv_query($this->dbResource, $statement, [], [ "Scrollable" => $this->cursorType ]);
+            return @sqlsrv_query($this->resourceLink, $statement, [], [ "Scrollable" => $this->cursorType ]);
         }
         else {
             if(preg_match('/^(\s*?)select\s*?.*?\s*?from/is', $this->query)) {
                 // TODO: make as selectable option
-                return @sqlsrv_query($this->dbResource, $statement, [], [ "Scrollable" => MSSQL::SQLSRV_CURSOR_STATIC ]);
+                return @sqlsrv_query($this->resourceLink, $statement, [], [ "Scrollable" => MSSQL::SQLSRV_CURSOR_STATIC ]);
             }
         }
 
-        return @sqlsrv_query($this->dbResource, $statement);
+        return @sqlsrv_query($this->resourceLink, $statement);
     }
 
     protected function _rollback() {
-        return sqlsrv_rollback($this->dbResource);
+        return sqlsrv_rollback($this->resourceLink);
     }
 
     protected function _convertTypes(&$data, $type) {

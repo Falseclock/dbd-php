@@ -68,8 +68,8 @@ abstract class DBD
         'compress' => null,
         'expire'   => null,
     ];
-    /** @var resource $dbResource Database cor curl connection resource */
-    protected $dbResource;
+    /** @var resource $resourceLink Database or curl connection resource */
+    protected $resourceLink;
     /** @var string $query SQL query */
     protected $query;
     /** @var resource|string|array $result Query result data */
@@ -126,7 +126,7 @@ abstract class DBD
 
         $class->Config = &$context->Config;
         $class->Options = &$context->Options;
-        $class->dbResource = &$context->dbResource;
+        $class->resourceLink = &$context->resourceLink;
         $class->CacheDriver = &$context->CacheDriver;
         $class->inTransaction = &$context->inTransaction;
         $class->query = $statement;
@@ -257,7 +257,7 @@ abstract class DBD
                 throw new Exception("Uncommitted transaction state");
             }
             $this->_disconnect();
-            $this->dbResource = null;
+            $this->resourceLink = null;
         }
 
         return $this;
@@ -749,7 +749,7 @@ abstract class DBD
      * @return bool true if var is a resource, false otherwise
      */
     protected function isConnected() {
-        return is_resource($this->dbResource);
+        return is_resource($this->resourceLink);
     }
 
     /**

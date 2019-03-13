@@ -67,9 +67,9 @@ class Pg extends DBD
      * @throws \DBD\Base\DBDPHPException
      */
     protected function _connect() {
-        $this->dbResource = pg_connect($this->Config->getDsn());
+        $this->resourceLink = pg_connect($this->Config->getDsn());
 
-        if(!$this->dbResource)
+        if(!$this->resourceLink)
             throw new Exception("Can not connect to PostgreSQL server! ");
     }
 
@@ -249,7 +249,7 @@ class Pg extends DBD
      * @return bool
      */
     protected function _disconnect() {
-        return pg_close($this->dbResource);
+        return pg_close($this->resourceLink);
     }
 
     /**
@@ -258,8 +258,8 @@ class Pg extends DBD
      * @return string
      */
     protected function _errorMessage() {
-        if($this->dbResource)
-            return pg_last_error($this->dbResource);
+        if($this->resourceLink)
+            return pg_last_error($this->resourceLink);
         else
             return pg_last_error();
     }
@@ -316,7 +316,7 @@ class Pg extends DBD
      */
     protected function _query($statement) {
         try {
-            return @pg_query($this->dbResource, $statement);
+            return @pg_query($this->resourceLink, $statement);
         }
         catch(\Exception $e) {
             return false;

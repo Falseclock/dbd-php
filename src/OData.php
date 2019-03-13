@@ -48,30 +48,12 @@ class OData extends DBD
     }
 
     /**
+     * We do not need to connect anywhere until something real should be get via HTTP request, otherwise we will
+     * consume resources for nothing
      *
      * @return $this|\DBD\DBD
-     * @throws \DBD\Base\DBDPHPException
      */
     public function connect() {
-
-        // if we never invoke connect and did not setup it, just call setup with DSN url
-        if(!is_resource($this->dbResource)) {
-            $this->setupCurl($this->Config->getDsn());
-        }
-        // TODO: read keep-alive header and reset handler if not exist
-        $response = curl_exec($this->dbResource);
-        $header_size = curl_getinfo($this->dbResource, CURLINFO_HEADER_SIZE);
-        $this->header = trim(substr($response, 0, $header_size));
-        $this->body = preg_replace("/\xEF\xBB\xBF/", "", substr($response, $header_size));
-        $this->httpCode = curl_getinfo($this->dbResource, CURLINFO_HTTP_CODE);
-
-        if($this->httpCode >= 200 && $this->httpCode < 300) {
-            // do nothing
-        }
-        else {
-            $this->parseError();
-        }
-
         return $this;
     }
 
@@ -80,7 +62,7 @@ class OData extends DBD
      */
     public function disconnect() {
         if($this->isConnected()) {
-            curl_close($this->dbResource);
+            curl_close($this->resourceLink);
         }
 
         return $this;
@@ -100,9 +82,9 @@ class OData extends DBD
             $this->prepareUrl(func_get_args());
 
             // just initicate connect with prepared URL and HEADERS
-            $this->setupCurl($this->Config->getDsn() . $this->requestUrl);
+            $this->setupRequest($this->Config->getDsn() . $this->requestUrl);
             // and make request
-            $this->connect();
+            $this->_connect();
 
             // Will return NULL in case of failure
             $json = json_decode($this->body, true);
@@ -124,7 +106,7 @@ class OData extends DBD
         $this->query = null;
 
         return $this;
-    } // TODO:
+    }
 
     /*--------------------------------------------------------------*/
 
@@ -191,8 +173,8 @@ class OData extends DBD
         }
         */
 
-        $this->setupCurl($this->Config->getDsn() . $table . '?$format=application/json;odata=nometadata&', "POST", json_encode($content, JSON_UNESCAPED_UNICODE));
-        $this->connect();
+        $this->setupRequest($this->Config->getDsn() . $table . '?$format=application/json;odata=nometadata&', "POST", json_encode($content, JSON_UNESCAPED_UNICODE));
+        $this->_connect();
 
         return json_decode($this->body, true);
     }
@@ -221,8 +203,8 @@ class OData extends DBD
         }
         $this->dropVars();
 
-        $this->setupCurl($this->Config->getDsn() . '$metadata');
-        $this->connect();
+        $this->setupRequest($this->Config->getDsn() . '$metadata');
+        $this->_connect();
 
         $array = XML2Array::createArray($this->body);
 
@@ -349,8 +331,8 @@ class OData extends DBD
             $url = implode("", $request);
         }
 
-        $this->setupCurl($this->Config->getDsn() . $url . '?$format=application/json;odata=nometadata&', "PATCH", json_encode($values, JSON_UNESCAPED_UNICODE));
-        $this->connect();
+        $this->setupRequest($this->Config->getDsn() . $url . '?$format=application/json;odata=nometadata&', "PATCH", json_encode($values, JSON_UNESCAPED_UNICODE));
+        $this->_connect();
 
         return json_decode($this->body, true);
     }
@@ -376,50 +358,50 @@ class OData extends DBD
 
     /*--------------------------------------------------------------*/
 
-    protected function setupCurl($url, $method = "GET", $content = null) {
-        if(!is_resource($this->dbResource)) {
-            $this->dbResource = curl_init();
+    protected function setupRequest($url, $method = "GET", $content = null) {
+        if(!is_resource($this->resourceLink)) {
+            $this->resourceLink = curl_init();
         }
-        curl_setopt($this->dbResource, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_V4);
-        curl_setopt($this->dbResource, CURLOPT_URL, $this->urlEncode($url));
-        curl_setopt($this->dbResource, CURLOPT_USERAGENT, __CLASS__);
-        curl_setopt($this->dbResource, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($this->dbResource, CURLOPT_HEADER, 1);
+        curl_setopt($this->resourceLink, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_V4);
+        curl_setopt($this->resourceLink, CURLOPT_URL, $this->urlEncode($url));
+        curl_setopt($this->resourceLink, CURLOPT_USERAGENT, __CLASS__);
+        curl_setopt($this->resourceLink, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($this->resourceLink, CURLOPT_HEADER, 1);
 
         if($this->Config->getUsername() && $this->Config->getPassword()) {
-            curl_setopt($this->dbResource, CURLOPT_HTTPAUTH, CURLAUTH_BASIC);
-            curl_setopt($this->dbResource, CURLOPT_USERPWD, $this->Config->getUsername() . ":" . $this->Config->getPassword());
+            curl_setopt($this->resourceLink, CURLOPT_HTTPAUTH, CURLAUTH_BASIC);
+            curl_setopt($this->resourceLink, CURLOPT_USERPWD, $this->Config->getUsername() . ":" . $this->Config->getPassword());
         }
         switch($method) {
             case "POST":
-                curl_setopt($this->dbResource, CURLOPT_POST, true);
-                curl_setopt($this->dbResource, CURLOPT_HTTPGET, false);
-                curl_setopt($this->dbResource, CURLOPT_CUSTOMREQUEST, null);
+                curl_setopt($this->resourceLink, CURLOPT_POST, true);
+                curl_setopt($this->resourceLink, CURLOPT_HTTPGET, false);
+                curl_setopt($this->resourceLink, CURLOPT_CUSTOMREQUEST, null);
                 break;
             case "PATCH":
-                curl_setopt($this->dbResource, CURLOPT_POST, false);
-                curl_setopt($this->dbResource, CURLOPT_HTTPGET, false);
-                curl_setopt($this->dbResource, CURLOPT_CUSTOMREQUEST, 'PATCH');
+                curl_setopt($this->resourceLink, CURLOPT_POST, false);
+                curl_setopt($this->resourceLink, CURLOPT_HTTPGET, false);
+                curl_setopt($this->resourceLink, CURLOPT_CUSTOMREQUEST, 'PATCH');
                 break;
             case "PUT":
-                curl_setopt($this->dbResource, CURLOPT_POST, false);
-                curl_setopt($this->dbResource, CURLOPT_HTTPGET, false);
-                curl_setopt($this->dbResource, CURLOPT_CUSTOMREQUEST, 'PUT');
+                curl_setopt($this->resourceLink, CURLOPT_POST, false);
+                curl_setopt($this->resourceLink, CURLOPT_HTTPGET, false);
+                curl_setopt($this->resourceLink, CURLOPT_CUSTOMREQUEST, 'PUT');
                 break;
             case "DELETE":
-                curl_setopt($this->dbResource, CURLOPT_POST, false);
-                curl_setopt($this->dbResource, CURLOPT_HTTPGET, false);
-                curl_setopt($this->dbResource, CURLOPT_CUSTOMREQUEST, 'DELETE');
+                curl_setopt($this->resourceLink, CURLOPT_POST, false);
+                curl_setopt($this->resourceLink, CURLOPT_HTTPGET, false);
+                curl_setopt($this->resourceLink, CURLOPT_CUSTOMREQUEST, 'DELETE');
                 break;
             case "GET":
             default:
-                curl_setopt($this->dbResource, CURLOPT_POST, false);
-                curl_setopt($this->dbResource, CURLOPT_HTTPGET, true);
-                curl_setopt($this->dbResource, CURLOPT_CUSTOMREQUEST, null);
+                curl_setopt($this->resourceLink, CURLOPT_POST, false);
+                curl_setopt($this->resourceLink, CURLOPT_HTTPGET, true);
+                curl_setopt($this->resourceLink, CURLOPT_CUSTOMREQUEST, null);
                 break;
         }
         if($content) {
-            curl_setopt($this->dbResource, CURLOPT_POSTFIELDS, $content);
+            curl_setopt($this->resourceLink, CURLOPT_POSTFIELDS, $content);
         }
 
         return $this;
@@ -486,7 +468,25 @@ class OData extends DBD
     /*--------------------------------------------------------------*/
 
     protected function _connect() {
-        // TODO: Implement _connect() method.
+        // if we never invoke connect and did not setup it, just call setup with DSN url
+        if(!is_resource($this->resourceLink)) {
+            $this->setupRequest($this->Config->getDsn());
+        }
+        // TODO: read keep-alive header and reset handler if not exist
+        $response = curl_exec($this->resourceLink);
+        $header_size = curl_getinfo($this->resourceLink, CURLINFO_HEADER_SIZE);
+        $this->header = trim(substr($response, 0, $header_size));
+        $this->body = preg_replace("/\xEF\xBB\xBF/", "", substr($response, $header_size));
+        $this->httpCode = curl_getinfo($this->resourceLink, CURLINFO_HTTP_CODE);
+
+        if($this->httpCode >= 200 && $this->httpCode < 300) {
+            // do nothing
+        }
+        else {
+            $this->parseError();
+        }
+
+        return $this;
     }
 
     /*--------------------------------------------------------------*/
@@ -681,7 +681,7 @@ class OData extends DBD
     }
 
     protected function parseError() {
-        $fail = $this->urlDecode(curl_getinfo($this->dbResource, CURLINFO_EFFECTIVE_URL));
+        $fail = $this->urlDecode(curl_getinfo($this->resourceLink, CURLINFO_EFFECTIVE_URL));
         if($this->body) {
             $error = json_decode($this->body, true);
             if($error && isset($error['odata.error']['message']['value'])) {

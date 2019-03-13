@@ -36,9 +36,9 @@
     "ext-sqlsrv": "*"
   },
   "suggest":     {
-    "ext-memcache": "*",
-    "ext-pgsql":    "Needed to support PostgreSQL database",
-    "ext-sqlsrv":   "Needed to support MSSQL database"
+    "ext-memcache": "Required to support Memcached",
+    "ext-pgsql":    "Required to support PostgreSQL database",
+    "ext-sqlsrv":   "Required to support MSSQL database"
   },
   "autoload":    {
     "psr-4": {
