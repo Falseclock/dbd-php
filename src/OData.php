@@ -616,15 +616,15 @@ class OData extends DBD
             $this->requestUrl .= '$select=' . implode(",", $fields) . '&';
         }
 
-        if($struct['EXPAND']) {
+        if(isset($struct['EXPAND'])) {
             $this->requestUrl .= '$expand=' . $struct['EXPAND'] . '&';
         }
 
-        if($struct['WHERE']) {
+        if(isset($struct['WHERE'])) {
             $this->requestUrl .= '$filter=' . $struct['WHERE'] . '&';
         }
 
-        if($struct['ORDER BY']) {
+        if(isset($struct['ORDER BY'])) {
 
             $struct['ORDER BY'] = implode(
                 ",", array_map(
