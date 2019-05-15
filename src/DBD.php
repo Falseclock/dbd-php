@@ -318,7 +318,7 @@ abstract class DBD
                 $this->cache['result'] = $this->CacheDriver->get($this->cache['key']);
 
                 // Cache not empty?
-                if($this->cache['result'] && $this->cache['result'] !== false) {
+                if($this->cache['result'] !== false) {
                     $cost = Debug::me()->endTimer();
                     // To avoid errors as result by default is NULL
                     $this->result = "cached";
