@@ -58,23 +58,22 @@ final class DBDHelper
 	/**
 	 * @param int|float $cost
 	 *
+	 * @param float     $maxExecutionTime
+	 *
 	 * @return int
 	 */
-	final public static function debugMark($cost) {
-		switch(true) {
-			case ($cost >= 0 && $cost <= 20):
-				return 1;
-			case ($cost >= 21 && $cost <= 50):
-				return 2;
-			case ($cost >= 51 && $cost <= 90):
-				return 3;
-			case ($cost >= 91 && $cost <= 140):
-				return 4;
-			case ($cost >= 141 && $cost <= 200):
-				return 5;
-			default:
-				return 6;
+	final public static function debugMark($cost, $maxExecutionTime = null) {
+		if(!isset($maxExecutionTime)) {
+			$maxExecutionTime = DBDDebug::$maxExecutionTime;
 		}
+
+		$value = floor($cost / $maxExecutionTime) + 1;
+
+		if($value > 6) {
+			return 6;
+		}
+
+		return $value;
 	}
 
 	/**
