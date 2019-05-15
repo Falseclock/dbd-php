@@ -34,8 +34,8 @@ use DBD\Base\DBDPHPException as Exception;
  */
 class Pg extends DBD
 {
-    const CAST_FORMAT = "%s = ?::%s";
-
+    const CAST_FORMAT_UPDATE = "%s = ?::%s";
+	const CAST_FORMAT_INSERT = "?::%s";
     /**
      * Setup connection to the resource
      *

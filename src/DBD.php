@@ -529,7 +529,7 @@ abstract class DBD
      * @throws \ReflectionException
      */
     public function insert($table, $args, $return = null) {
-        $params = DBDHelper::compileInsertArgs($args);
+        $params = DBDHelper::compileInsertArgs($args, $this);
 
         $sth = $this->prepare($this->_compileInsert($table, $params, $return));
         $sth->execute($params['ARGS']);

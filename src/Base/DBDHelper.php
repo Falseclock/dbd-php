@@ -29,214 +29,249 @@ use DBD\DBD;
 
 final class DBDHelper
 {
-    /**
-     *
-     * @param string $statement
-     *
-     * @return string
-     */
-    final public static function cleanSql($statement) {
-        $array = preg_split('/\R/u', $statement);
+	/**
+	 *
+	 * @param string $statement
+	 *
+	 * @return string
+	 */
+	final public static function cleanSql($statement) {
+		$array = preg_split('/\R/u', $statement);
 
-        foreach($array as $idx => $line) {
-            //$array[$idx] = trim($array[$idx], "\s\t\n\r");
-            if(!$array[$idx] || preg_match('/^[\s\R\t]*?$/u', $array[$idx])) {
-                unset($array[$idx]);
-                continue;
-            }
-            if(preg_match('/^\s*?(UNION|CREATE|DELETE|UPDATE|SELECT|FROM|WHERE|JOIN|LIMIT|OFFSET|ORDER|GROUP)/i', $array[$idx])) {
-                $array[$idx] = ltrim($array[$idx]);
-            }
-            else {
-                $array[$idx] = "    " . ltrim($array[$idx]);
-            }
-        }
+		foreach($array as $idx => $line) {
+			//$array[$idx] = trim($array[$idx], "\s\t\n\r");
+			if(!$array[$idx] || preg_match('/^[\s\R\t]*?$/u', $array[$idx])) {
+				unset($array[$idx]);
+				continue;
+			}
+			if(preg_match('/^\s*?(UNION|CREATE|DELETE|UPDATE|SELECT|FROM|WHERE|JOIN|LIMIT|OFFSET|ORDER|GROUP)/i', $array[$idx])) {
+				$array[$idx] = ltrim($array[$idx]);
+			}
+			else {
+				$array[$idx] = "    " . ltrim($array[$idx]);
+			}
+		}
 
-        return implode("\n", $array);
-    }
+		return implode("\n", $array);
+	}
 
-    /**
-     * @param int|float $cost
-     *
-     * @return int
-     */
-    final public static function debugMark($cost) {
-        switch(true) {
-            case ($cost >= 0 && $cost <= 20):
-                return 1;
-            case ($cost >= 21 && $cost <= 50):
-                return 2;
-            case ($cost >= 51 && $cost <= 90):
-                return 3;
-            case ($cost >= 91 && $cost <= 140):
-                return 4;
-            case ($cost >= 141 && $cost <= 200):
-                return 5;
-            default:
-                return 6;
-        }
-    }
+	/**
+	 * @param int|float $cost
+	 *
+	 * @return int
+	 */
+	final public static function debugMark($cost) {
+		switch(true) {
+			case ($cost >= 0 && $cost <= 20):
+				return 1;
+			case ($cost >= 21 && $cost <= 50):
+				return 2;
+			case ($cost >= 51 && $cost <= 90):
+				return 3;
+			case ($cost >= 91 && $cost <= 140):
+				return 4;
+			case ($cost >= 141 && $cost <= 200):
+				return 5;
+			default:
+				return 6;
+		}
+	}
 
-    /**
-     * @param $ARGS
-     *
-     * @return array
-     */
-    final public static function prepareArgs($ARGS) {
-        // Shift query from passed arguments. Query is always first
-        $statement = array_shift($ARGS);
-        // Build array of arguments
-        $args = self::parseArgs($ARGS);
+	/**
+	 * @param $ARGS
+	 *
+	 * @return array
+	 */
+	final public static function prepareArgs($ARGS) {
+		// Shift query from passed arguments. Query is always first
+		$statement = array_shift($ARGS);
+		// Build array of arguments
+		$args = self::parseArgs($ARGS);
 
-        return [
-            $statement,
-            $args,
-        ];
-    }
+		return [
+			$statement,
+			$args,
+		];
+	}
 
-    /**
-     * @param $ARGS
-     *
-     * @return array
-     */
-    final public static function parseArgs($ARGS) {
-        $args = [];
+	/**
+	 * @param $ARGS
+	 *
+	 * @return array
+	 */
+	final public static function parseArgs($ARGS) {
+		$args = [];
 
-        foreach($ARGS as $arg) {
-            if(is_array($arg)) {
-                foreach($arg as $subArg) {
-                    $args[] = $subArg;
-                }
-            }
-            else {
-                $args[] = $arg;
-            }
-        }
+		foreach($ARGS as $arg) {
+			if(is_array($arg)) {
+				foreach($arg as $subArg) {
+					$args[] = $subArg;
+				}
+			}
+			else {
+				$args[] = $arg;
+			}
+		}
 
-        return $args;
-    }
+		return $args;
+	}
 
-    /**
-     * @param $data
-     *
-     * @return array
-     */
-    final public static function compileInsertArgs($data) {
+	/**
+	 * @param          $data
+	 *
+	 * @param \DBD\DBD $driver
+	 *
+	 * @return array
+	 * @throws \DBD\Base\DBDPHPException
+	 */
+	final public static function compileInsertArgs($data, DBD $driver) {
 
-        $columns = "";
-        $values = "";
-        $args = [];
+		$className = get_class($driver);
 
-        foreach($data as $c => $v) {
-            $pattern = "/[^\"a-zA-Z0-9_-]/";
-            $c = preg_replace($pattern, "", $c);
-            $columns .= "$c, ";
-            $values .= "?,";
-            if($v === true) {
-                $v = 'true';
-            }
-            if($v === false) {
-                $v = 'false';
-            }
-            $args[] = $v;
-        }
+		$columns = [];
+		$values = [];
+		$args = [];
 
-        $columns = preg_replace("/, $/", "", $columns);
-        $values = preg_replace("/,$/", "", $values);
+		$defaultFormat = "?";
+		$format = null;
 
-        return [
-            'COLUMNS' => $columns,
-            'VALUES'  => $values,
-            'ARGS'    => $args,
-        ];
-    }
+		if(defined("{$className}::CAST_FORMAT_INSERT")) {
+			/** @noinspection PhpUndefinedFieldInspection */
+			$format = $driver::CAST_FORMAT_INSERT;
+		}
 
-    /**
-     * Parses array of values for update
-     *
-     * @param          $data
-     *
-     * @param \DBD\DBD $driver
-     *
-     * @return array
-     * @throws \DBD\Base\DBDPHPException
-     */
-    final public static function compileUpdateArgs($data, DBD $driver) {
-        $className = get_class($driver);
-        $defaultFormat = "%s = ?";
-        $format = null;
+		foreach($data as $columnName => $columnValue) {
+			$columns[] = $columnName;
 
-        if(defined("{$className}::CAST_FORMAT")) {
-            /** @noinspection PhpUndefinedFieldInspection */
-            $format = $driver::CAST_FORMAT;
-        }
+			// Identifying value type
+			if(is_array($columnValue)) {
+				switch(count($columnValue)) {
+					case 1:
+						$values[] = $defaultFormat;
+						self::booleanToString($columnValue[0]);
+						$args[] = $columnValue[0];
+						break;
+					case 2:
+						self::booleanToString($columnValue[0]);
+						$values[] = isset($format) ? sprintf($format, $columnValue[1]) : $defaultFormat;
+						$args[] = $columnValue[0];
+						break;
+					default:
+						throw new DBDPHPException("Unknown format of record for insert");
+				}
+			}
+			else {
+				self::booleanToString($columnValue);
+				$args[] = $columnValue;
+				$values[] = $defaultFormat;
+			}
+		}
 
-        $columns = [];
-        $args = [];
+		return [
+			'COLUMNS' => implode(", ", $columns),
+			'VALUES'  => implode(", ", $values),
+			'ARGS'    => $args,
+		];
+	}
 
-        foreach($data as $columnName => $columnValue) {
-            if(is_array($columnValue)) {
-                switch(count($columnValue)) {
-                    case 1:
-                        $columns[] = sprintf($defaultFormat, $columnName);
-                        $args[] = $columnValue[0];
-                        break;
-                    case 2:
-                        $columns[] = sprintf($format ? $format : $defaultFormat, $columnName, $columnValue[1]);
-                        $args[] = $columnValue[0];
-                        break;
-                    default:
-                        throw new DBDPHPException("Unknown format or record for update");
-                }
-            }
-            else {
-                $columns[] = sprintf($defaultFormat, $columnName);
-                $args[] = $columnValue;
-            }
-        }
+	/**
+	 * Converts boolean to string value
+	 *
+	 * @param mixed $value
+	 */
+	private static function booleanToString(&$value) {
 
-        return [
-            'COLUMNS' => implode(", ", $columns),
-            'ARGS'    => $args,
-        ];
-    }
+		if(is_bool($value)) {
+			$value = ($value) ? 'TRUE' : 'FALSE';
+		}
+	}
 
-    /**
-     * @param $context
-     *
-     * @return array
-     * @throws \ReflectionException
-     */
-    final public static function caller($context) {
-        $return = [];
-        $debug = debug_backtrace();
+	/**
+	 * Parses array of values for update
+	 *
+	 * @param          $data
+	 *
+	 * @param \DBD\DBD $driver
+	 *
+	 * @return array
+	 * @throws \DBD\Base\DBDPHPException
+	 */
+	final public static function compileUpdateArgs($data, DBD $driver) {
+		$className = get_class($driver);
+		$defaultFormat = "%s = ?";
+		$format = null;
 
-        // working directory
-        $wd = is_link($_SERVER["DOCUMENT_ROOT"]) ? readlink($_SERVER["DOCUMENT_ROOT"]) : $_SERVER["DOCUMENT_ROOT"];
-        $wd = str_replace(DIRECTORY_SEPARATOR, "/", $wd);
+		if(defined("{$className}::CAST_FORMAT_UPDATE")) {
+			/** @noinspection PhpUndefinedFieldInspection */
+			$format = $driver::CAST_FORMAT_UPDATE;
+		}
 
-        $myFilename = $debug[0]['file'];
-        $myFilename = str_replace(DIRECTORY_SEPARATOR, "/", $myFilename);
-        $myFilename = str_replace($wd, '', $myFilename);
+		$columns = [];
+		$args = [];
 
-        $child = (new \ReflectionClass($context))->getShortName();
+		foreach($data as $columnName => $columnValue) {
+			if(is_array($columnValue)) {
+				switch(count($columnValue)) {
+					case 1:
+						$columns[] = sprintf($defaultFormat, $columnName);
+						$args[] = $columnValue[0];
+						break;
+					case 2:
+						$columns[] = sprintf($format ? $format : $defaultFormat, $columnName, $columnValue[1]);
+						$args[] = $columnValue[0];
+						break;
+					default:
+						throw new DBDPHPException("Unknown format of record for update");
+				}
+			}
+			else {
+				$columns[] = sprintf($defaultFormat, $columnName);
+				$args[] = $columnValue;
+			}
+		}
 
-        foreach($debug as $ind => $call) {
-            // our filename
-            if(isset($call['file'])) {
-                $call['file'] = str_replace(DIRECTORY_SEPARATOR, "/", $call['file']);
-                $call['file'] = str_replace($wd, '', $call['file']);
+		return [
+			'COLUMNS' => implode(", ", $columns),
+			'ARGS'    => $args,
+		];
+	}
 
-                if($myFilename != $call['file'] && !preg_match('/' . $child . '\.\w+$/', $call['file'])) {
-                    $return[] = [
-                        'file'     => $call['file'],
-                        'line'     => $call['line'],
-                        'function' => $call['function'],
-                    ];
-                }
-            }
-        }
+	/**
+	 * @param $context
+	 *
+	 * @return array
+	 * @throws \ReflectionException
+	 */
+	final public static function caller($context) {
+		$return = [];
+		$debug = debug_backtrace();
 
-        return $return;
-    }
+		// working directory
+		$wd = is_link($_SERVER["DOCUMENT_ROOT"]) ? readlink($_SERVER["DOCUMENT_ROOT"]) : $_SERVER["DOCUMENT_ROOT"];
+		$wd = str_replace(DIRECTORY_SEPARATOR, "/", $wd);
+
+		$myFilename = $debug[0]['file'];
+		$myFilename = str_replace(DIRECTORY_SEPARATOR, "/", $myFilename);
+		$myFilename = str_replace($wd, '', $myFilename);
+
+		$child = (new \ReflectionClass($context))->getShortName();
+
+		foreach($debug as $ind => $call) {
+			// our filename
+			if(isset($call['file'])) {
+				$call['file'] = str_replace(DIRECTORY_SEPARATOR, "/", $call['file']);
+				$call['file'] = str_replace($wd, '', $call['file']);
+
+				if($myFilename != $call['file'] && !preg_match('/' . $child . '\.\w+$/', $call['file'])) {
+					$return[] = [
+						'file'     => $call['file'],
+						'line'     => $call['line'],
+						'function' => $call['function'],
+					];
+				}
+			}
+		}
+
+		return $return;
+	}
 }
