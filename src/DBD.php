@@ -794,7 +794,7 @@ abstract class DBD
         $numberOfArgs = count($args);
 
         if($binds != $numberOfArgs) {
-            throw new Exception("Execute failed: called with $numberOfArgs bind variables when $binds are needed");
+            throw new Exception("Execute failed: called with $numberOfArgs bind variables when $binds are needed", $this->query);
         }
 
         if($numberOfArgs) {

@@ -556,7 +556,7 @@ class OData extends DBD
         $numargs = count($args);
 
         if($binds != $numargs) {
-            throw new Exception("Query failed: called with $numargs bind variables when $binds are needed");
+            throw new Exception("Query failed: called with $numargs bind variables when $binds are needed", $this->query);
         }
 
         // Make url and put arguments
