@@ -646,7 +646,7 @@ class OData extends DBD
     }
 
     protected function doReplacements($data) {
-        if(count($this->replacements) && $data != null) {
+        if(isset($this->replacements) && count($this->replacements) && $data != null) {
             foreach($data as &$value) {
                 foreach($value as $key => $val) {
                     if(array_key_exists($key, $this->replacements)) {
