@@ -642,7 +642,7 @@ abstract class DBD
 	}
 
 	/**
-	 * @param $string
+	 * @param $value
 	 *
 	 * @return mixed
 	 * @see MSSQL::_escape
@@ -652,7 +652,7 @@ abstract class DBD
 	 * @see getExec
 	 * @see Pg::_escape
 	 */
-	abstract protected function _escape($string);
+	abstract protected function _escape($value);
 
 	/**
 	 * @return mixed

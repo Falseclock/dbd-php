@@ -26,6 +26,8 @@
 namespace DBD\Base;
 
 use DBD\DBD;
+use ReflectionClass;
+use ReflectionException;
 
 final class DBDHelper
 {
@@ -118,10 +120,10 @@ final class DBDHelper
 	/**
 	 * @param          $data
 	 *
-	 * @param \DBD\DBD $driver
+	 * @param DBD      $driver
 	 *
 	 * @return array
-	 * @throws \DBD\Base\DBDPHPException
+	 * @throws DBDPHPException
 	 */
 	final public static function compileInsertArgs($data, DBD $driver) {
 
@@ -190,10 +192,10 @@ final class DBDHelper
 	 *
 	 * @param          $data
 	 *
-	 * @param \DBD\DBD $driver
+	 * @param DBD      $driver
 	 *
 	 * @return array
-	 * @throws \DBD\Base\DBDPHPException
+	 * @throws DBDPHPException
 	 */
 	final public static function compileUpdateArgs($data, DBD $driver) {
 		$className = get_class($driver);
@@ -239,7 +241,7 @@ final class DBDHelper
 	 * @param $context
 	 *
 	 * @return array
-	 * @throws \ReflectionException
+	 * @throws ReflectionException
 	 */
 	final public static function caller($context) {
 		$return = [];
@@ -253,7 +255,7 @@ final class DBDHelper
 		$myFilename = str_replace(DIRECTORY_SEPARATOR, "/", $myFilename);
 		$myFilename = str_replace($wd, '', $myFilename);
 
-		$child = (new \ReflectionClass($context))->getShortName();
+		$child = (new ReflectionClass($context))->getShortName();
 
 		foreach($debug as $ind => $call) {
 			// our filename

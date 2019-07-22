@@ -91,11 +91,11 @@ class MySQL extends DBD
         return mysqli_error($this->resourceLink);
     }
 
-    protected function _escape($string) {
-        if(!isset($string) or $string === null) {
+    protected function _escape($value) {
+        if(!isset($value) or $value === null) {
             return "NULL";
         }
-        $str = mysqli_real_escape_string($this->resourceLink, $string);
+        $str = mysqli_real_escape_string($this->resourceLink, $value);
 
         return "'$str'";
     }

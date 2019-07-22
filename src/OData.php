@@ -505,7 +505,7 @@ class OData extends DBD
         // TODO: Implement _errorMessage() method.
     }
 
-    protected function _escape($string) {
+    protected function _escape($value) {
         // TODO: Implement _escape() method.
     }
 
