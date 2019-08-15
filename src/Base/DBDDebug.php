@@ -84,8 +84,10 @@ final class DBDDebug extends Singleton implements Instantiatable
 	 */
 	public static function getPerDriver() {
 		$return = [];
-		foreach(self::$queries as $query) {
-			$return[$query->driver][] = $query;
+		if(isset(self::$queries)) {
+			foreach(self::$queries as $query) {
+				$return[$query->driver][] = $query;
+			}
 		}
 
 		return $return;
