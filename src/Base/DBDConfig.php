@@ -25,162 +25,164 @@
 
 namespace DBD\Base;
 
+use DBD\Cache;
 use Exception;
+use Psr\SimpleCache\CacheInterface;
 
 final class DBDConfig
 {
-    /** @var string $dsn */
-    private $dsn;
-    /** @var int $port */
-    private $port;
-    /** @var string $database */
-    private $database;
-    /** @var string $username */
-    private $username;
-    /** @var string $password */
-    private $password;
-    /** @var string $identity Connection Name */
-    private $identity = "DBD-PHP";
-    /** @var \Psr\SimpleCache\CacheInterface|\DBD\Cache $cacheDriver */
-    private $cacheDriver = null;
+	/** @var string $dsn */
+	private $dsn;
+	/** @var int $port */
+	private $port;
+	/** @var string $database */
+	private $database;
+	/** @var string $username */
+	private $username;
+	/** @var string $password */
+	private $password;
+	/** @var string $identity Connection Name */
+	private $identity = "DBD-PHP";
+	/** @var CacheInterface|Cache $cacheDriver */
+	private $cacheDriver = null;
 
-    public function __construct($dsn, $port, $database, $username, $password, $identity = null) {
-        $this->dsn = $dsn;
-        $this->port = $port;
-        $this->database = $database;
-        $this->username = $username;
-        $this->password = $password;
-        $this->identity = isset($identity) ? $identity : $this->identity;
-    }
+	public function __construct($dsn, $port, $database, $username, $password, $identity = null) {
+		$this->dsn = $dsn;
+		$this->port = $port;
+		$this->database = $database;
+		$this->username = $username;
+		$this->password = $password;
+		$this->identity = isset($identity) ? $identity : $this->identity;
+	}
 
-    /**
-     * @return \DBD\Cache|\Psr\SimpleCache\CacheInterface
-     */
-    public function getCacheDriver() {
-        return $this->cacheDriver;
-    }
+	/**
+	 * @return Cache|CacheInterface
+	 */
+	public function getCacheDriver() {
+		return $this->cacheDriver;
+	}
 
-    /**
-     * @param \DBD\Cache|\Psr\SimpleCache\CacheInterface $cacheDriver
-     *
-     * @return \DBD\Base\DBDConfig
-     * @throws \Exception
-     */
-    public function setCacheDriver($cacheDriver) {
-        if($cacheDriver instanceof \DBD\Cache || $cacheDriver instanceof \Psr\SimpleCache\CacheInterface) {
-            $this->cacheDriver = $cacheDriver;
+	/**
+	 * @return string
+	 */
+	public function getDatabase() {
+		return $this->database;
+	}
 
-            return $this;
-        }
+	/**
+	 * @return string
+	 */
+	public function getDsn() {
+		return $this->dsn;
+	}
 
-        throw new Exception("Unsupported caching interface. Extend DBD\\Cache or use PSR-16 Common Interface for Caching");
-    }
+	/**
+	 * @return string
+	 */
+	public function getIdentity() {
+		return $this->identity;
+	}
 
-    /**
-     * @return string
-     */
-    public function getDatabase() {
-        return $this->database;
-    }
+	/**
+	 * @return string
+	 */
+	public function getPassword() {
+		return $this->password;
+	}
 
-    /**
-     * @param string $database
-     *
-     * @return \DBD\Base\DBDConfig
-     */
-    public function setDatabase($database) {
-        $this->database = $database;
+	/**
+	 * @return int
+	 */
+	public function getPort() {
+		return $this->port;
+	}
 
-        return $this;
-    }
+	/**
+	 * @return string|null
+	 */
+	public function getUsername() {
+		return $this->username;
+	}
 
-    /**
-     * @return string
-     */
-    public function getDsn() {
-        return $this->dsn;
-    }
+	/**
+	 * @param Cache|CacheInterface $cacheDriver
+	 *
+	 * @return DBDConfig
+	 * @throws Exception
+	 */
+	public function setCacheDriver($cacheDriver) {
+		if($cacheDriver instanceof Cache || $cacheDriver instanceof CacheInterface) {
+			$this->cacheDriver = $cacheDriver;
 
-    /**
-     * @param string $dsn
-     *
-     * @return \DBD\Base\DBDConfig
-     */
-    public function setDsn($dsn) {
-        $this->dsn = $dsn;
+			return $this;
+		}
 
-        return $this;
-    }
+		throw new Exception("Unsupported caching interface. Extend DBD\\Cache or use PSR-16 Common Interface for Caching");
+	}
 
-    /**
-     * @return string
-     */
-    public function getIdentity() {
-        return $this->identity;
-    }
+	/**
+	 * @param string $database
+	 *
+	 * @return DBDConfig
+	 */
+	public function setDatabase($database) {
+		$this->database = $database;
 
-    /**
-     * @param string $identity
-     *
-     * @return \DBD\Base\DBDConfig
-     */
-    public function setIdentity($identity) {
-        $this->identity = $identity;
+		return $this;
+	}
 
-        return $this;
-    }
+	/**
+	 * @param string $dsn
+	 *
+	 * @return DBDConfig
+	 */
+	public function setDsn($dsn) {
+		$this->dsn = $dsn;
 
-    /**
-     * @return string
-     */
-    public function getPassword() {
-        return $this->password;
-    }
+		return $this;
+	}
 
-    /**
-     * @param string $password
-     *
-     * @return \DBD\Base\DBDConfig
-     */
-    public function setPassword($password) {
-        $this->password = $password;
+	/**
+	 * @param string $identity
+	 *
+	 * @return DBDConfig
+	 */
+	public function setIdentity($identity) {
+		$this->identity = $identity;
 
-        return $this;
-    }
+		return $this;
+	}
 
-    /**
-     * @return int
-     */
-    public function getPort() {
-        return $this->port;
-    }
+	/**
+	 * @param string $password
+	 *
+	 * @return DBDConfig
+	 */
+	public function setPassword($password) {
+		$this->password = $password;
 
-    /**
-     * @param int $port
-     *
-     * @return \DBD\Base\DBDConfig
-     */
-    public function setPort($port) {
-        $this->port = $port;
+		return $this;
+	}
 
-        return $this;
-    }
+	/**
+	 * @param int $port
+	 *
+	 * @return DBDConfig
+	 */
+	public function setPort($port) {
+		$this->port = $port;
 
-    /**
-     * @return string|null
-     */
-    public function getUsername() {
-        return $this->username;
-    }
+		return $this;
+	}
 
-    /**
-     * @param string $username
-     *
-     * @return \DBD\Base\DBDConfig
-     */
-    public function setUsername($username) {
-        $this->username = $username;
+	/**
+	 * @param string $username
+	 *
+	 * @return DBDConfig
+	 */
+	public function setUsername($username) {
+		$this->username = $username;
 
-        return $this;
-    }
+		return $this;
+	}
 }
