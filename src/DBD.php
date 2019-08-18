@@ -234,14 +234,15 @@ abstract class DBD
 	 * @throws Exception
 	 */
 	public function cache($key, $ttl = null) {
+		if(!isset($this->CacheDriver)) {
+			//throw new Exception("CacheDriver not initialized");
+			return;
+		}
 		if(!isset($key) or !$key) {
 			throw new Exception("caching failed: key is not set or empty");
 		}
 		if(!is_string($key)) {
 			throw new Exception("key is not string type");
-		}
-		if(!isset($this->CacheDriver)) {
-			throw new Exception("CacheDriver not initialized");
 		}
 		if(!isset($this->query)) {
 			throw new Exception("SQL statement not prepared");
