@@ -439,8 +439,7 @@ abstract class DBD
 					// To avoid errors as result by default is NULL
 					$this->result = "cached";
 					$this->storage = self::STORAGE_CACHE;
-					// FIXME: нужно определиться с форматом
-					$this->rows = is_iterable($this->cache['result']) ? count($this->cache['result']) : $this->cache['result'];
+					$this->rows = count($this->cache['result']);
 				}
 			}
 		}
@@ -604,8 +603,7 @@ abstract class DBD
 			return $this->_affectedRows();
 		}
 		else {
-			// FIXME: нужно определиться с форматом
-			return is_iterable($this->cache['result']) ? count($this->cache['result']) : $this->cache['result'];
+			return count($this->cache['result']);
 		}
 	}
 
