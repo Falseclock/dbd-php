@@ -253,9 +253,9 @@ class Pg extends DBD
 		if(!isset($value) or $value === null) {
 			return "NULL";
 		}
-		if(is_numeric($value)) {
+/*		if(is_numeric($value)) {
 			return $value;
-		}
+		}*/
 		if(is_bool($value)) {
 			return ($value) ? "TRUE" : "FALSE";
 		}
