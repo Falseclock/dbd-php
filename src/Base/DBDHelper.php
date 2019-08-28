@@ -32,6 +32,45 @@ use ReflectionException;
 final class DBDHelper
 {
 	/**
+	 * @param $context
+	 *
+	 * @return array
+	 * @throws ReflectionException
+	 */
+	final public static function caller($context) {
+		$return = [];
+		$debug = debug_backtrace();
+
+		// working directory
+		$wd = is_link($_SERVER["DOCUMENT_ROOT"]) ? readlink($_SERVER["DOCUMENT_ROOT"]) : $_SERVER["DOCUMENT_ROOT"];
+		$wd = str_replace(DIRECTORY_SEPARATOR, "/", $wd);
+
+		$myFilename = $debug[0]['file'];
+		$myFilename = str_replace(DIRECTORY_SEPARATOR, "/", $myFilename);
+		$myFilename = str_replace($wd, '', $myFilename);
+
+		$child = (new ReflectionClass($context))->getShortName();
+
+		foreach($debug as $ind => $call) {
+			// our filename
+			if(isset($call['file'])) {
+				$call['file'] = str_replace(DIRECTORY_SEPARATOR, "/", $call['file']);
+				$call['file'] = str_replace($wd, '', $call['file']);
+
+				if($myFilename != $call['file'] && !preg_match('/' . $child . '\.\w+$/', $call['file'])) {
+					$return[] = [
+						'file'     => $call['file'],
+						'line'     => $call['line'],
+						'function' => $call['function'],
+					];
+				}
+			}
+		}
+
+		return $return;
+	}
+
+	/**
 	 *
 	 * @param string $statement
 	 *
@@ -58,74 +97,14 @@ final class DBDHelper
 	}
 
 	/**
-	 * @param int|float $cost
-	 *
-	 * @param float     $maxExecutionTime
-	 *
-	 * @return int
-	 */
-	final public static function debugMark($cost, $maxExecutionTime = null) {
-		if(!isset($maxExecutionTime)) {
-			$maxExecutionTime = DBDDebug::$maxExecutionTime;
-		}
-
-		$value = floor($cost / $maxExecutionTime) + 1;
-
-		if($value > 6) {
-			return 6;
-		}
-
-		return $value;
-	}
-
-	/**
-	 * @param $ARGS
-	 *
-	 * @return array
-	 */
-	final public static function prepareArgs($ARGS) {
-		// Shift query from passed arguments. Query is always first
-		$statement = array_shift($ARGS);
-		// Build array of arguments
-		$args = self::parseArgs($ARGS);
-
-		return [
-			$statement,
-			$args,
-		];
-	}
-
-	/**
-	 * @param $ARGS
-	 *
-	 * @return array
-	 */
-	final public static function parseArgs($ARGS) {
-		$args = [];
-
-		foreach($ARGS as $arg) {
-			if(is_array($arg)) {
-				foreach($arg as $subArg) {
-					$args[] = $subArg;
-				}
-			}
-			else {
-				$args[] = $arg;
-			}
-		}
-
-		return $args;
-	}
-
-	/**
-	 * @param          $data
-	 *
-	 * @param DBD      $driver
+	 * @param            $data
+	 * @param DBD        $driver
+	 * @param DBDOptions $options
 	 *
 	 * @return array
 	 * @throws DBDPHPException
 	 */
-	final public static function compileInsertArgs($data, DBD $driver) {
+	final public static function compileInsertArgs($data, DBD $driver, DBDOptions $options) {
 
 		$className = get_class($driver);
 
@@ -133,7 +112,7 @@ final class DBDHelper
 		$values = [];
 		$args = [];
 
-		$defaultFormat = "?";
+		$defaultFormat = $options->getPlaceHolder();
 		$format = null;
 
 		if(defined("{$className}::CAST_FORMAT_INSERT")) {
@@ -173,18 +152,6 @@ final class DBDHelper
 			'VALUES'  => implode(", ", $values),
 			'ARGS'    => $args,
 		];
-	}
-
-	/**
-	 * Converts boolean to string value
-	 *
-	 * @param mixed $value
-	 */
-	private static function booleanToString(&$value) {
-
-		if(is_bool($value)) {
-			$value = ($value) ? 'TRUE' : 'FALSE';
-		}
 	}
 
 	/**
@@ -238,41 +205,74 @@ final class DBDHelper
 	}
 
 	/**
-	 * @param $context
+	 * @param int|float $cost
+	 *
+	 * @param float     $maxExecutionTime
+	 *
+	 * @return int
+	 */
+	final public static function debugMark($cost, $maxExecutionTime = null) {
+		if(!isset($maxExecutionTime)) {
+			$maxExecutionTime = DBDDebug::$maxExecutionTime;
+		}
+
+		$value = floor($cost / $maxExecutionTime) + 1;
+
+		if($value > 6) {
+			return 6;
+		}
+
+		return $value;
+	}
+
+	/**
+	 * @param $ARGS
 	 *
 	 * @return array
-	 * @throws ReflectionException
 	 */
-	final public static function caller($context) {
-		$return = [];
-		$debug = debug_backtrace();
+	final public static function parseArgs($ARGS) {
+		$args = [];
 
-		// working directory
-		$wd = is_link($_SERVER["DOCUMENT_ROOT"]) ? readlink($_SERVER["DOCUMENT_ROOT"]) : $_SERVER["DOCUMENT_ROOT"];
-		$wd = str_replace(DIRECTORY_SEPARATOR, "/", $wd);
-
-		$myFilename = $debug[0]['file'];
-		$myFilename = str_replace(DIRECTORY_SEPARATOR, "/", $myFilename);
-		$myFilename = str_replace($wd, '', $myFilename);
-
-		$child = (new ReflectionClass($context))->getShortName();
-
-		foreach($debug as $ind => $call) {
-			// our filename
-			if(isset($call['file'])) {
-				$call['file'] = str_replace(DIRECTORY_SEPARATOR, "/", $call['file']);
-				$call['file'] = str_replace($wd, '', $call['file']);
-
-				if($myFilename != $call['file'] && !preg_match('/' . $child . '\.\w+$/', $call['file'])) {
-					$return[] = [
-						'file'     => $call['file'],
-						'line'     => $call['line'],
-						'function' => $call['function'],
-					];
+		foreach($ARGS as $arg) {
+			if(is_array($arg)) {
+				foreach($arg as $subArg) {
+					$args[] = $subArg;
 				}
+			}
+			else {
+				$args[] = $arg;
 			}
 		}
 
-		return $return;
+		return $args;
+	}
+
+	/**
+	 * @param $ARGS
+	 *
+	 * @return array
+	 */
+	final public static function prepareArgs($ARGS) {
+		// Shift query from passed arguments. Query is always first
+		$statement = array_shift($ARGS);
+		// Build array of arguments
+		$args = self::parseArgs($ARGS);
+
+		return [
+			$statement,
+			$args,
+		];
+	}
+
+	/**
+	 * Converts boolean to string value
+	 *
+	 * @param mixed $value
+	 */
+	private static function booleanToString(&$value) {
+
+		if(is_bool($value)) {
+			$value = ($value) ? 'TRUE' : 'FALSE';
+		}
 	}
 }

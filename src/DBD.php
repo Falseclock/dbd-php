@@ -304,7 +304,7 @@ abstract class DBD
 		$this->result = false;
 		$this->fetch = self::UNDEFINED;
 		$this->storage = null;
-		$exec = $this->getExec(func_get_args());
+		$preparedQuery = $this->getPreparedQuery(func_get_args());
 
 		//--------------------------------------
 		// Is query uses cache?
@@ -336,7 +336,7 @@ abstract class DBD
 				Debug::me()->startTimer();
 			}
 			// Execute query to the database
-			$this->result = $this->_query($exec);
+			$this->result = $this->_query($preparedQuery);
 			$cost = Debug::me()->endTimer();
 
 			if($this->result !== false) {
@@ -344,7 +344,7 @@ abstract class DBD
 				$this->storage = self::STORAGE_DATABASE;
 			}
 			else {
-				throw new Exception ($this->_errorMessage(), $exec);
+				throw new Exception ($this->_errorMessage(), $preparedQuery);
 			}
 
 			// If query from cache
@@ -375,7 +375,7 @@ abstract class DBD
 		}
 
 		if($this->result === false) {
-			throw new Exception($this->_errorMessage(), $exec);
+			throw new Exception($this->_errorMessage(), $preparedQuery);
 		}
 
 		if($this->Options->isUseDebug()) {
@@ -384,7 +384,7 @@ abstract class DBD
 			$driver = $this->storage == self::STORAGE_CACHE ? self::STORAGE_CACHE : (new ReflectionClass($this))->getShortName();
 			$caller = DBDHelper::caller($this);
 
-			Debug::addQueries(new DBDQuery(DBDHelper::cleanSql($exec), $cost, $caller[0], DBDHelper::debugMark($cost), $driver));
+			Debug::addQueries(new DBDQuery(DBDHelper::cleanSql($preparedQuery), $cost, $caller[0], DBDHelper::debugMark($cost), $driver));
 			Debug::addTotalQueries(1);
 			Debug::addTotalCost($cost);
 		}
@@ -529,7 +529,7 @@ abstract class DBD
 	 * @throws ReflectionException
 	 */
 	public function insert($table, $args, $return = null) {
-		$params = DBDHelper::compileInsertArgs($args, $this);
+		$params = DBDHelper::compileInsertArgs($args, $this, $this->Options);
 
 		$sth = $this->prepare($this->_compileInsert($table, $params, $return));
 		$sth->execute($params['ARGS']);
@@ -727,7 +727,7 @@ abstract class DBD
 
 		if(func_num_args() > 2) {
 			$where = $ARGS[2];
-			$binds = substr_count($where, "?");
+			$binds = substr_count($where, $this->Options->getPlaceHolder());
 		}
 
 		// If we set $where with placeholders or we set $return
@@ -870,7 +870,7 @@ abstract class DBD
 	 * @see MySQL::_escape
 	 * @see OData::_escape
 	 *
-	 * @see getExec
+	 * @see getPreparedQuery
 	 * @see Pg::_escape
 	 */
 	abstract protected function _escape($value);
@@ -1011,17 +1011,19 @@ abstract class DBD
 	}
 
 	/**
+	 * TODO: set placeHolder to parameterised option
+	 *
 	 * @param $ARGS
 	 *
 	 * @return string
 	 * @throws Exception
 	 */
-	private function getExec($ARGS) {
-		$exec = $this->query;
-		$binds = substr_count($this->query, "?");
-		$args = DBDHelper::parseArgs($ARGS);
+	private function getPreparedQuery($ARGS) {
+		$preparedQuery = $this->query;
+		$binds = substr_count($this->query, $this->Options->getPlaceHolder());
+		$executeArguments = DBDHelper::parseArgs($ARGS);
 
-		$numberOfArgs = count($args);
+		$numberOfArgs = count($executeArguments);
 
 		if($binds != $numberOfArgs) {
 			throw new Exception("Execute failed: called with $numberOfArgs bind variables when $binds are needed", $this->query);
@@ -1030,14 +1032,21 @@ abstract class DBD
 		if($numberOfArgs) {
 			$query = str_split($this->query);
 
+			$placeholderPosition = 1;
 			foreach($query as $ind => $str) {
-				if($str == '?') {
-					$query[$ind] = $this->_escape(array_shift($args));
+				if($str == $this->Options->getPlaceHolder()) {
+					if($this->Options->isPrepareExecute()) {
+						$query[$ind] = "\${$placeholderPosition}";
+						$placeholderPosition++;
+					}
+					else {
+						$query[$ind] = $this->_escape(array_shift($executeArguments));
+					}
 				}
 			}
-			$exec = implode("", $query);
+			$preparedQuery = implode("", $query);
 		}
 
-		return $exec;
+		return $preparedQuery;
 	}
 }

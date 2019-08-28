@@ -305,7 +305,7 @@ class OData extends DBD
 
         if(func_num_args() > 2) {
             $where = $ARGS[2];
-            $binds = substr_count($where, "?");
+            $binds = substr_count($where, $this->Options->getPlaceHolder());
         }
         // If we set $where with placeholders or we set $return
         if(func_num_args() > 3) {
@@ -324,7 +324,7 @@ class OData extends DBD
             $request = str_split($url);
 
             foreach($request as $ind => $str) {
-                if($str == '?') {
+                if($str == $this->Options->getPlaceHolder()) {
                     $request[$ind] = "'" . array_shift($args) . "'";
                 }
             }
@@ -551,7 +551,7 @@ class OData extends DBD
 
     protected function prepareUrl($ARGS) {
         // Check and prepare args
-        $binds = substr_count($this->query, "?");
+        $binds = substr_count($this->query, $this->Options->getPlaceHolder());
         $args = DBDHelper::parseArgs($ARGS);
         $numargs = count($args);
 
@@ -568,7 +568,7 @@ class OData extends DBD
             $request = str_split($this->query);
 
             foreach($request as $ind => $str) {
-                if($str == '?') {
+                if($str == $this->Options->getPlaceHolder()) {
                     $request[$ind] = "'" . array_shift($args) . "'";
                 }
             }

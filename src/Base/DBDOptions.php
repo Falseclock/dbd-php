@@ -45,8 +45,10 @@ final class DBDOptions
 	private $UseDebug = false;
 	/** @var bool $PrepareExecute use real prepared and execute towards database */
 	private $PrepareExecute = false;
+	/** @var string $placeHolder */
+	private $placeHolder = "?";
 
-	public function __construct($OnDemand = null, $PrintError = null, $RaiseError = null, $ShowErrorStatement = null, $ConvertNumeric = null, $ConvertBoolean = null, $UseDebug = null, $PrepareExecute = null) {
+	public function __construct($OnDemand = null, $PrintError = null, $RaiseError = null, $ShowErrorStatement = null, $ConvertNumeric = null, $ConvertBoolean = null, $UseDebug = null, $PrepareExecute = null, $placeholder = null) {
 		if(isset($OnDemand))
 			$this->OnDemand = $OnDemand;
 
@@ -70,6 +72,16 @@ final class DBDOptions
 
 		if(isset($PrepareExecute))
 			$this->PrepareExecute = $PrepareExecute;
+
+		if(isset($placeholder))
+			$this->placeHolder = $placeholder;
+	}
+
+	/**
+	 * @return string
+	 */
+	public function getPlaceHolder() {
+		return $this->placeHolder;
 	}
 
 	/**
@@ -159,6 +171,13 @@ final class DBDOptions
 		$this->OnDemand = $OnDemand;
 
 		return $this;
+	}
+
+	/**
+	 * @param string $placeHolder
+	 */
+	public function setPlaceHolder($placeHolder) {
+		$this->placeHolder = $placeHolder;
 	}
 
 	/**
