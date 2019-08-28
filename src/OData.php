@@ -715,4 +715,26 @@ class OData extends DBD
 
         return $string;
     }
+
+	/**
+	 * @return mixed
+	 * @see MSSQL::_execute
+	 * @see MySQL::_execute
+	 * @see OData::_execute
+	 * @see Pg::_execute
+	 */
+	protected function _execute() {
+		// TODO: Implement _execute() method.
+	}
+
+	/**
+	 * @return mixed
+	 * @see MSSQL::_prepare
+	 * @see MySQL::_prepare
+	 * @see OData::_prepare
+	 * @see Pg::_prepare
+	 */
+	protected function _prepare() {
+		// TODO: Implement _prepare() method.
+	}
 }

@@ -140,17 +140,6 @@ abstract class DBD
 	}
 
 	/**
-	 * @return int number of updated or deleted rows
-	 * @see rows
-	 * @see Pg::_affectedRows
-	 * @see MSSQL::_affectedRows
-	 * @see MySQL::_affectedRows
-	 * @see OData::_affectedRows
-	 * @see affectedRows
-	 */
-	abstract protected function _affectedRows();
-
-	/**
 	 * Starts database transaction
 	 *
 	 * @return bool
@@ -169,55 +158,6 @@ abstract class DBD
 
 		return true;
 	}
-
-	/**
-	 * Check connection existence and do connection if not
-	 *
-	 * @return void
-	 */
-	private function connectionPreCheck() {
-		if(!$this->isConnected()) {
-			$this->_connect();
-		}
-	}
-
-	/**
-	 * @return bool true on success begin
-	 * @see Pg::_begin
-	 * @see MSSQL::_begin
-	 * @see MySQL::_begin
-	 * @see OData::_begin
-	 * @see begin
-	 */
-	abstract protected function _begin();
-
-	/**
-	 * @return string
-	 * @see MSSQL::_errorMessage
-	 * @see MySQL::_errorMessage
-	 * @see OData::_errorMessage
-	 * @see Pg::_errorMessage
-	 */
-	abstract protected function _errorMessage();
-
-	/**
-	 * Check whether connection is established or not
-	 *
-	 * @return bool true if var is a resource, false otherwise
-	 */
-	protected function isConnected() {
-		return is_resource($this->resourceLink);
-	}
-
-	/**
-	 * @return DBD
-	 * @see Pg::_connect
-	 * @see MSSQL::_connect
-	 * @see MySQL::_connect
-	 * @see OData::_connect
-	 * @see connectionPreCheck
-	 */
-	abstract protected function _connect();
 
 	/**
 	 * Must be called after statement prepare
@@ -286,14 +226,20 @@ abstract class DBD
 	}
 
 	/**
-	 * @return bool true on success commit
-	 * @see Pg::_commit
-	 * @see MSSQL::_commit
-	 * @see MySQL::_commit
-	 * @see OData::_commit
-	 * @see commit
+	 * Base and main method to start. Returns self instance of DBD driver
+	 *
+	 * ```
+	 * $db = (new DBD\Pg())->connect($config, $options);
+	 * ```
+	 *
+	 * @return $this
+	 * @see MSSQL::connect
+	 * @see MySQL::connect
+	 * @see OData::connect
+	 *
+	 * @see Pg::connect
 	 */
-	abstract protected function _commit();
+	abstract public function connect();
 
 	/**
 	 * Closes a database connection
@@ -312,16 +258,6 @@ abstract class DBD
 
 		return $this;
 	}
-
-	/**
-	 * @return bool true on successful disconnection
-	 * @see Pg::_disconnect
-	 * @see MSSQL::_disconnect
-	 * @see MySQL::_disconnect
-	 * @see OData::_disconnect
-	 * @see disconnect
-	 */
-	abstract protected function _disconnect();
 
 	/**
 	 * For simple SQL query, mostly delete or update, when you do not need to get results and only want to know affected rows
@@ -351,60 +287,8 @@ abstract class DBD
 		return $sth->rows;
 	}
 
-	/**
-	 * Like doit method, but return self instance
-	 *
-	 * Example 1:
-	 * ```
-	 * $sth = $db->query("SELECT * FROM invoices");
-	 * while ($row = $sth->fetchrow()) {
-	 *      //do something
-	 * }
-	 * ```
-	 *
-	 * Example 2:
-	 *
-	 * ```
-	 * $sth = $db->query("UPDATE invoices SET invoice_uuid=?",'550e8400-e29b-41d4-a716-446655440000');
-	 * echo($sth->affectedRows());
-	 * ```
-	 *
-	 * @return DBD
-	 * @throws Exception
-	 * @throws InvalidArgumentException
-	 * @throws ReflectionException
-	 */
-	public function query() {
-		if(!func_num_args())
-			throw new Exception("query failed: statement is not set or empty");
-
-		list ($statement, $args) = DBDHelper::prepareArgs(func_get_args());
-
-		$sth = $this->prepare($statement);
-
-		if(is_array($args)) {
-			$sth->execute($args);
-		}
-		else {
-			$sth->execute();
-		}
-
-		return $sth;
-	}
-
-	/**
-	 * Creates a prepared statement for later execution
-	 *
-	 * @param string $statement
-	 *
-	 * @return $this
-	 * @throws Exception
-	 */
-	public function prepare($statement) {
-		if(!isset($statement) or empty($statement))
-			throw new Exception("prepare failed: statement is not set or empty");
-
-		return $this->extendMe($this, $statement);
+	public function escape($string) {
+		return $this->_escape($string);
 	}
 
 	/**
@@ -509,101 +393,77 @@ abstract class DBD
 	}
 
 	/**
-	 * Copies object variables after extended class construction
-	 * FIXME: may be clone?
-	 *
-	 * @param DBD    $context
-	 * @param string $statement
-	 *
-	 * @return DBD
+	 * @return bool|mixed
 	 */
-	final private function extendMe(DBD $context, string $statement) {
+	public function fetch() {
+		if($this->fetch == self::UNDEFINED) {
 
-		$className = get_class($context);
+			if($this->cache['key'] === null) {
 
-		/** @var DBD $class */
-		$class = new $className($context->Config, $context->Options);
+				$return = $this->_fetchArray();
 
-		$class->Config = &$context->Config;
-		$class->Options = &$context->Options;
-		$class->resourceLink = &$context->resourceLink;
-		$class->CacheDriver = &$context->CacheDriver;
-		$class->inTransaction = &$context->inTransaction;
-		$class->query = $statement;
-
-		return $class;
-	}
-
-	/**
-	 * @param $ARGS
-	 *
-	 * @return string
-	 * @throws Exception
-	 */
-	private function getExec($ARGS) {
-		$exec = $this->query;
-		$binds = substr_count($this->query, "?");
-		$args = DBDHelper::parseArgs($ARGS);
-
-		$numberOfArgs = count($args);
-
-		if($binds != $numberOfArgs) {
-			throw new Exception("Execute failed: called with $numberOfArgs bind variables when $binds are needed", $this->query);
-		}
-
-		if($numberOfArgs) {
-			$query = str_split($this->query);
-
-			foreach($query as $ind => $str) {
-				if($str == '?') {
-					$query[$ind] = $this->_escape(array_shift($args));
+				if($this->Options->isConvertNumeric() || $this->Options->isConvertBoolean()) {
+					$return = $this->convertTypes($return, "row");
 				}
+
+				$this->fetch = $return;
 			}
-			$exec = implode("", $query);
+			else {
+				$this->fetch = array_shift($this->cache['result']);
+			}
+		}
+		if(!count($this->fetch)) {
+			return false;
 		}
 
-		return $exec;
+		return array_shift($this->fetch);
 	}
 
 	/**
-	 * @param $statement
-	 *
-	 * @return mixed
-	 * @see MSSQL::_query
-	 * @see MySQL::_query
-	 * @see OData::_query
-	 *
-	 * @see execute
-	 * @see Pg::_query
+	 * @return array
 	 */
-	abstract protected function _query($statement);
+	public function fetchArraySet() {
+		$array = [];
 
-	/**
-	 * @return mixed
-	 * @see rows
-	 * @see Pg::_numRows
-	 * @see MSSQL::_numRows
-	 * @see MySQL::_numRows
-	 * @see OData::_numRows
-	 * @see execute
-	 */
-	abstract protected function _numRows();
-
-	/**
-	 * Returns the number of rows in a database result resource.
-	 *
-	 * @return int
-	 */
-	public function rows() {
 		if($this->cache['key'] === null) {
-			if(preg_match("/^(\s*?)select\s*?.*?\s*?from/is", $this->query)) {
-				return $this->_numRows();
+			while($row = $this->fetchRow()) {
+				$entry = [];
+				foreach($row as $key => $value) {
+					$entry[] = $value;
+				}
+				$array[] = $entry;
 			}
-
-			return $this->_affectedRows();
 		}
 		else {
-			return count($this->cache['result']);
+			$cache = $this->cache['result'];
+			$this->cache['result'] = [];
+			foreach($cache as $row) {
+				$entry = [];
+				foreach($row as $key => $value) {
+					$entry[] = $value;
+				}
+				$array[] = $entry;
+			}
+		}
+
+		return $array;
+	}
+
+	/**
+	 * @return mixed
+	 */
+	public function fetchRow() {
+		if($this->cache['key'] === null) {
+			$return = $this->_fetchAssoc();
+
+			if($this->Options->isConvertNumeric() || $this->Options->isConvertBoolean()) {
+				return $this->convertTypes($return, "row");
+			}
+
+			return $return;
+		}
+		else {
+			return array_shift($this->cache['result']);
 		}
 	}
 
@@ -636,122 +496,6 @@ abstract class DBD
 			}
 			else {
 				$array = $cache;
-			}
-		}
-
-		return $array;
-	}
-
-	/**
-	 * @param $value
-	 *
-	 * @return mixed
-	 * @see MSSQL::_escape
-	 * @see MySQL::_escape
-	 * @see OData::_escape
-	 *
-	 * @see getExec
-	 * @see Pg::_escape
-	 */
-	abstract protected function _escape($value);
-
-	/**
-	 * @return mixed
-	 */
-	public function fetchRow() {
-		if($this->cache['key'] === null) {
-			$return = $this->_fetchAssoc();
-
-			if($this->Options->isConvertNumeric() || $this->Options->isConvertBoolean()) {
-				return $this->convertTypes($return, "row");
-			}
-
-			return $return;
-		}
-		else {
-			return array_shift($this->cache['result']);
-		}
-	}
-
-	/**
-	 * @return mixed
-	 * @see Pg::_fetchAssoc
-	 * @see MSSQL::_fetchAssoc
-	 * @see MySQL::_fetchAssoc
-	 * @see OData::_fetchAssoc
-	 * @see fetchRow
-	 */
-	abstract protected function _fetchAssoc();
-
-	/**
-	 * @param $data
-	 * @param $type
-	 *
-	 * @return mixed
-	 */
-	private function convertTypes(&$data, $type) {
-		if($this->Options->isConvertNumeric()) {
-			$this->_convertIntFloat($data, $type);
-		}
-		if($this->Options->isConvertBoolean()) {
-			$this->_convertBoolean($data, $type);
-		}
-
-		return $data;
-	}
-
-	/**
-	 * @param $data
-	 * @param $type
-	 *
-	 * @return mixed
-	 * @see MySQL::_convertIntFloat
-	 * @see OData::_convertIntFloat
-	 *
-	 * @see convertTypes
-	 * @see Pg::_convertIntFloat
-	 * @see MSSQL::_convertIntFloat
-	 */
-	abstract protected function _convertIntFloat(&$data, $type);
-
-	/**
-	 * @param $data
-	 * @param $type
-	 *
-	 * @return mixed
-	 * @see MySQL::_convertBoolean
-	 * @see OData::_convertBoolean
-	 *
-	 * @see convertTypes
-	 * @see Pg::_convertBoolean
-	 * @see MSSQL::_convertBoolean
-	 */
-	abstract protected function _convertBoolean(&$data, $type);
-
-	/**
-	 * @return array
-	 */
-	public function fetchArraySet() {
-		$array = [];
-
-		if($this->cache['key'] === null) {
-			while($row = $this->fetchRow()) {
-				$entry = [];
-				foreach($row as $key => $value) {
-					$entry[] = $value;
-				}
-				$array[] = $entry;
-			}
-		}
-		else {
-			$cache = $this->cache['result'];
-			$this->cache['result'] = [];
-			foreach($cache as $row) {
-				$entry = [];
-				foreach($row as $key => $value) {
-					$entry[] = $value;
-				}
-				$array[] = $entry;
 			}
 		}
 
@@ -794,19 +538,60 @@ abstract class DBD
 	}
 
 	/**
-	 * @param        $table
-	 * @param        $params
-	 * @param string $return
+	 * Creates a prepared statement for later execution
 	 *
-	 * @return mixed
-	 * @see OData::_compileInsert
+	 * @param string $statement
 	 *
-	 * @see insert
-	 * @see Pg::_compileInsert
-	 * @see MSSQL::_compileInsert
-	 * @see MySQL::_compileInsert
+	 * @return $this
+	 * @throws Exception
 	 */
-	abstract protected function _compileInsert($table, $params, $return = "");
+	public function prepare($statement) {
+		if(!isset($statement) or empty($statement))
+			throw new Exception("prepare failed: statement is not set or empty");
+
+		return $this->extendMe($this, $statement);
+	}
+
+	/**
+	 * Like doit method, but return self instance
+	 *
+	 * Example 1:
+	 * ```
+	 * $sth = $db->query("SELECT * FROM invoices");
+	 * while ($row = $sth->fetchrow()) {
+	 *      //do something
+	 * }
+	 * ```
+	 *
+	 * Example 2:
+	 *
+	 * ```
+	 * $sth = $db->query("UPDATE invoices SET invoice_uuid=?",'550e8400-e29b-41d4-a716-446655440000');
+	 * echo($sth->affectedRows());
+	 * ```
+	 *
+	 * @return DBD
+	 * @throws Exception
+	 * @throws InvalidArgumentException
+	 * @throws ReflectionException
+	 */
+	public function query() {
+		if(!func_num_args())
+			throw new Exception("query failed: statement is not set or empty");
+
+		list ($statement, $args) = DBDHelper::prepareArgs(func_get_args());
+
+		$sth = $this->prepare($statement);
+
+		if(is_array($args)) {
+			$sth->execute($args);
+		}
+		else {
+			$sth->execute();
+		}
+
+		return $sth;
+	}
 
 	/**
 	 * Rolls back a transaction that was begun
@@ -832,14 +617,22 @@ abstract class DBD
 	}
 
 	/**
-	 * @return bool true on successful rollback
-	 * @see Pg::_rollback
-	 * @see MSSQL::_rollback
-	 * @see MySQL::_rollback
-	 * @see OData::_rollback
-	 * @see rollback
+	 * Returns the number of rows in a database result resource.
+	 *
+	 * @return int
 	 */
-	abstract protected function _rollback();
+	public function rows() {
+		if($this->cache['key'] === null) {
+			if(preg_match("/^(\s*?)select\s*?.*?\s*?from/is", $this->query)) {
+				return $this->_numRows();
+			}
+
+			return $this->_affectedRows();
+		}
+		else {
+			return count($this->cache['result']);
+		}
+	}
 
 	/**
 	 * @return bool|mixed
@@ -857,47 +650,6 @@ abstract class DBD
 		}
 
 		return null;
-	}
-
-	/**
-	 * @return bool|mixed
-	 */
-	public function fetch() {
-		if($this->fetch == self::UNDEFINED) {
-
-			if($this->cache['key'] === null) {
-
-				$return = $this->_fetchArray();
-
-				if($this->Options->isConvertNumeric() || $this->Options->isConvertBoolean()) {
-					$return = $this->convertTypes($return, "row");
-				}
-
-				$this->fetch = $return;
-			}
-			else {
-				$this->fetch = array_shift($this->cache['result']);
-			}
-		}
-		if(!count($this->fetch)) {
-			return false;
-		}
-
-		return array_shift($this->fetch);
-	}
-
-	/**
-	 * @return mixed
-	 * @see Pg::_fetchArray
-	 * @see MSSQL::_fetchArray
-	 * @see MySQL::_fetchArray
-	 * @see OData::_fetchArray
-	 * @see fetch
-	 */
-	abstract protected function _fetchArray();
-
-	public function escape($string) {
-		return $this->_escape($string);
 	}
 
 	/**
@@ -992,6 +744,52 @@ abstract class DBD
 	}
 
 	/**
+	 * @return int number of updated or deleted rows
+	 * @see rows
+	 * @see Pg::_affectedRows
+	 * @see MSSQL::_affectedRows
+	 * @see MySQL::_affectedRows
+	 * @see OData::_affectedRows
+	 * @see affectedRows
+	 */
+	abstract protected function _affectedRows();
+
+	/**
+	 * @return bool true on success begin
+	 * @see Pg::_begin
+	 * @see MSSQL::_begin
+	 * @see MySQL::_begin
+	 * @see OData::_begin
+	 * @see begin
+	 */
+	abstract protected function _begin();
+
+	/**
+	 * @return bool true on success commit
+	 * @see Pg::_commit
+	 * @see MSSQL::_commit
+	 * @see MySQL::_commit
+	 * @see OData::_commit
+	 * @see commit
+	 */
+	abstract protected function _commit();
+
+	/**
+	 * @param        $table
+	 * @param        $params
+	 * @param string $return
+	 *
+	 * @return mixed
+	 * @see OData::_compileInsert
+	 *
+	 * @see insert
+	 * @see Pg::_compileInsert
+	 * @see MSSQL::_compileInsert
+	 * @see MySQL::_compileInsert
+	 */
+	abstract protected function _compileInsert($table, $params, $return = "");
+
+	/**
 	 * @param        $table
 	 * @param        $params
 	 * @param        $where
@@ -1008,18 +806,238 @@ abstract class DBD
 	abstract protected function _compileUpdate($table, $params, $where, $return = "");
 
 	/**
-	 * Base and main method to start. Returns self instance of DBD driver
-	 *
-	 * ```
-	 * $db = (new DBD\Pg())->connect($config, $options);
-	 * ```
-	 *
-	 * @return $this
-	 * @see MSSQL::connect
-	 * @see MySQL::connect
-	 * @see OData::connect
-	 *
-	 * @see Pg::connect
+	 * @return DBD
+	 * @see Pg::_connect
+	 * @see MSSQL::_connect
+	 * @see MySQL::_connect
+	 * @see OData::_connect
+	 * @see connectionPreCheck
 	 */
-	abstract public function connect();
+	abstract protected function _connect();
+
+	/**
+	 * @param $data
+	 * @param $type
+	 *
+	 * @return mixed
+	 * @see MySQL::_convertBoolean
+	 * @see OData::_convertBoolean
+	 *
+	 * @see convertTypes
+	 * @see Pg::_convertBoolean
+	 * @see MSSQL::_convertBoolean
+	 */
+	abstract protected function _convertBoolean(&$data, $type);
+
+	/**
+	 * @param $data
+	 * @param $type
+	 *
+	 * @return mixed
+	 * @see MySQL::_convertIntFloat
+	 * @see OData::_convertIntFloat
+	 *
+	 * @see convertTypes
+	 * @see Pg::_convertIntFloat
+	 * @see MSSQL::_convertIntFloat
+	 */
+	abstract protected function _convertIntFloat(&$data, $type);
+
+	/**
+	 * @return bool true on successful disconnection
+	 * @see Pg::_disconnect
+	 * @see MSSQL::_disconnect
+	 * @see MySQL::_disconnect
+	 * @see OData::_disconnect
+	 * @see disconnect
+	 */
+	abstract protected function _disconnect();
+
+	/**
+	 * @return string
+	 * @see MSSQL::_errorMessage
+	 * @see MySQL::_errorMessage
+	 * @see OData::_errorMessage
+	 * @see Pg::_errorMessage
+	 */
+	abstract protected function _errorMessage();
+
+	/**
+	 * @param $value
+	 *
+	 * @return mixed
+	 * @see MSSQL::_escape
+	 * @see MySQL::_escape
+	 * @see OData::_escape
+	 *
+	 * @see getExec
+	 * @see Pg::_escape
+	 */
+	abstract protected function _escape($value);
+
+	/**
+	 * @return mixed
+	 * @see MSSQL::_execute
+	 * @see MySQL::_execute
+	 * @see OData::_execute
+	 * @see Pg::_execute
+	 */
+	abstract protected function _execute();
+
+	/**
+	 * @return mixed
+	 * @see Pg::_fetchArray
+	 * @see MSSQL::_fetchArray
+	 * @see MySQL::_fetchArray
+	 * @see OData::_fetchArray
+	 * @see fetch
+	 */
+	abstract protected function _fetchArray();
+
+	/**
+	 * @return mixed
+	 * @see Pg::_fetchAssoc
+	 * @see MSSQL::_fetchAssoc
+	 * @see MySQL::_fetchAssoc
+	 * @see OData::_fetchAssoc
+	 * @see fetchRow
+	 */
+	abstract protected function _fetchAssoc();
+
+	/**
+	 * @return mixed
+	 * @see rows
+	 * @see Pg::_numRows
+	 * @see MSSQL::_numRows
+	 * @see MySQL::_numRows
+	 * @see OData::_numRows
+	 * @see execute
+	 */
+	abstract protected function _numRows();
+
+	/**
+	 * @return mixed
+	 * @see MSSQL::_prepare
+	 * @see MySQL::_prepare
+	 * @see OData::_prepare
+	 * @see Pg::_prepare
+	 */
+	abstract protected function _prepare();
+
+	/**
+	 * @param $statement
+	 *
+	 * @return mixed
+	 * @see MSSQL::_query
+	 * @see MySQL::_query
+	 * @see OData::_query
+	 *
+	 * @see execute
+	 * @see Pg::_query
+	 */
+	abstract protected function _query($statement);
+
+	/**
+	 * @return bool true on successful rollback
+	 * @see Pg::_rollback
+	 * @see MSSQL::_rollback
+	 * @see MySQL::_rollback
+	 * @see OData::_rollback
+	 * @see rollback
+	 */
+	abstract protected function _rollback();
+
+	/**
+	 * Check whether connection is established or not
+	 *
+	 * @return bool true if var is a resource, false otherwise
+	 */
+	protected function isConnected() {
+		return is_resource($this->resourceLink);
+	}
+
+	/**
+	 * Check connection existence and do connection if not
+	 *
+	 * @return void
+	 */
+	private function connectionPreCheck() {
+		if(!$this->isConnected()) {
+			$this->_connect();
+		}
+	}
+
+	/**
+	 * @param $data
+	 * @param $type
+	 *
+	 * @return mixed
+	 */
+	private function convertTypes(&$data, $type) {
+		if($this->Options->isConvertNumeric()) {
+			$this->_convertIntFloat($data, $type);
+		}
+		if($this->Options->isConvertBoolean()) {
+			$this->_convertBoolean($data, $type);
+		}
+
+		return $data;
+	}
+
+	/**
+	 * Copies object variables after extended class construction
+	 * FIXME: may be clone?
+	 *
+	 * @param DBD    $context
+	 * @param string $statement
+	 *
+	 * @return DBD
+	 */
+	final private function extendMe(DBD $context, string $statement) {
+
+		$className = get_class($context);
+
+		/** @var DBD $class */
+		$class = new $className($context->Config, $context->Options);
+
+		$class->Config = &$context->Config;
+		$class->Options = &$context->Options;
+		$class->resourceLink = &$context->resourceLink;
+		$class->CacheDriver = &$context->CacheDriver;
+		$class->inTransaction = &$context->inTransaction;
+		$class->query = $statement;
+
+		return $class;
+	}
+
+	/**
+	 * @param $ARGS
+	 *
+	 * @return string
+	 * @throws Exception
+	 */
+	private function getExec($ARGS) {
+		$exec = $this->query;
+		$binds = substr_count($this->query, "?");
+		$args = DBDHelper::parseArgs($ARGS);
+
+		$numberOfArgs = count($args);
+
+		if($binds != $numberOfArgs) {
+			throw new Exception("Execute failed: called with $numberOfArgs bind variables when $binds are needed", $this->query);
+		}
+
+		if($numberOfArgs) {
+			$query = str_split($this->query);
+
+			foreach($query as $ind => $str) {
+				if($str == '?') {
+					$query[$ind] = $this->_escape(array_shift($args));
+				}
+			}
+			$exec = implode("", $query);
+		}
+
+		return $exec;
+	}
 }

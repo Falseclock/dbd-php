@@ -38,6 +38,30 @@ class Pg extends DBD
 	const CAST_FORMAT_UPDATE = "%s = ?::%s";
 
 	/**
+	 * Setup connection to the resource
+	 *
+	 * @return Pg
+	 * @throws Exception
+	 */
+	public function connect() {
+
+		$dsn = "host={$this->Config->getDsn()} ";
+		$dsn .= "dbname={$this->Config->getDatabase()} ";
+		$dsn .= $this->Config->getUsername() ? "user={$this->Config->getUsername()} " : "";
+		$dsn .= $this->Config->getPassword() ? "password={$this->Config->getPassword()} " : "";
+		$dsn .= $this->Config->getPort() ? "port={$this->Config->getPort()} " : "";
+		$dsn .= "application_name={$this->Config->getIdentity()} ";
+
+		$this->Config->setDsn($dsn);
+
+		if($this->Options->isOnDemand() === false) {
+			$this->_connect();
+		}
+
+		return $this;
+	}
+
+	/**
 	 * returns the number of tuples (instances/records/rows) affected by INSERT, UPDATE, and DELETE queries.
 	 *
 	 * @return int
@@ -253,15 +277,26 @@ class Pg extends DBD
 		if(!isset($value) or $value === null) {
 			return "NULL";
 		}
-/*		if(is_numeric($value)) {
-			return $value;
-		}*/
+		/*		if(is_numeric($value)) {
+					return $value;
+				}*/
 		if(is_bool($value)) {
 			return ($value) ? "TRUE" : "FALSE";
 		}
 		$str = pg_escape_string($value);
 
 		return "'$str'";
+	}
+
+	/**
+	 * @return mixed
+	 * @see MSSQL::_execute
+	 * @see MySQL::_execute
+	 * @see OData::_execute
+	 * @see Pg::_execute
+	 */
+	protected function _execute() {
+		// TODO: Implement _execute() method.
 	}
 
 	/**
@@ -292,6 +327,17 @@ class Pg extends DBD
 	}
 
 	/**
+	 * @return mixed
+	 * @see MSSQL::_prepare
+	 * @see MySQL::_prepare
+	 * @see OData::_prepare
+	 * @see Pg::_prepare
+	 */
+	protected function _prepare() {
+		// TODO: Implement _prepare() method.
+	}
+
+	/**
 	 * Executes the query on the specified database connection.
 	 *
 	 * @param $statement
@@ -314,29 +360,5 @@ class Pg extends DBD
 	 */
 	protected function _rollback() {
 		return $this->_query("ROLLBACK;");
-	}
-
-	/**
-	 * Setup connection to the resource
-	 *
-	 * @return Pg
-	 * @throws Exception
-	 */
-	public function connect() {
-
-		$dsn = "host={$this->Config->getDsn()} ";
-		$dsn .= "dbname={$this->Config->getDatabase()} ";
-		$dsn .= $this->Config->getUsername() ? "user={$this->Config->getUsername()} " : "";
-		$dsn .= $this->Config->getPassword() ? "password={$this->Config->getPassword()} " : "";
-		$dsn .= $this->Config->getPort() ? "port={$this->Config->getPort()} " : "";
-		$dsn .= "application_name={$this->Config->getIdentity()} ";
-
-		$this->Config->setDsn($dsn);
-
-		if($this->Options->isOnDemand() === false) {
-			$this->_connect();
-		}
-
-		return $this;
 	}
 }
