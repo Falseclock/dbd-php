@@ -89,6 +89,8 @@ abstract class DBD
 	private $storage;
 	/** @var bool $inTransaction Stores current transaction state */
 	private $inTransaction = false;
+	/** @var array $preparedStatements */
+	private static $preparedStatements = [];
 
 	/**
 	 * DBD constructor.
@@ -304,7 +306,8 @@ abstract class DBD
 		$this->result = false;
 		$this->fetch = self::UNDEFINED;
 		$this->storage = null;
-		$preparedQuery = $this->getPreparedQuery(func_get_args());
+		$executeArguments = func_get_args();
+		$preparedQuery = $this->getPreparedQuery($executeArguments);
 
 		//--------------------------------------
 		// Is query uses cache?
@@ -335,8 +338,20 @@ abstract class DBD
 			if($this->Options->isUseDebug()) {
 				Debug::me()->startTimer();
 			}
-			// Execute query to the database
-			$this->result = $this->_query($preparedQuery);
+			if($this->Options->isPrepareExecute()) {
+				$uniqueName = crc32($preparedQuery);
+
+				if(!in_array($uniqueName, self::$preparedStatements)) {
+					self::$preparedStatements[] = $uniqueName;
+					$this->_prepare($uniqueName, $preparedQuery);
+				}
+
+				$this->result = $this->_execute($uniqueName, DBDHelper::parseArgs($executeArguments));
+			}
+			else {
+				// Execute query to the database
+				$this->result = $this->_query($preparedQuery);
+			}
 			$cost = Debug::me()->endTimer();
 
 			if($this->result !== false) {
@@ -384,7 +399,7 @@ abstract class DBD
 			$driver = $this->storage == self::STORAGE_CACHE ? self::STORAGE_CACHE : (new ReflectionClass($this))->getShortName();
 			$caller = DBDHelper::caller($this);
 
-			Debug::addQueries(new DBDQuery(DBDHelper::cleanSql($preparedQuery), $cost, $caller[0], DBDHelper::debugMark($cost), $driver));
+			Debug::addQueries(new DBDQuery(DBDHelper::cleanSql($this->getPreparedQuery($executeArguments, true)), $cost, $caller[0], DBDHelper::debugMark($cost), $driver));
 			Debug::addTotalQueries(1);
 			Debug::addTotalCost($cost);
 		}
@@ -876,13 +891,16 @@ abstract class DBD
 	abstract protected function _escape($value);
 
 	/**
+	 * @param $uniqueName
+	 * @param $arguments
+	 *
 	 * @return mixed
 	 * @see MSSQL::_execute
 	 * @see MySQL::_execute
 	 * @see OData::_execute
 	 * @see Pg::_execute
 	 */
-	abstract protected function _execute();
+	abstract protected function _execute($uniqueName, $arguments);
 
 	/**
 	 * @return mixed
@@ -916,13 +934,17 @@ abstract class DBD
 	abstract protected function _numRows();
 
 	/**
+	 * @param string $uniqueName
+	 *
+	 * @param string $statement
+	 *
 	 * @return mixed
 	 * @see MSSQL::_prepare
 	 * @see MySQL::_prepare
 	 * @see OData::_prepare
 	 * @see Pg::_prepare
 	 */
-	abstract protected function _prepare();
+	abstract protected function _prepare($uniqueName, $statement);
 
 	/**
 	 * @param $statement
@@ -1011,14 +1033,14 @@ abstract class DBD
 	}
 
 	/**
-	 * TODO: set placeHolder to parameterised option
+	 * @param      $ARGS
 	 *
-	 * @param $ARGS
+	 * @param bool $overrideOption
 	 *
 	 * @return string
 	 * @throws Exception
 	 */
-	private function getPreparedQuery($ARGS) {
+	private function getPreparedQuery($ARGS, $overrideOption = false) {
 		$preparedQuery = $this->query;
 		$binds = substr_count($this->query, $this->Options->getPlaceHolder());
 		$executeArguments = DBDHelper::parseArgs($ARGS);
@@ -1035,7 +1057,7 @@ abstract class DBD
 			$placeholderPosition = 1;
 			foreach($query as $ind => $str) {
 				if($str == $this->Options->getPlaceHolder()) {
-					if($this->Options->isPrepareExecute()) {
+					if($this->Options->isPrepareExecute() and !$overrideOption) {
 						$query[$ind] = "\${$placeholderPosition}";
 						$placeholderPosition++;
 					}

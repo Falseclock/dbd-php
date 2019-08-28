@@ -289,14 +289,17 @@ class Pg extends DBD
 	}
 
 	/**
+	 * @param $uniqueName
+	 * @param $arguments
+	 *
 	 * @return mixed
 	 * @see MSSQL::_execute
 	 * @see MySQL::_execute
 	 * @see OData::_execute
 	 * @see Pg::_execute
 	 */
-	protected function _execute() {
-		// TODO: Implement _execute() method.
+	protected function _execute($uniqueName, $arguments) {
+		return @pg_execute($this->resourceLink, $uniqueName, $arguments);
 	}
 
 	/**
@@ -327,14 +330,24 @@ class Pg extends DBD
 	}
 
 	/**
+	 * @param $uniqueName
+	 *
+	 * @param $statement
+	 *
 	 * @return mixed
+	 * @throws Exception
 	 * @see MSSQL::_prepare
 	 * @see MySQL::_prepare
 	 * @see OData::_prepare
 	 * @see Pg::_prepare
 	 */
-	protected function _prepare() {
-		// TODO: Implement _prepare() method.
+	protected function _prepare($uniqueName, $statement) {
+		$prepare = @pg_prepare($this->resourceLink, $uniqueName, $statement);
+		if($prepare === false) {
+			throw new Exception("Can't prepare statement");
+		}
+
+		return $prepare;
 	}
 
 	/**
@@ -345,12 +358,7 @@ class Pg extends DBD
 	 * @return resource|bool
 	 */
 	protected function _query($statement) {
-		try {
-			return @pg_query($this->resourceLink, $statement);
-		}
-		catch(\Exception $e) {
-			return false;
-		}
+		return @pg_query($this->resourceLink, $statement);
 	}
 
 	/**
