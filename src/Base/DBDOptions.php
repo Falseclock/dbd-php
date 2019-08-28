@@ -25,200 +25,213 @@
 
 namespace DBD\Base;
 
+use Exception;
+
 final class DBDOptions
 {
-    /** @var bool $OnDemand */
-    private $OnDemand = false;
-    /** @var bool $PrintError */
-    private $PrintError = true;
-    /** @var bool $RaiseError */
-    private $RaiseError = true;
-    /** @var bool $ShowErrorStatement */
-    private $ShowErrorStatement = false;
-    /** @var bool $ConvertNumeric */
-    private $ConvertNumeric = false;
-    /** @var bool $ConvertBoolean */
-    private $ConvertBoolean = false;
-    /** @var bool $UseDebug */
-    private $UseDebug = false;
+	/** @var bool $OnDemand */
+	private $OnDemand = false;
+	/** @var bool $PrintError */
+	private $PrintError = true;
+	/** @var bool $RaiseError */
+	private $RaiseError = true;
+	/** @var bool $ShowErrorStatement */
+	private $ShowErrorStatement = false;
+	/** @var bool $ConvertNumeric */
+	private $ConvertNumeric = false;
+	/** @var bool $ConvertBoolean */
+	private $ConvertBoolean = false;
+	/** @var bool $UseDebug */
+	private $UseDebug = false;
+	/** @var bool $PrepareExecute use real prepared and execute towards database */
+	private $PrepareExecute = false;
 
-    public function __construct(
-        $OnDemand = null,
-        $PrintError = null,
-        $RaiseError = null,
-        $ShowErrorStatement = null,
-        $ConvertNumeric = null,
-        $ConvertBoolean = null,
-        $UseDebug = null
-    ) {
-        if(isset($OnDemand))
-            $this->OnDemand = $OnDemand;
+	public function __construct($OnDemand = null, $PrintError = null, $RaiseError = null, $ShowErrorStatement = null, $ConvertNumeric = null, $ConvertBoolean = null, $UseDebug = null, $PrepareExecute = null) {
+		if(isset($OnDemand))
+			$this->OnDemand = $OnDemand;
 
-        if(isset($PrintError))
-            $this->PrintError = $PrintError;
+		if(isset($PrintError))
+			$this->PrintError = $PrintError;
 
-        if(isset($RaiseError))
-            $this->RaiseError = $RaiseError;
+		if(isset($RaiseError))
+			$this->RaiseError = $RaiseError;
 
-        if(isset($ShowErrorStatement))
-            $this->ShowErrorStatement = $ShowErrorStatement;
+		if(isset($ShowErrorStatement))
+			$this->ShowErrorStatement = $ShowErrorStatement;
 
-        if(isset($ConvertNumeric))
-            $this->ConvertNumeric = $ConvertNumeric;
+		if(isset($ConvertNumeric))
+			$this->ConvertNumeric = $ConvertNumeric;
 
-        if(isset($ConvertBoolean))
-            $this->ConvertBoolean = $ConvertBoolean;
+		if(isset($ConvertBoolean))
+			$this->ConvertBoolean = $ConvertBoolean;
 
-        if(isset($UseDebug))
-            $this->UseDebug = $UseDebug;
-    }
+		if(isset($UseDebug))
+			$this->UseDebug = $UseDebug;
 
-    /**
-     * @return bool
-     */
-    public function isConvertBoolean() {
-        return $this->ConvertBoolean;
-    }
+		if(isset($PrepareExecute))
+			$this->PrepareExecute = $PrepareExecute;
+	}
 
-    /**
-     * @param bool $ConvertBoolean
-     *
-     * @return \DBD\Base\DBDOptions
-     */
-    public function setConvertBoolean($ConvertBoolean) {
-        $this->ConvertBoolean = $ConvertBoolean;
+	/**
+	 * @return bool
+	 */
+	public function isConvertBoolean() {
+		return $this->ConvertBoolean;
+	}
 
-        return $this;
-    }
+	/**
+	 * @return bool
+	 */
+	public function isConvertNumeric() {
+		return $this->ConvertNumeric;
+	}
 
-    /**
-     * @return bool
-     */
-    public function isConvertNumeric() {
-        return $this->ConvertNumeric;
-    }
+	/**
+	 * @return bool
+	 */
+	public function isOnDemand() {
+		return $this->OnDemand;
+	}
 
-    /**
-     * @param bool $ConvertNumeric
-     *
-     * @return \DBD\Base\DBDOptions
-     */
-    public function setConvertNumeric($ConvertNumeric) {
-        $this->ConvertNumeric = $ConvertNumeric;
+	/**
+	 * @return bool
+	 */
+	public function isPrepareExecute() {
+		return $this->PrepareExecute;
+	}
 
-        return $this;
-    }
+	/**
+	 * @return bool
+	 */
+	public function isPrintError() {
+		return $this->PrintError;
+	}
 
-    /**
-     * @return bool
-     */
-    public function isOnDemand() {
-        return $this->OnDemand;
-    }
+	/**
+	 * @return bool
+	 */
+	public function isRaiseError() {
+		return $this->RaiseError;
+	}
 
-    /**
-     * @param bool $OnDemand
-     *
-     * @return \DBD\Base\DBDOptions
-     */
-    public function setOnDemand($OnDemand) {
-        $this->OnDemand = $OnDemand;
+	/**
+	 * @return bool
+	 */
+	public function isShowErrorStatement() {
+		return $this->ShowErrorStatement;
+	}
 
-        return $this;
-    }
+	/**
+	 * @return bool
+	 */
+	public function isUseDebug() {
+		return $this->UseDebug;
+	}
 
-    /**
-     * @return bool
-     */
-    public function isPrintError() {
-        return $this->PrintError;
-    }
+	/**
+	 * @param bool $ConvertBoolean
+	 *
+	 * @return DBDOptions
+	 */
+	public function setConvertBoolean($ConvertBoolean) {
+		$this->ConvertBoolean = $ConvertBoolean;
 
-    /**
-     * @param bool $PrintError
-     *
-     * @return \DBD\Base\DBDOptions
-     */
-    public function setPrintError($PrintError) {
-        $this->PrintError = $PrintError;
+		return $this;
+	}
 
-        return $this;
-    }
+	/**
+	 * @param bool $ConvertNumeric
+	 *
+	 * @return DBDOptions
+	 */
+	public function setConvertNumeric($ConvertNumeric) {
+		$this->ConvertNumeric = $ConvertNumeric;
 
-    /**
-     * @return bool
-     */
-    public function isRaiseError() {
-        return $this->RaiseError;
-    }
+		return $this;
+	}
 
-    /**
-     * @param bool $RaiseError
-     *
-     * @return \DBD\Base\DBDOptions
-     */
-    public function setRaiseError($RaiseError) {
-        $this->RaiseError = $RaiseError;
+	/**
+	 * @param bool $OnDemand
+	 *
+	 * @return DBDOptions
+	 */
+	public function setOnDemand($OnDemand) {
+		$this->OnDemand = $OnDemand;
 
-        return $this;
-    }
+		return $this;
+	}
 
-    /**
-     * @return bool
-     */
-    public function isShowErrorStatement() {
-        return $this->ShowErrorStatement;
-    }
+	/**
+	 * @param bool $PrepareExecute
+	 */
+	public function setPrepareExecute($PrepareExecute) {
+		$this->PrepareExecute = $PrepareExecute;
+	}
 
-    /**
-     * @param bool $ShowErrorStatement
-     *
-     * @return \DBD\Base\DBDOptions
-     */
-    public function setShowErrorStatement($ShowErrorStatement) {
-        $this->ShowErrorStatement = $ShowErrorStatement;
+	/**
+	 * @param bool $PrintError
+	 *
+	 * @return DBDOptions
+	 */
+	public function setPrintError($PrintError) {
+		$this->PrintError = $PrintError;
 
-        return $this;
-    }
+		return $this;
+	}
 
-    /**
-     * @return bool
-     */
-    public function isUseDebug() {
-        return $this->UseDebug;
-    }
+	/**
+	 * @param bool $RaiseError
+	 *
+	 * @return DBDOptions
+	 */
+	public function setRaiseError($RaiseError) {
+		$this->RaiseError = $RaiseError;
 
-    /**
-     * @param bool $UseDebug
-     *
-     * @return \DBD\Base\DBDOptions
-     */
-    public function setUseDebug($UseDebug) {
-        $this->UseDebug = $UseDebug;
+		return $this;
+	}
 
-        return $this;
-    }
+	/**
+	 * @param bool $ShowErrorStatement
+	 *
+	 * @return DBDOptions
+	 */
+	public function setShowErrorStatement($ShowErrorStatement) {
+		$this->ShowErrorStatement = $ShowErrorStatement;
 
-    /**
-     * @param array|\DBD\Base\DBDOptions|null $options
-     *
-     * @throws \Exception
-     */
-    public function setup($options = null) {
-        if(isset($options)) {
-            if(is_array($options)) {
-                foreach($options as $key => $value) {
-                    if(property_exists($this, $key)) {
-                        $this->$key = $value;
-                    }
-                    else {
-                        throw new \Exception("Unknown option '{$key}' provided");
-                    }
-                }
-            }
-            else {
-                throw new \Exception("DBDOptions should be constructed with array");
-            }
-        }
-    }
+		return $this;
+	}
+
+	/**
+	 * @param bool $UseDebug
+	 *
+	 * @return DBDOptions
+	 */
+	public function setUseDebug($UseDebug) {
+		$this->UseDebug = $UseDebug;
+
+		return $this;
+	}
+
+	/**
+	 * @param array|DBDOptions|null $options
+	 *
+	 * @throws Exception
+	 */
+	public function setup($options = null) {
+		if(isset($options)) {
+			if(is_array($options)) {
+				foreach($options as $key => $value) {
+					if(property_exists($this, $key)) {
+						$this->$key = $value;
+					}
+					else {
+						throw new Exception("Unknown option '{$key}' provided");
+					}
+				}
+			}
+			else {
+				throw new Exception("DBDOptions should be constructed with array");
+			}
+		}
+	}
 }
