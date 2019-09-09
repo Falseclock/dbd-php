@@ -27,9 +27,10 @@
     }
   ],
   "require":     {
-    "php":                   "^5.4 || ^7.0",
-    "psr/simple-cache":      "*",
-    "openlss/lib-array2xml": "0.5.*"
+    "php":                       "^5.4 || ^7.0",
+    "psr/simple-cache":          "*",
+    "openlss/lib-array2xml":     "0.5.*",
+    "falseclock/dbd-php-common": "^1.0"
   },
   "require-dev": {
     "ext-pgsql":  "*",

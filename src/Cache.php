@@ -25,143 +25,142 @@
 
 namespace DBD;
 
-use DBD\Base\DBDPHPInstantiatable;
-use DBD\Base\DBDPHPSingleton;
+use Falseclock\DBD\Common\Singleton;
 use Psr\SimpleCache\CacheInterface;
 
-abstract class Cache extends DBDPHPSingleton implements DBDPHPInstantiatable, CacheInterface
+abstract class Cache extends Singleton implements CacheInterface
 {
-    const DEFAULT_TTL = 10;
-    /** @var bool $useCompression if caching server supports compression */
-    public $useCompression = false;
-    /** @var int $defaultTtl */
-    public $defaultTtl = self::DEFAULT_TTL;
-    /** @var mixed[] Server list with variable options */
-    public $servers = null;
+	const DEFAULT_TTL = 10;
+	/** @var bool $useCompression if caching server supports compression */
+	public $useCompression = false;
+	/** @var int $defaultTtl */
+	public $defaultTtl = self::DEFAULT_TTL;
+	/** @var mixed[] Server list with variable options */
+	public $servers = null;
 
-    public function __destruct() {
-        $this->disconnect();
-    }
+	public function __destruct() {
+		$this->disconnect();
+	}
 
-    /**
-     * @param null|int|float|\DateInterval|string
-     *
-     * @return int
-     */
-    public function getTtl($ttl) {
-        if(!isset($ttl)) {
-            return $this->defaultTtl;
-        }
+	/**
+	 * Opens cached server connection
+	 *
+	 * @return bool Returns <b>TRUE</b> on success or <b>FALSE</b> on failure.
+	 */
+	abstract public function connect();
 
-        if($ttl instanceof \DateInterval) {
-            return $ttl->format("%s");
-        }
+	/**
+	 * Close cached server connection
+	 *
+	 * @return boolean Returns <b>TRUE</b> on success or <b>FALSE</b> on failure.
+	 */
+	abstract public function disconnect();
 
-        if(is_int($ttl)) {
-            return $ttl;
-        }
+	/**
+	 * @param null|int|float|\DateInterval|string
+	 *
+	 * @return int
+	 */
+	public function getTtl($ttl) {
+		if(!isset($ttl)) {
+			return $this->defaultTtl;
+		}
 
-        if(is_float($ttl)) {
-            return intval($ttl);
-        }
+		if($ttl instanceof \DateInterval) {
+			return $ttl->format("%s");
+		}
 
-        if(is_string($ttl)) {
-            if(preg_match("/\s*(\d+)\s*(.*)?/", $ttl, $matches)) {
-                $value = intval($matches[1]);
-                $multiplier = strtolower(trim($matches[2]));
+		if(is_int($ttl)) {
+			return $ttl;
+		}
 
-                if($multiplier) {
-                    switch($multiplier) {
-                        case 'm':
-                        case 'min':
-                        case 'mins':
-                        case 'minute':
-                        case 'minutes':
-                            return $value * 60;
-                            break;
+		if(is_float($ttl)) {
+			return intval($ttl);
+		}
 
-                        case 'h':
-                        case 'hr':
-                        case 'hour':
-                        case 'hours':
-                            return $value * 60 * 60;
-                            break;
+		if(is_string($ttl)) {
+			if(preg_match("/\s*(\d+)\s*(.*)?/", $ttl, $matches)) {
+				$value = intval($matches[1]);
+				$multiplier = strtolower(trim($matches[2]));
 
-                        case 'd':
-                        case 'day':
-                        case 'days':
-                            return $value * 60 * 60 * 24;
-                            break;
+				if($multiplier) {
+					switch($multiplier) {
+						case 'm':
+						case 'min':
+						case 'mins':
+						case 'minute':
+						case 'minutes':
+							return $value * 60;
+							break;
 
-                        case 'w':
-                        case 'week':
-                        case 'weeks':
-                            return $value * 60 * 60 * 24 * 7;
-                            break;
+						case 'h':
+						case 'hr':
+						case 'hour':
+						case 'hours':
+							return $value * 60 * 60;
+							break;
 
-                        case 'mon':
-                        case 'month':
-                        case 'months':
-                            return $value * 60 * 60 * 24 * 30;
-                            break;
+						case 'd':
+						case 'day':
+						case 'days':
+							return $value * 60 * 60 * 24;
+							break;
 
-                        case 'y':
-                        case 'year':
-                        case 'years':
-                            return $value * 60 * 60 * 24 * 365;
-                            break;
+						case 'w':
+						case 'week':
+						case 'weeks':
+							return $value * 60 * 60 * 24 * 7;
+							break;
 
-                        default:
-                        case 's':
-                        case 'sec':
-                        case 'second':
-                        case 'seconds':
-                            return $value;
-                    }
-                }
-            }
-        }
+						case 'mon':
+						case 'month':
+						case 'months':
+							return $value * 60 * 60 * 24 * 30;
+							break;
 
-        return $this->defaultTtl;
-    }
+						case 'y':
+						case 'year':
+						case 'years':
+							return $value * 60 * 60 * 24 * 365;
+							break;
 
-    /**
-     * Disallow to construct, callCache::me()->setup()->connect();
-     *
-     * @example MemCache::me()->setup()->connect();
-     * @return $this
-     * @throws \Exception
-     */
-    public static function me() {
-        return DBDPHPSingleton::getInstance(get_called_class());
-    }
+						default:
+						case 's':
+						case 'sec':
+						case 'second':
+						case 'seconds':
+							return $value;
+					}
+				}
+			}
+		}
 
-    /**
-     * @param array $servers
-     * @param bool  $useCompression
-     * @param int   $defaultTtl
-     *
-     * @return $this
-     */
-    public function setup($servers = [], $useCompression = false, $defaultTtl = self::DEFAULT_TTL) {
-        $this->servers = $servers;
-        $this->useCompression = $useCompression;
-        $this->defaultTtl = $defaultTtl;
+		return $this->defaultTtl;
+	}
 
-        return $this;
-    }
+	/**
+	 * Disallow to construct, callCache::me()->setup()->connect();
+	 *
+	 * @return $this
+	 * @throws \Exception
+	 * @example MemCache::me()->setup()->connect();
+	 */
+	public static function me() {
+		return DBDPHPSingleton::getInstance(get_called_class());
+	}
 
-    /**
-     * Opens cached server connection
-     *
-     * @return bool Returns <b>TRUE</b> on success or <b>FALSE</b> on failure.
-     */
-    abstract public function connect();
+	/**
+	 * @param array $servers
+	 * @param bool  $useCompression
+	 * @param int   $defaultTtl
+	 *
+	 * @return $this
+	 */
+	public function setup($servers = [], $useCompression = false, $defaultTtl = self::DEFAULT_TTL) {
+		$this->servers = $servers;
+		$this->useCompression = $useCompression;
+		$this->defaultTtl = $defaultTtl;
 
-    /**
-     * Close cached server connection
-     *
-     * @return boolean Returns <b>TRUE</b> on success or <b>FALSE</b> on failure.
-     */
-    abstract public function disconnect();
+		return $this;
+	}
 }

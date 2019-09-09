@@ -25,8 +25,7 @@
 
 namespace DBD\Base;
 
-use DBD\Base\DBDPHPInstantiatable as Instantiatable;
-use DBD\Base\DBDPHPSingleton as Singleton;
+use Falseclock\DBD\Common\Singleton;
 
 final class DBDQuery
 {
@@ -45,7 +44,7 @@ final class DBDQuery
 	}
 }
 
-final class DBDDebug extends Singleton implements Instantiatable
+final class DBDDebug extends Singleton
 {
 	/** @var float $maxExecutionTime in milliseconds */
 	public static $maxExecutionTime = 20;
@@ -77,6 +76,10 @@ final class DBDDebug extends Singleton implements Instantiatable
 	 */
 	public static function addTotalQueries($count) {
 		self::$totalQueries += $count;
+	}
+
+	public function endTimer() {
+		return $this->difference($this->startTime);
 	}
 
 	/**
@@ -122,8 +125,10 @@ final class DBDDebug extends Singleton implements Instantiatable
 		return Singleton::getInstance(__CLASS__);
 	}
 
-	public function endTimer() {
-		return $this->difference($this->startTime);
+	public function startTimer() {
+		$this->startTime = microtime();
+
+		return $this->startTime;
 	}
 
 	private function difference($start, $end = null) {
@@ -139,11 +144,5 @@ final class DBDDebug extends Singleton implements Instantiatable
 		$diffBase = floatval($endBase) - floatval($startBase);
 
 		return round(((floatval($diffSec) + $diffBase) * 1000), 3);
-	}
-
-	public function startTimer() {
-		$this->startTime = microtime();
-
-		return $this->startTime;
 	}
 }
