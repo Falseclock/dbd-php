@@ -3,7 +3,7 @@
 /*************************************************************************************
  *   MIT License                                                                     *
  *                                                                                   *
- *   Copyright (C) 2009-2017 by Nurlan Mukhanov <nurike@gmail.com>                   *
+ *   Copyright (C) 2009-2019 by Nurlan Mukhanov <nurike@gmail.com>                   *
  *                                                                                   *
  *   Permission is hereby granted, free of charge, to any person obtaining a copy    *
  *   of this software and associated documentation files (the "Software"), to deal   *

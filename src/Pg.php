@@ -2,7 +2,7 @@
 /*************************************************************************************
  *   MIT License                                                                     *
  *                                                                                   *
- *   Copyright (C) 2009-2017 by Nurlan Mukhanov <nurike@gmail.com>                   *
+ *   Copyright (C) 2009-2019 by Nurlan Mukhanov <nurike@gmail.com>                   *
  *                                                                                   *
  *   Permission is hereby granted, free of charge, to any person obtaining a copy    *
  *   of this software and associated documentation files (the "Software"), to deal   *
@@ -247,7 +247,9 @@ class Pg extends DBD
 					if(array_key_exists($types[$i], $map)) {
 						// using data key, cause can be
 						//printf("Type: %s\n",$types[$i]);
-						$data[$key] = ($map[$types[$i]] == 'integer' ? intval($value) : floatval($value));
+						if(isset($value)) {
+							$data[$key] = ($map[$types[$i]] == 'integer' ? intval($value) : floatval($value));
+						}
 					}
 					$i++;
 				}
@@ -399,12 +401,12 @@ class Pg extends DBD
 				throw new Exception("No schema provided");
 			}
 			$initialTable = $table;
-			$table = substr($initialTable, 0, $dotPosition);
-			$schema = substr($initialTable, ($dotPosition));
+			$schema = substr($initialTable, 0, $dotPosition);
+			$table = substr($initialTable, $dotPosition + 1);
 		}
 		$sth = $this->prepare("
 			SELECT cols.column_name,
-				   is_nullable,
+				   CASE WHEN is_nullable = 'NO' THEN false WHEN is_nullable = 'YES' THEN true ELSE null END AS is_nullable,
 				   data_type,
 				   udt_name,
 				   character_maximum_length,
@@ -448,10 +450,20 @@ class Pg extends DBD
 				if(isset($row['column_default']))
 					$column->defaultValue = $row['column_default'];
 
+				if(isset($row['column_comment']))
+					$column->annotation = $row['column_comment'];
+
 				$column->type = $this->getPrivitive($row['udt_name']);
+
+				if(in_array($column->type->getValue(), [ Primitive::Int16, Primitive::Int32(), Primitive::Int64 ])) {
+					$column->scale = null;
+					$column->precision = null;
+				}
 
 				$columns[] = $column;
 			}
+
+			return $columns;
 		}
 
 		return [];
