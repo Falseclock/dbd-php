@@ -27,6 +27,7 @@ namespace DBD;
 
 use DBD\Base\DBDHelper;
 use DBD\Base\DBDPHPException as Exception;
+use Falseclock\DBD\Entity\Column;
 use LSS\XML2Array;
 
 class OData extends DBD
@@ -743,5 +744,20 @@ class OData extends DBD
 	 */
 	protected function _prepare($uniqueName, $statement) {
 		// TODO: Implement _prepare() method.
+	}
+
+	/**
+	 * @param string $table
+	 * @param string $schema
+	 *
+	 * @return Column[]
+	 * @see Pg::_tableStructure
+	 * @see MSSQL::_tableStructure
+	 * @see MySQL::_tableStructure
+	 * @see OData::_tableStructure
+	 * @see tableStructure
+	 */
+	protected function _tableStructure($table, $schema) {
+		// TODO: Implement _tableStructure() method.
 	}
 }

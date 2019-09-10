@@ -28,6 +28,7 @@
 namespace DBD;
 
 use DBD\Base\DBDPHPException as Exception;
+use Falseclock\DBD\Entity\Column;
 
 /**
  * Class MSSQL
@@ -237,5 +238,20 @@ class MSSQL extends DBD
 
 	protected function _rollback() {
 		return sqlsrv_rollback($this->resourceLink);
+	}
+
+	/**
+	 * @param string $table
+	 * @param string $schema
+	 *
+	 * @return Column[]
+	 * @see Pg::_tableStructure
+	 * @see MSSQL::_tableStructure
+	 * @see MySQL::_tableStructure
+	 * @see OData::_tableStructure
+	 * @see tableStructure
+	 */
+	protected function _tableStructure($table, $schema) {
+		// TODO: Implement _tableStructure() method.
 	}
 }

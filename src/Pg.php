@@ -26,6 +26,7 @@
 namespace DBD;
 
 use DBD\Base\DBDPHPException as Exception;
+use Falseclock\DBD\Entity\Column;
 
 /**
  * Class Pg
@@ -362,5 +363,20 @@ class Pg extends DBD
 	 */
 	protected function _rollback() {
 		return $this->_query("ROLLBACK;");
+	}
+
+	/**
+	 * @param string $table
+	 * @param string $schema
+	 *
+	 * @return Column[]
+	 * @see Pg::_tableStructure
+	 * @see MSSQL::_tableStructure
+	 * @see MySQL::_tableStructure
+	 * @see OData::_tableStructure
+	 * @see tableStructure
+	 */
+	protected function _tableStructure($table, $schema) {
+		// TODO: Implement _tableStructure() method.
 	}
 }

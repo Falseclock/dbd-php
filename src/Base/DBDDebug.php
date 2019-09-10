@@ -25,6 +25,7 @@
 
 namespace DBD\Base;
 
+use Exception;
 use Falseclock\DBD\Common\Singleton;
 
 final class DBDQuery
@@ -119,7 +120,7 @@ final class DBDDebug extends Singleton
 
 	/**
 	 * @return DBDDebug
-	 * @throws \Exception
+	 * @throws Exception
 	 */
 	public static function me() {
 		return Singleton::getInstance(__CLASS__);

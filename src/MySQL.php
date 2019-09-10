@@ -26,6 +26,8 @@
 
 namespace DBD;
 
+use Falseclock\DBD\Entity\Column;
+
 /**
  * Class MySQL
  *
@@ -162,5 +164,20 @@ class MySQL extends DBD
 
 	protected function _rollback() {
 		return mysqli_rollback($this->resourceLink);
+	}
+
+	/**
+	 * @param string $table
+	 * @param string $schema
+	 *
+	 * @return Column[]
+	 * @see Pg::_tableStructure
+	 * @see MSSQL::_tableStructure
+	 * @see MySQL::_tableStructure
+	 * @see OData::_tableStructure
+	 * @see tableStructure
+	 */
+	protected function _tableStructure($table, $schema) {
+		// TODO: Implement _tableStructure() method.
 	}
 }

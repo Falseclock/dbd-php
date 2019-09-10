@@ -34,6 +34,7 @@ use DBD\Base\DBDHelper;
 use DBD\Base\DBDOptions;
 use DBD\Base\DBDPHPException as Exception;
 use DBD\Base\DBDQuery;
+use Falseclock\DBD\Entity\Column;
 use Psr\SimpleCache\CacheInterface;
 use Psr\SimpleCache\InvalidArgumentException;
 use ReflectionClass;
@@ -300,6 +301,7 @@ abstract class DBD
 	 * @throws Exception
 	 * @throws InvalidArgumentException
 	 * @throws ReflectionException
+	 * @throws \Exception
 	 */
 	public function execute() {
 		// Set result to false
@@ -399,7 +401,8 @@ abstract class DBD
 			$driver = $this->storage == self::STORAGE_CACHE ? self::STORAGE_CACHE : (new ReflectionClass($this))->getShortName();
 			$caller = DBDHelper::caller($this);
 
-			Debug::addQueries(new DBDQuery(DBDHelper::cleanSql($this->getPreparedQuery($executeArguments, true)), $cost, $caller[0], DBDHelper::debugMark($cost), $driver));
+			Debug::addQueries(new DBDQuery(DBDHelper::cleanSql($this->getPreparedQuery($executeArguments, true)), $cost, $caller[0], DBDHelper::debugMark($cost), $driver)
+			);
 			Debug::addTotalQueries(1);
 			Debug::addTotalCost($cost);
 		}
@@ -665,6 +668,16 @@ abstract class DBD
 		}
 
 		return null;
+	}
+
+	/**
+	 * @param      $table
+	 * @param null $schema
+	 *
+	 * @return Column[]
+	 */
+	public function tableStructure($table, $schema = null) {
+		return $this->_tableStructure($table, $schema);
 	}
 
 	/**
@@ -968,6 +981,19 @@ abstract class DBD
 	 * @see rollback
 	 */
 	abstract protected function _rollback();
+
+	/**
+	 * @param string $table
+	 * @param string $schema
+	 *
+	 * @return Column[]
+	 * @see Pg::_tableStructure
+	 * @see MSSQL::_tableStructure
+	 * @see MySQL::_tableStructure
+	 * @see OData::_tableStructure
+	 * @see tableStructure
+	 */
+	abstract protected function _tableStructure($table, $schema);
 
 	/**
 	 * Check whether connection is established or not
