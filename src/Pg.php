@@ -25,8 +25,8 @@
 
 namespace DBD;
 
-use DBD\Base\DBDPHPException;
-use DBD\Base\DBDPHPException as Exception;
+use Falseclock\DBD\Common\DBDPHPException;
+use Falseclock\DBD\Common\DBDPHPException as Exception;
 use Falseclock\DBD\Entity\Column;
 use Falseclock\DBD\Entity\Primitive;
 use Psr\SimpleCache\InvalidArgumentException;
@@ -396,7 +396,7 @@ class Pg extends DBD
 			//Get the first occurrence of a character.
 			$dotPosition = strpos($table, '.');
 			if($dotPosition === false) {
-				throw new DBDPHPException("No schema provided");
+				throw new Exception("No schema provided");
 			}
 			$initialTable = $table;
 			$table = substr($initialTable, 0, $dotPosition);
@@ -429,38 +429,121 @@ class Pg extends DBD
 
 		if($sth->rows()) {
 			$columns = [];
-			while ($row = $sth->fetchRow()) {
+			while($row = $sth->fetchRow()) {
 				$column = new Column();
 				$column->name = $row['column_name'];
 				$column->nullable = $row['is_nullable'];
-				if (isset($row['character_maximum_length']))
+				if(isset($row['character_maximum_length']))
 					$column->maxLength = $row['character_maximum_length'];
 
-				if (isset($row['numeric_precision']))
+				if(isset($row['numeric_precision']))
 					$column->precision = $row['numeric_precision'];
 
-				if (isset($row['numeric_scale']))
+				if(isset($row['numeric_scale']))
 					$column->scale = $row['numeric_scale'];
 
-				if (isset($row['datetime_precision']))
+				if(isset($row['datetime_precision']))
 					$column->precision = $row['datetime_precision'];
 
-				if (isset($row['column_default']))
+				if(isset($row['column_default']))
 					$column->defaultValue = $row['column_default'];
 
-				switch($row['udt_name']) {
-					case 'varchar':
-					case 'text':
-						$column->type = Primitive::String();
-						break;
-
-
-				}
+				$column->type = $this->getPrivitive($row['udt_name']);
 
 				$columns[] = $column;
 			}
 		}
 
 		return [];
+	}
+
+	/**
+	 * @param string $type
+	 *
+	 * @return Primitive
+	 * @throws Exception
+	 */
+	private function getPrivitive(string $type) {
+		switch(strtolower(trim($type))) {
+
+			case 'bytea':
+				return Primitive::Binary();
+				break;
+
+			case 'boolean':
+			case 'bool':
+				return Primitive::Boolean();
+				break;
+
+			case 'date':
+			case 'timestamp':
+				return Primitive::Date();
+				break;
+
+			case 'timestamptz':
+				return Primitive::DateTimeOffset();
+				break;
+
+			case 'numeric':
+			case 'decimal':
+				return Primitive::Decimal();
+				break;
+
+			case 'float8':
+				return Primitive::Double();
+				break;
+
+			case 'interval':
+				return Primitive::Duration();
+				break;
+
+			case 'uuid':
+				return Primitive::Guid();
+				break;
+
+			case 'int2':
+			case 'smallint':
+			case 'smallserial':
+			case 'serial2':
+				return Primitive::Int16();
+				break;
+
+			case 'int':
+			case 'int4':
+			case 'integer':
+			case 'serial4':
+			case 'serial':
+				return Primitive::Int32();
+				break;
+
+			case 'int8':
+			case 'bigint':
+			case 'bigserial':
+			case 'serial8':
+				return Primitive::Int64();
+				break;
+
+			case 'float4':
+			case 'real':
+				return Primitive::Single();
+				break;
+
+			case 'varchar':
+			case 'text':
+			case 'cidr':
+			case 'inet':
+			case 'json':
+			case 'jsonb':
+			case 'macaddr':
+			case 'macaddr8':
+			case 'char':
+			case 'tsquery':
+			case 'tsvector':
+			case 'xml':
+				return Primitive::String();
+				break;
+		}
+
+		throw new DBDPHPException("Not described type found: {$type}");
 	}
 }

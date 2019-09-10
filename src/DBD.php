@@ -32,7 +32,7 @@ use DBD\Base\DBDConfig;
 use DBD\Base\DBDDebug as Debug;
 use DBD\Base\DBDHelper;
 use DBD\Base\DBDOptions;
-use DBD\Base\DBDPHPException as Exception;
+use Falseclock\DBD\Common\DBDPHPException as Exception;
 use DBD\Base\DBDQuery;
 use Falseclock\DBD\Entity\Column;
 use Psr\SimpleCache\CacheInterface;
