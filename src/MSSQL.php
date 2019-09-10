@@ -27,7 +27,7 @@
 
 namespace DBD;
 
-use DBD\Base\DBDPHPException as Exception;
+use Falseclock\DBD\Common\DBDPHPException as Exception;
 use Falseclock\DBD\Entity\Column;
 
 /**

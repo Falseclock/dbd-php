@@ -25,7 +25,7 @@
 
 namespace DBD\Base;
 
-use Exception;
+use Falseclock\DBD\Common\DBDPHPException as Exception;
 
 final class DBDOptions
 {

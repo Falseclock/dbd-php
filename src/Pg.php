@@ -25,8 +25,12 @@
 
 namespace DBD;
 
+use DBD\Base\DBDPHPException;
 use DBD\Base\DBDPHPException as Exception;
 use Falseclock\DBD\Entity\Column;
+use Falseclock\DBD\Entity\Primitive;
+use Psr\SimpleCache\InvalidArgumentException;
+use ReflectionException;
 
 /**
  * Class Pg
@@ -130,6 +134,13 @@ class Pg extends DBD
 			throw new Exception("Can not connect to PostgreSQL server! ");
 	}
 
+	/**
+	 * @param $data
+	 * @param $type
+	 *
+	 * @return array|mixed
+	 * @throws Exception
+	 */
 	protected function _convertBoolean(&$data, $type) {
 		if($type == 'row') {
 			if(isset($data) and is_array($data) and count($data) > 0) {
@@ -370,13 +381,86 @@ class Pg extends DBD
 	 * @param string $schema
 	 *
 	 * @return Column[]
-	 * @see Pg::_tableStructure
+	 * @throws Exception
+	 * @throws InvalidArgumentException
+	 * @throws ReflectionException
 	 * @see MSSQL::_tableStructure
 	 * @see MySQL::_tableStructure
 	 * @see OData::_tableStructure
 	 * @see tableStructure
+	 * @see Pg::_tableStructure
 	 */
-	protected function _tableStructure($table, $schema) {
-		// TODO: Implement _tableStructure() method.
+	protected function _tableStructure($table, $schema = null) {
+		// Postgres uses dot symbol to separate schema and table
+		if(!isset($schema)) {
+			//Get the first occurrence of a character.
+			$dotPosition = strpos($table, '.');
+			if($dotPosition === false) {
+				throw new DBDPHPException("No schema provided");
+			}
+			$initialTable = $table;
+			$table = substr($initialTable, 0, $dotPosition);
+			$schema = substr($initialTable, ($dotPosition));
+		}
+		$sth = $this->prepare("
+			SELECT cols.column_name,
+				   is_nullable,
+				   data_type,
+				   udt_name,
+				   character_maximum_length,
+				   numeric_precision,
+				   numeric_scale,
+				   datetime_precision,
+				   column_default,
+				   (
+					   SELECT pg_catalog.col_description(c.oid, cols.ordinal_position::int)
+					   FROM pg_catalog.pg_class c
+					   WHERE c.oid = (SELECT cols.table_name::regclass::oid)
+						 AND c.relname = cols.table_name
+				   ) AS column_comment
+			
+			FROM information_schema.columns cols
+			WHERE cols.table_name = ?
+			  AND cols.table_schema = ?
+            ORDER BY ordinal_position
+		"
+		);
+		$sth->execute($table, $schema);
+
+		if($sth->rows()) {
+			$columns = [];
+			while ($row = $sth->fetchRow()) {
+				$column = new Column();
+				$column->name = $row['column_name'];
+				$column->nullable = $row['is_nullable'];
+				if (isset($row['character_maximum_length']))
+					$column->maxLength = $row['character_maximum_length'];
+
+				if (isset($row['numeric_precision']))
+					$column->precision = $row['numeric_precision'];
+
+				if (isset($row['numeric_scale']))
+					$column->scale = $row['numeric_scale'];
+
+				if (isset($row['datetime_precision']))
+					$column->precision = $row['datetime_precision'];
+
+				if (isset($row['column_default']))
+					$column->defaultValue = $row['column_default'];
+
+				switch($row['udt_name']) {
+					case 'varchar':
+					case 'text':
+						$column->type = Primitive::String();
+						break;
+
+
+				}
+
+				$columns[] = $column;
+			}
+		}
+
+		return [];
 	}
 }

@@ -26,7 +26,7 @@
 namespace DBD;
 
 use DBD\Base\DBDHelper;
-use DBD\Base\DBDPHPException as Exception;
+use Falseclock\DBD\Common\DBDPHPException as Exception;
 use Falseclock\DBD\Entity\Column;
 use LSS\XML2Array;
 
