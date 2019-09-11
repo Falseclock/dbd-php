@@ -25,8 +25,8 @@
 
 namespace DBD;
 
-use Falseclock\DBD\Common\DBDPHPException;
-use Falseclock\DBD\Common\DBDPHPException as Exception;
+use Falseclock\DBD\Common\DBDException;
+use Falseclock\DBD\Common\DBDException as Exception;
 use Falseclock\DBD\Entity\Column;
 use Falseclock\DBD\Entity\Primitive;
 use Psr\SimpleCache\InvalidArgumentException;
@@ -392,7 +392,7 @@ class Pg extends DBD
 	 * @see tableStructure
 	 * @see Pg::_tableStructure
 	 */
-	protected function _tableStructure($table, $schema = null) {
+	protected function _tableStructure($table, $schema) {
 		// Postgres uses dot symbol to separate schema and table
 		if(!isset($schema)) {
 			//Get the first occurrence of a character.
@@ -404,30 +404,33 @@ class Pg extends DBD
 			$schema = substr($initialTable, 0, $dotPosition);
 			$table = substr($initialTable, $dotPosition + 1);
 		}
+		$regClass = "{$schema}.{$table}";
+
 		$sth = $this->prepare("
-			SELECT cols.column_name,
-				   CASE WHEN is_nullable = 'NO' THEN false WHEN is_nullable = 'YES' THEN true ELSE null END AS is_nullable,
-				   data_type,
-				   udt_name,
-				   character_maximum_length,
-				   numeric_precision,
-				   numeric_scale,
-				   datetime_precision,
-				   column_default,
-				   (
-					   SELECT pg_catalog.col_description(c.oid, cols.ordinal_position::int)
-					   FROM pg_catalog.pg_class c
-					   WHERE c.oid = (SELECT cols.table_name::regclass::oid)
-						 AND c.relname = cols.table_name
-				   ) AS column_comment
-			
-			FROM information_schema.columns cols
-			WHERE cols.table_name = ?
-			  AND cols.table_schema = ?
-            ORDER BY ordinal_position
+			SELECT
+				CASE WHEN ordinal_position = ANY(i.indkey) THEN TRUE ELSE FALSE END as is_primary,
+				ordinal_position,
+				cols.column_name,
+				CASE WHEN is_nullable = 'NO' THEN FALSE WHEN is_nullable = 'YES' THEN TRUE ELSE NULL END AS is_nullable,
+				data_type,
+				udt_name,
+				character_maximum_length,
+				numeric_precision,
+				numeric_scale,
+				datetime_precision,
+				column_default,
+				pg_catalog.col_description(?::regclass::oid, cols.ordinal_position::INT)
+			FROM
+				information_schema.columns cols
+				LEFT JOIN pg_index i ON i.indrelid = ?::regclass::oid
+			WHERE
+				cols.table_name = ? AND
+				cols.table_schema = ?'
+			ORDER BY
+				ordinal_position
 		"
 		);
-		$sth->execute($table, $schema);
+		$sth->execute($regClass, $regClass, $table, $schema);
 
 		if($sth->rows()) {
 			$columns = [];
@@ -556,6 +559,6 @@ class Pg extends DBD
 				break;
 		}
 
-		throw new DBDPHPException("Not described type found: {$type}");
+		throw new DBDException("Not described type found: {$type}");
 	}
 }

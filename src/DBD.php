@@ -28,12 +28,12 @@
 namespace DBD;
 
 use DateInterval;
-use DBD\Base\DBDConfig;
-use DBD\Base\DBDDebug as Debug;
-use DBD\Base\DBDHelper;
-use DBD\Base\DBDOptions;
-use Falseclock\DBD\Common\DBDPHPException as Exception;
-use DBD\Base\DBDQuery;
+use DBD\Base\Config;
+use DBD\Base\Debug as Debug;
+use DBD\Base\Helper;
+use DBD\Base\Options;
+use Falseclock\DBD\Common\DBDException as Exception;
+use DBD\Base\Query;
 use Falseclock\DBD\Entity\Column;
 use Psr\SimpleCache\CacheInterface;
 use Psr\SimpleCache\InvalidArgumentException;
@@ -80,9 +80,9 @@ abstract class DBD
 	protected $query;
 	/** @var resource|string|array $result Query result data */
 	protected $result;
-	/** @var DBDOptions $Options */
+	/** @var Options $Options */
 	protected $Options;
-	/** @var DBDConfig $Config */
+	/** @var Config $Config */
 	protected $Config;
 	/** @var mixed $fetch */
 	private $fetch = self::UNDEFINED;
@@ -100,10 +100,10 @@ abstract class DBD
 	 * $db->connect();
 	 * ```
 	 *
-	 * @param DBDConfig       $config
-	 * @param DBDOptions|null $options
+	 * @param Config       $config
+	 * @param Options|null $options
 	 */
-	final public function __construct(DBDConfig $config, DBDOptions $options = null) {
+	final public function __construct(Config $config, Options $options = null) {
 
 		$this->Config = $config;
 		$this->CacheDriver = $config->getCacheDriver();
@@ -112,7 +112,7 @@ abstract class DBD
 			$this->Options = $options;
 		}
 		else {
-			$this->Options = new DBDOptions;
+			$this->Options = new Options;
 		}
 	}
 
@@ -283,7 +283,7 @@ abstract class DBD
 		if(!func_num_args())
 			throw new Exception("query failed: statement is not set or empty");
 
-		list ($statement, $args) = DBDHelper::prepareArgs(func_get_args());
+		list ($statement, $args) = Helper::prepareArgs(func_get_args());
 
 		$sth = $this->query($statement, $args);
 
@@ -348,7 +348,7 @@ abstract class DBD
 					$this->_prepare($uniqueName, $preparedQuery);
 				}
 
-				$this->result = $this->_execute($uniqueName, DBDHelper::parseArgs($executeArguments));
+				$this->result = $this->_execute($uniqueName, Helper::parseArgs($executeArguments));
 			}
 			else {
 				// Execute query to the database
@@ -399,9 +399,9 @@ abstract class DBD
 			$cost = isset($cost) ? $cost : 0;
 
 			$driver = $this->storage == self::STORAGE_CACHE ? self::STORAGE_CACHE : (new ReflectionClass($this))->getShortName();
-			$caller = DBDHelper::caller($this);
+			$caller = Helper::caller($this);
 
-			Debug::addQueries(new DBDQuery(DBDHelper::cleanSql($this->getPreparedQuery($executeArguments, true)), $cost, $caller[0], DBDHelper::debugMark($cost), $driver)
+			Debug::addQueries(new Query(Helper::cleanSql($this->getPreparedQuery($executeArguments, true)), $cost, $caller[0], Helper::debugMark($cost), $driver)
 			);
 			Debug::addTotalQueries(1);
 			Debug::addTotalCost($cost);
@@ -547,7 +547,7 @@ abstract class DBD
 	 * @throws ReflectionException
 	 */
 	public function insert($table, $args, $return = null) {
-		$params = DBDHelper::compileInsertArgs($args, $this, $this->Options);
+		$params = Helper::compileInsertArgs($args, $this, $this->Options);
 
 		$sth = $this->prepare($this->_compileInsert($table, $params, $return));
 		$sth->execute($params['ARGS']);
@@ -597,7 +597,7 @@ abstract class DBD
 		if(!func_num_args())
 			throw new Exception("query failed: statement is not set or empty");
 
-		list ($statement, $args) = DBDHelper::prepareArgs(func_get_args());
+		list ($statement, $args) = Helper::prepareArgs(func_get_args());
 
 		$sth = $this->prepare($statement);
 
@@ -659,7 +659,7 @@ abstract class DBD
 	 * @throws ReflectionException
 	 */
 	public function select() {
-		list ($statement, $args) = DBDHelper::prepareArgs(func_get_args());
+		list ($statement, $args) = Helper::prepareArgs(func_get_args());
 
 		$sth = $this->query($statement, $args);
 
@@ -676,7 +676,7 @@ abstract class DBD
 	 *
 	 * @return Column[]
 	 */
-	public function tableStructure($table, $schema = null) {
+	public function tableStructure($table, $schema) {
 		return $this->_tableStructure($table, $schema);
 	}
 
@@ -751,7 +751,7 @@ abstract class DBD
 		$table = $ARGS[0];
 		$values = $ARGS[1];
 
-		$params = DBDHelper::compileUpdateArgs($values, $this);
+		$params = Helper::compileUpdateArgs($values, $this);
 
 		if(func_num_args() > 2) {
 			$where = $ARGS[2];
@@ -1069,7 +1069,7 @@ abstract class DBD
 	private function getPreparedQuery($ARGS, $overrideOption = false) {
 		$preparedQuery = $this->query;
 		$binds = substr_count($this->query, $this->Options->getPlaceHolder());
-		$executeArguments = DBDHelper::parseArgs($ARGS);
+		$executeArguments = Helper::parseArgs($ARGS);
 
 		$numberOfArgs = count($executeArguments);
 

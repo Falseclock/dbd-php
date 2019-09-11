@@ -29,7 +29,7 @@ use DBD\Cache;
 use Exception;
 use Psr\SimpleCache\CacheInterface;
 
-final class DBDConfig
+final class Config
 {
 	/** @var string $dsn */
 	private $dsn;
@@ -107,7 +107,7 @@ final class DBDConfig
 	/**
 	 * @param Cache|CacheInterface $cacheDriver
 	 *
-	 * @return DBDConfig
+	 * @return Config
 	 * @throws Exception
 	 */
 	public function setCacheDriver($cacheDriver) {
@@ -123,7 +123,7 @@ final class DBDConfig
 	/**
 	 * @param string $database
 	 *
-	 * @return DBDConfig
+	 * @return Config
 	 */
 	public function setDatabase($database) {
 		$this->database = $database;
@@ -134,7 +134,7 @@ final class DBDConfig
 	/**
 	 * @param string $dsn
 	 *
-	 * @return DBDConfig
+	 * @return Config
 	 */
 	public function setDsn($dsn) {
 		$this->dsn = $dsn;
@@ -145,7 +145,7 @@ final class DBDConfig
 	/**
 	 * @param string $identity
 	 *
-	 * @return DBDConfig
+	 * @return Config
 	 */
 	public function setIdentity($identity) {
 		$this->identity = $identity;
@@ -156,7 +156,7 @@ final class DBDConfig
 	/**
 	 * @param string $password
 	 *
-	 * @return DBDConfig
+	 * @return Config
 	 */
 	public function setPassword($password) {
 		$this->password = $password;
@@ -167,7 +167,7 @@ final class DBDConfig
 	/**
 	 * @param int $port
 	 *
-	 * @return DBDConfig
+	 * @return Config
 	 */
 	public function setPort($port) {
 		$this->port = $port;
@@ -178,7 +178,7 @@ final class DBDConfig
 	/**
 	 * @param string $username
 	 *
-	 * @return DBDConfig
+	 * @return Config
 	 */
 	public function setUsername($username) {
 		$this->username = $username;

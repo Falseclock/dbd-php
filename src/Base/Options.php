@@ -25,9 +25,9 @@
 
 namespace DBD\Base;
 
-use Falseclock\DBD\Common\DBDPHPException as Exception;
+use Falseclock\DBD\Common\DBDException as Exception;
 
-final class DBDOptions
+final class Options
 {
 	/** @var bool $OnDemand */
 	private $OnDemand = false;
@@ -143,7 +143,7 @@ final class DBDOptions
 	/**
 	 * @param bool $ConvertBoolean
 	 *
-	 * @return DBDOptions
+	 * @return Options
 	 */
 	public function setConvertBoolean($ConvertBoolean) {
 		$this->ConvertBoolean = $ConvertBoolean;
@@ -154,7 +154,7 @@ final class DBDOptions
 	/**
 	 * @param bool $ConvertNumeric
 	 *
-	 * @return DBDOptions
+	 * @return Options
 	 */
 	public function setConvertNumeric($ConvertNumeric) {
 		$this->ConvertNumeric = $ConvertNumeric;
@@ -165,7 +165,7 @@ final class DBDOptions
 	/**
 	 * @param bool $OnDemand
 	 *
-	 * @return DBDOptions
+	 * @return Options
 	 */
 	public function setOnDemand($OnDemand) {
 		$this->OnDemand = $OnDemand;
@@ -190,7 +190,7 @@ final class DBDOptions
 	/**
 	 * @param bool $PrintError
 	 *
-	 * @return DBDOptions
+	 * @return Options
 	 */
 	public function setPrintError($PrintError) {
 		$this->PrintError = $PrintError;
@@ -201,7 +201,7 @@ final class DBDOptions
 	/**
 	 * @param bool $RaiseError
 	 *
-	 * @return DBDOptions
+	 * @return Options
 	 */
 	public function setRaiseError($RaiseError) {
 		$this->RaiseError = $RaiseError;
@@ -212,7 +212,7 @@ final class DBDOptions
 	/**
 	 * @param bool $ShowErrorStatement
 	 *
-	 * @return DBDOptions
+	 * @return Options
 	 */
 	public function setShowErrorStatement($ShowErrorStatement) {
 		$this->ShowErrorStatement = $ShowErrorStatement;
@@ -223,7 +223,7 @@ final class DBDOptions
 	/**
 	 * @param bool $UseDebug
 	 *
-	 * @return DBDOptions
+	 * @return Options
 	 */
 	public function setUseDebug($UseDebug) {
 		$this->UseDebug = $UseDebug;
@@ -232,7 +232,7 @@ final class DBDOptions
 	}
 
 	/**
-	 * @param array|DBDOptions|null $options
+	 * @param array|Options|null $options
 	 *
 	 * @throws Exception
 	 */

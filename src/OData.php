@@ -25,8 +25,8 @@
 
 namespace DBD;
 
-use DBD\Base\DBDHelper;
-use Falseclock\DBD\Common\DBDPHPException as Exception;
+use DBD\Base\Helper;
+use Falseclock\DBD\Common\DBDException as Exception;
 use Falseclock\DBD\Entity\Column;
 use LSS\XML2Array;
 
@@ -553,7 +553,7 @@ class OData extends DBD
     protected function prepareUrl($ARGS) {
         // Check and prepare args
         $binds = substr_count($this->query, $this->Options->getPlaceHolder());
-        $args = DBDHelper::parseArgs($ARGS);
+        $args = Helper::parseArgs($ARGS);
         $numargs = count($args);
 
         if($binds != $numargs) {

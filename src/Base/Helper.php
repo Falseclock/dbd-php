@@ -29,7 +29,7 @@ use DBD\DBD;
 use ReflectionClass;
 use ReflectionException;
 
-final class DBDHelper
+final class Helper
 {
 	/**
 	 * @param $context
@@ -99,12 +99,12 @@ final class DBDHelper
 	/**
 	 * @param            $data
 	 * @param DBD        $driver
-	 * @param DBDOptions $options
+	 * @param Options    $options
 	 *
 	 * @return array
 	 * @throws DBDPHPException
 	 */
-	final public static function compileInsertArgs($data, DBD $driver, DBDOptions $options) {
+	final public static function compileInsertArgs($data, DBD $driver, Options $options) {
 
 		$className = get_class($driver);
 
@@ -213,7 +213,7 @@ final class DBDHelper
 	 */
 	final public static function debugMark($cost, $maxExecutionTime = null) {
 		if(!isset($maxExecutionTime)) {
-			$maxExecutionTime = DBDDebug::$maxExecutionTime;
+			$maxExecutionTime = Debug::$maxExecutionTime;
 		}
 
 		$value = floor($cost / $maxExecutionTime) + 1;

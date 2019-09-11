@@ -25,31 +25,14 @@
 
 namespace DBD\Base;
 
-use Exception;
 use Falseclock\DBD\Common\Singleton;
+use Falseclock\DBD\Common\DBDException as Exception;
 
-final class DBDQuery
-{
-	public $query;
-	public $cost;
-	public $caller;
-	public $mark;
-	public $driver;
-
-	public function __construct($query, $cost, $caller, $mark, $driver) {
-		$this->query = $query;
-		$this->cost = $cost;
-		$this->caller = $caller;
-		$this->mark = $mark;
-		$this->driver = $driver;
-	}
-}
-
-final class DBDDebug extends Singleton
+final class Debug extends Singleton
 {
 	/** @var float $maxExecutionTime in milliseconds */
 	public static $maxExecutionTime = 20;
-	/** @var DBDQuery[] $queries */
+	/** @var Query[] $queries */
 	private static $queries;
 	/** @var int $totalQueries */
 	private static $totalQueries = 0;
@@ -59,7 +42,7 @@ final class DBDDebug extends Singleton
 	private $startTime = null;
 
 	/**
-	 * @param DBDQuery $queries
+	 * @param Query $queries
 	 */
 	public static function addQueries($queries) {
 		self::$queries[] = $queries;
@@ -98,7 +81,7 @@ final class DBDDebug extends Singleton
 	}
 
 	/**
-	 * @return DBDQuery[]
+	 * @return Query[]
 	 */
 	public static function getQueries() {
 		return self::$queries;
@@ -119,7 +102,7 @@ final class DBDDebug extends Singleton
 	}
 
 	/**
-	 * @return DBDDebug
+	 * @return Debug
 	 * @throws Exception
 	 */
 	public static function me() {
