@@ -59,97 +59,6 @@ class Utils
 	}
 
 	/**
-	 * @param DBD    $db
-	 * @param string $table
-	 * @param string $schema
-	 *
-	 * @return Column[]
-	 * @throws Exception
-	 * @throws InvalidArgumentException
-	 * @throws ReflectionException
-	 */
-	private static function pgTableStructure(DBD $db, string $table, string $schema) {
-		// Postgres uses dot symbol to separate schema and table
-		if(!isset($schema)) {
-			//Get the first occurrence of a character.
-			$dotPosition = strpos($table, '.');
-			if($dotPosition === false) {
-				throw new Exception("No schema provided");
-			}
-			$initialTable = $table;
-			$schema = substr($initialTable, 0, $dotPosition);
-			$table = substr($initialTable, $dotPosition + 1);
-		}
-		$regClass = "{$schema}.{$table}";
-
-		$sth = $db->prepare("
-			SELECT
-				CASE WHEN ordinal_position = ANY(i.indkey) THEN TRUE ELSE FALSE END as is_primary,
-				ordinal_position,
-				cols.column_name,
-				CASE WHEN is_nullable = 'NO' THEN FALSE WHEN is_nullable = 'YES' THEN TRUE ELSE NULL END AS is_nullable,
-				data_type,
-				udt_name,
-				character_maximum_length,
-				numeric_precision,
-				numeric_scale,
-				datetime_precision,
-				column_default,
-				pg_catalog.col_description(?::regclass::oid, cols.ordinal_position::INT)
-			FROM
-				information_schema.columns cols
-				LEFT JOIN pg_index i ON i.indrelid = ?::regclass::oid
-			WHERE
-				cols.table_name = ? AND
-				cols.table_schema = ?'
-			ORDER BY
-				ordinal_position
-		"
-		);
-		$sth->execute($regClass, $regClass, $table, $schema);
-
-		if($sth->rows()) {
-			$columns = [];
-			while($row = $sth->fetchRow()) {
-				$column = new Column();
-				$column->name = $row['column_name'];
-				$column->nullable = $row['is_nullable'];
-				if(isset($row['character_maximum_length']))
-					$column->maxLength = $row['character_maximum_length'];
-
-				if(isset($row['numeric_precision']))
-					$column->precision = $row['numeric_precision'];
-
-				if(isset($row['numeric_scale']))
-					$column->scale = $row['numeric_scale'];
-
-				if(isset($row['datetime_precision']))
-					$column->precision = $row['datetime_precision'];
-
-				if(isset($row['column_default']))
-					$column->defaultValue = $row['column_default'];
-
-				if(isset($row['column_comment']))
-					$column->annotation = $row['column_comment'];
-
-				$column->type = self::getPgPrimitive($row['udt_name']);
-
-				if(in_array($column->type->getValue(), [ Primitive::Int16, Primitive::Int32(), Primitive::Int64 ])) {
-					$column->scale = null;
-					$column->precision = null;
-				}
-
-				$columns[] = $column;
-			}
-
-			return $columns;
-		}
-
-		return [];
-	}
-
-
-	/**
 	 * @param string $type
 	 *
 	 * @return Primitive
@@ -237,5 +146,109 @@ class Utils
 		}
 
 		throw new DBDException("Not described type found: {$type}");
+	}
+
+	/**
+	 * @param DBD    $db
+	 * @param string $table
+	 * @param string $schema
+	 *
+	 * @return Column[]
+	 * @throws Exception
+	 * @throws InvalidArgumentException
+	 * @throws ReflectionException
+	 */
+	private static function pgTableStructure(DBD $db, string $table, string $schema) {
+		// Postgres uses dot symbol to separate schema and table
+		if(!isset($schema)) {
+			//Get the first occurrence of a character.
+			$dotPosition = strpos($table, '.');
+			if($dotPosition === false) {
+				throw new Exception("No schema provided");
+			}
+			$initialTable = $table;
+			$schema = substr($initialTable, 0, $dotPosition);
+			$table = substr($initialTable, $dotPosition + 1);
+		}
+		$regClass = "{$schema}.{$table}";
+
+		$sth = $db->prepare("
+			SELECT
+				CASE WHEN ordinal_position = ANY(i.indkey) THEN TRUE ELSE FALSE END as is_primary,
+				ordinal_position,
+				cols.column_name,
+				CASE WHEN is_nullable = 'NO' THEN FALSE WHEN is_nullable = 'YES' THEN TRUE ELSE NULL END AS is_nullable,
+				data_type,
+				udt_name,
+				character_maximum_length,
+				numeric_precision,
+				numeric_scale,
+				datetime_precision,
+				column_default,
+				pg_catalog.col_description(?::regclass::oid, cols.ordinal_position::INT)
+			FROM
+				information_schema.columns cols
+				LEFT JOIN pg_index i ON i.indrelid = ?::regclass::oid
+			WHERE
+				cols.table_name = ? AND
+				cols.table_schema = ?'
+			ORDER BY
+				ordinal_position
+		"
+		);
+		$sth->execute($regClass, $regClass, $table, $schema);
+
+		if($sth->rows()) {
+			$columns = [];
+			while($row = $sth->fetchRow()) {
+				$column = new Column();
+				$column->name = $row['column_name'];
+
+				if(isset($row['is_nullable'])) {
+					if($row['is_nullable'] == 'f' || $row['is_nullable'] == false)
+						$column->nullable = false;
+					else
+						$column->nullable = false;
+				}
+
+				if(isset($row['is_primary'])) {
+					if($row['is_primary'] == 'f' || $row['is_primary'] == false)
+						$column->key = false;
+					else
+						$column->key = true;
+				}
+
+				if(isset($row['character_maximum_length']))
+					$column->maxLength = $row['character_maximum_length'];
+
+				if(isset($row['numeric_precision']))
+					$column->precision = $row['numeric_precision'];
+
+				if(isset($row['numeric_scale']))
+					$column->scale = $row['numeric_scale'];
+
+				if(isset($row['datetime_precision']))
+					$column->precision = $row['datetime_precision'];
+
+				if(isset($row['column_default']))
+					$column->defaultValue = $row['column_default'];
+
+				if(isset($row['column_comment']))
+					$column->annotation = $row['column_comment'];
+
+				$column->type = self::getPgPrimitive($row['udt_name']);
+
+				if(in_array($column->type->getValue(), [ Primitive::Int16, Primitive::Int32(), Primitive::Int64 ])) {
+					$column->scale = null;
+					$column->precision = null;
+				}
+
+				$columns[] = $column;
+			}
+
+			return $columns;
+		}
+
+		return [];
 	}
 }
