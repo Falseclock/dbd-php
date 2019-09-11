@@ -102,7 +102,7 @@ final class Helper
 	 * @param Options    $options
 	 *
 	 * @return array
-	 * @throws DBDPHPException
+	 * @throws DBDException
 	 */
 	final public static function compileInsertArgs($data, DBD $driver, Options $options) {
 
@@ -137,7 +137,7 @@ final class Helper
 						$args[] = $columnValue[0];
 						break;
 					default:
-						throw new DBDPHPException("Unknown format of record for insert");
+						throw new DBDException("Unknown format of record for insert");
 				}
 			}
 			else {
@@ -162,7 +162,7 @@ final class Helper
 	 * @param DBD      $driver
 	 *
 	 * @return array
-	 * @throws DBDPHPException
+	 * @throws DBDException
 	 */
 	final public static function compileUpdateArgs($data, DBD $driver) {
 		$className = get_class($driver);
@@ -189,7 +189,7 @@ final class Helper
 						$args[] = $columnValue[0];
 						break;
 					default:
-						throw new DBDPHPException("Unknown format of record for update");
+						throw new DBDException("Unknown format of record for update");
 				}
 			}
 			else {
