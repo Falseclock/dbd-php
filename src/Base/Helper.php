@@ -26,6 +26,7 @@
 namespace DBD\Base;
 
 use DBD\DBD;
+use Falseclock\DBD\Common\DBDException;
 use ReflectionClass;
 use ReflectionException;
 
