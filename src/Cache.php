@@ -25,6 +25,8 @@
 
 namespace DBD;
 
+use DateInterval;
+use Falseclock\DBD\Common\DBDException;
 use Falseclock\DBD\Common\Singleton;
 use Psr\SimpleCache\CacheInterface;
 
@@ -57,7 +59,7 @@ abstract class Cache extends Singleton implements CacheInterface
 	abstract public function disconnect();
 
 	/**
-	 * @param null|int|float|\DateInterval|string
+	 * @param null|int|float|DateInterval|string
 	 *
 	 * @return int
 	 */
@@ -66,7 +68,7 @@ abstract class Cache extends Singleton implements CacheInterface
 			return $this->defaultTtl;
 		}
 
-		if($ttl instanceof \DateInterval) {
+		if($ttl instanceof DateInterval) {
 			return $ttl->format("%s");
 		}
 
@@ -142,11 +144,11 @@ abstract class Cache extends Singleton implements CacheInterface
 	 * Disallow to construct, callCache::me()->setup()->connect();
 	 *
 	 * @return $this
-	 * @throws \Exception
+	 * @throws DBDException
 	 * @example MemCache::me()->setup()->connect();
 	 */
 	public static function me() {
-		return DBDPHPSingleton::getInstance(get_called_class());
+		return Singleton::getInstance(get_called_class());
 	}
 
 	/**

@@ -25,12 +25,7 @@
 
 namespace DBD;
 
-use Falseclock\DBD\Common\DBDException;
 use Falseclock\DBD\Common\DBDException as Exception;
-use Falseclock\DBD\Entity\Column;
-use Falseclock\DBD\Entity\Primitive;
-use Psr\SimpleCache\InvalidArgumentException;
-use ReflectionException;
 
 /**
  * Class Pg

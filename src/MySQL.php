@@ -26,8 +26,6 @@
 
 namespace DBD;
 
-use Falseclock\DBD\Entity\Column;
-
 /**
  * Class MySQL
  *
@@ -165,5 +163,4 @@ class MySQL extends DBD
 	protected function _rollback() {
 		return mysqli_rollback($this->resourceLink);
 	}
-
 }

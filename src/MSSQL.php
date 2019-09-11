@@ -28,7 +28,6 @@
 namespace DBD;
 
 use Falseclock\DBD\Common\DBDException as Exception;
-use Falseclock\DBD\Entity\Column;
 
 /**
  * Class MSSQL
