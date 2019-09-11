@@ -671,16 +671,6 @@ abstract class DBD
 	}
 
 	/**
-	 * @param      $table
-	 * @param null $schema
-	 *
-	 * @return Column[]
-	 */
-	public function tableStructure($table, $schema) {
-		return $this->_tableStructure($table, $schema);
-	}
-
-	/**
 	 * Simplifies update procedures. Method makes updates of the rows by giving parameters and prepared values. Returns self instance.
 	 *
 	 * Example 1:
@@ -981,19 +971,6 @@ abstract class DBD
 	 * @see rollback
 	 */
 	abstract protected function _rollback();
-
-	/**
-	 * @param string $table
-	 * @param string $schema
-	 *
-	 * @return Column[]
-	 * @see Pg::_tableStructure
-	 * @see MSSQL::_tableStructure
-	 * @see MySQL::_tableStructure
-	 * @see OData::_tableStructure
-	 * @see tableStructure
-	 */
-	abstract protected function _tableStructure($table, $schema);
 
 	/**
 	 * Check whether connection is established or not
