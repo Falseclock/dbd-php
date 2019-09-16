@@ -343,7 +343,11 @@ abstract class DBD
 
 				if(!in_array($uniqueName, self::$preparedStatements)) {
 					self::$preparedStatements[] = $uniqueName;
-					$this->_prepare($uniqueName, $preparedQuery);
+					$prepareResult = $this->_prepare($uniqueName, $preparedQuery);
+
+					if ($prepareResult === false) {
+						throw new Exception ($this->_errorMessage(), $preparedQuery);
+					}
 				}
 
 				$this->result = $this->_execute($uniqueName, Helper::parseArgs($executeArguments));
@@ -657,9 +661,8 @@ abstract class DBD
 	 * @throws ReflectionException
 	 */
 	public function select() {
-		list ($statement, $args) = Helper::prepareArgs(func_get_args());
 
-		$sth = $this->query($statement, $args);
+		$sth = $this->query(func_get_args());
 
 		if($sth->rows()) {
 			return $sth->fetch();

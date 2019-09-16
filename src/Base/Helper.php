@@ -254,6 +254,9 @@ final class Helper
 	 * @return array
 	 */
 	final public static function prepareArgs($ARGS) {
+		if (count($ARGS) == 1 and is_array($ARGS[0])) {
+			$ARGS = $ARGS[0];
+		}
 		// Shift query from passed arguments. Query is always first
 		$statement = array_shift($ARGS);
 		// Build array of arguments
