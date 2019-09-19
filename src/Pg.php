@@ -308,7 +308,14 @@ class Pg extends DBD
 	 * @see Pg::_execute
 	 */
 	protected function _execute($uniqueName, $arguments) {
-		return @pg_execute($this->resourceLink, $uniqueName, $arguments);
+		try {
+			$return = pg_execute($this->resourceLink, $uniqueName, $arguments);
+		}
+		catch(\Exception $e) {
+			return false;
+		}
+
+		return $return;
 	}
 
 	/**

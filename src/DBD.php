@@ -345,7 +345,7 @@ abstract class DBD
 					self::$preparedStatements[] = $uniqueName;
 					$prepareResult = $this->_prepare($uniqueName, $preparedQuery);
 
-					if ($prepareResult === false) {
+					if($prepareResult === false) {
 						throw new Exception ($this->_errorMessage(), $preparedQuery);
 					}
 				}
@@ -363,7 +363,7 @@ abstract class DBD
 				$this->storage = self::STORAGE_DATABASE;
 			}
 			else {
-				throw new Exception ($this->_errorMessage(), $preparedQuery);
+				throw new Exception ($this->_errorMessage(), $preparedQuery, $this->Options->isPrepareExecute() ? $executeArguments : null);
 			}
 
 			// If query from cache
