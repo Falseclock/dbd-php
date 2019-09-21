@@ -1045,8 +1045,11 @@ abstract class DBD
 	 * @throws Exception
 	 */
 	private function getPreparedQuery($ARGS, $overrideOption = false) {
+		$placeHolder = $this->Options->getPlaceHolder();
+		$isPrepareExecute = $this->Options->isPrepareExecute();
+
 		$preparedQuery = $this->query;
-		$binds = substr_count($this->query, $this->Options->getPlaceHolder());
+		$binds = substr_count($this->query, $placeHolder);
 		$executeArguments = Helper::parseArgs($ARGS);
 
 		$numberOfArgs = count($executeArguments);
@@ -1060,8 +1063,8 @@ abstract class DBD
 
 			$placeholderPosition = 1;
 			foreach($query as $ind => $str) {
-				if($str == $this->Options->getPlaceHolder()) {
-					if($this->Options->isPrepareExecute() and !$overrideOption) {
+				if($str == $placeHolder) {
+					if($isPrepareExecute and !$overrideOption) {
 						$query[$ind] = "\${$placeholderPosition}";
 						$placeholderPosition++;
 					}
