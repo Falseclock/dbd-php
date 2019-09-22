@@ -101,6 +101,7 @@ class MSSQL extends DBD
 	 * Do real connection. Can be invoked if OnDemand is set to TRUE
 	 *
 	 * @return void
+	 * @throws Exception
 	 */
 	protected function _connect() {
 		$this->resourceLink = sqlsrv_connect($this->Config->getDsn(), $this->connectionInfo);

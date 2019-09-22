@@ -144,7 +144,7 @@ abstract class Cache extends Singleton implements CacheInterface
 	 * Disallow to construct, callCache::me()->setup()->connect();
 	 *
 	 * @return $this
-	 * @throws DBDException
+	 * @throws \Exception
 	 * @example MemCache::me()->setup()->connect();
 	 */
 	public static function me() {
