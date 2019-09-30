@@ -35,6 +35,7 @@ use DBD\Base\Options;
 use DBD\Base\Query;
 use Falseclock\DBD\Common\DBDException as Exception;
 use Falseclock\DBD\Entity\Common\EntityException;
+use Falseclock\DBD\Entity\ConstraintRaw;
 use Falseclock\DBD\Entity\Entity;
 use Psr\SimpleCache\CacheInterface;
 use Psr\SimpleCache\InvalidArgumentException;
@@ -603,29 +604,94 @@ abstract class DBD
 	 * @return Entity
 	 * @throws EntityException
 	 * @throws Exception
+	 * @throws InvalidArgumentException
+	 * @throws ReflectionException
 	 */
 	public function insertEntity(Entity $entity) {
 
 		$record = [];
 		$columns = $entity::map()->getColumns();
 
+		// Cycle through all available columns according to Mapper definition
 		foreach($columns as $propertyName => $column) {
-			if ($column->nullable == false) {
-				$originName = $column->name;
+
+			$originName = $column->name;
+
+			if($column->nullable == false) {
+
 				// Mostly we always define properties for any columns
-				if (property_exists($entity, $propertyName)) {
-					if(!isset($entity->$originName))
+				if(property_exists($entity, $propertyName)) {
+					if(!isset($entity->$propertyName) and $column->isAuto === false)
 						throw new Exception(sprintf("Property '%s' of %s can't be null according to Mapper annotation", $propertyName, get_class($entity)));
 
-					if(isset($entity->$originName))
-						$record[$originName] = $entity->$originName;
-				} else {
-					// But sometimes we do not use constraint
+					// Finally add column to record if it is set
+					if(isset($entity->$propertyName))
+						$record[$originName] = $entity->$propertyName;
+				}
+				else {
+					// But sometimes we do not use reference fields in Entity directly, but use them as constraint
+					$constraints = $entity::map()->getConstraints();
+
+					$columnFound = false;
+					foreach($constraints as $constraintName => $constraint) {
+						if(property_exists($entity, $constraintName)) {
+							if($constraint->localColumn->name == $column->name) {
+								$columnFound = true;
+
+								if(isset($entity->$constraintName)) {
+									/** @var Entity $constraintEntity */
+									$constraintEntity = new $constraint->class;
+
+									$fields = array_flip($constraintEntity::map()->getOriginFieldNames());
+
+									/** @var string $foreignColumn name of origin column */
+									$foreignColumn = $constraint instanceof ConstraintRaw ? $constraint->foreignColumn : $constraint->foreignColumn->name;
+									$field = $fields[$foreignColumn];
+
+									if(isset($entity->$constraintName->$field)) {
+										$record[$originName] = $entity->$constraintName->$field;
+									}
+									else {
+										if($column->nullable !== false) {
+											throw new Exception(sprintf("Property '%s->%s' of %s can't be null", $constraintName, $field, get_class($entity)));
+										}
+										else {
+											if(isset($column->defaultValue))
+												$record[$originName] = $column->defaultValue;
+										}
+									}
+								}
+								else {
+									throw new Exception(sprintf("Property '%s' of %s not set.", $constraintName, get_class($entity)));
+								}
+							}
+						}
+					}
+					if($columnFound == false) {
+						throw new Exception(sprintf("Can't understand how to get value of %s(%s) in %s", $propertyName, $column->name, get_class($entity)));
+					}
+				}
+			}
+			else {
+				// Finally add column to record if it is set
+				if(isset($entity->$propertyName)) {
+					$record[$originName] = $entity->$propertyName;
+				}
+				else {
+					// If value not set and we have some default value, let's define also
+					if($column->isAuto === false and isset($column->defaultValue)) {
+						$record[$originName] = $column->defaultValue;
+					}
 				}
 			}
 		}
 
-		return $entity;
+		$sth = $this->insert($entity::SCHEME . "." . $entity::TABLE, $record, "*");
+
+		/** @var Entity $class */
+		$class = get_class($entity);
+
+		return new $class($sth->fetchRow());
 	}
 
 	/**
