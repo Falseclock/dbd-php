@@ -601,8 +601,30 @@ abstract class DBD
 	 * @param Entity $entity
 	 *
 	 * @return Entity
+	 * @throws EntityException
+	 * @throws Exception
 	 */
 	public function insertEntity(Entity $entity) {
+
+		$record = [];
+		$columns = $entity::map()->getColumns();
+
+		foreach($columns as $propertyName => $column) {
+			if ($column->nullable == false) {
+				$originName = $column->name;
+				// Mostly we always define properties for any columns
+				if (property_exists($entity, $propertyName)) {
+					if(!isset($entity->$originName))
+						throw new Exception(sprintf("Property '%s' of %s can't be null according to Mapper annotation", $propertyName, get_class($entity)));
+
+					if(isset($entity->$originName))
+						$record[$originName] = $entity->$originName;
+				} else {
+					// But sometimes we do not use constraint
+				}
+			}
+		}
+
 		return $entity;
 	}
 
