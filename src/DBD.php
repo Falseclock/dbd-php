@@ -686,7 +686,7 @@ abstract class DBD
 			}
 		}
 
-		$sth = $this->insert($entity::SCHEME . "." . $entity::TABLE, $record, "*");
+		$sth = $this->insert($entity::table(), $record, "*");
 
 		/** @var Entity $class */
 		$class = get_class($entity);
