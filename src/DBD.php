@@ -34,6 +34,8 @@ use DBD\Base\Helper;
 use DBD\Base\Options;
 use DBD\Base\Query;
 use Falseclock\DBD\Common\DBDException as Exception;
+use Falseclock\DBD\Entity\Common\EntityException;
+use Falseclock\DBD\Entity\Entity;
 use Psr\SimpleCache\CacheInterface;
 use Psr\SimpleCache\InvalidArgumentException;
 use ReflectionClass;
@@ -242,6 +244,43 @@ abstract class DBD
 	 * @see Pg::connect
 	 */
 	abstract public function connect();
+
+	/**
+	 * @param Entity $entity
+	 *
+	 * @return bool
+	 * @throws EntityException
+	 * @throws Exception
+	 * @throws InvalidArgumentException
+	 * @throws ReflectionException
+	 */
+	public function deleteEntity(Entity $entity) {
+		$keys = $entity::map()->getPrimaryKey();
+
+		if(!count($keys))
+			throw new Exception(sprintf("Entity %s does not have any defined primary key", get_class($entity)));
+
+		$columns = [];
+		$execute = [];
+
+		$placeHolder = $this->Options->getPlaceHolder();
+
+		foreach($keys as $keyName => $column) {
+			if(!isset($entity->$keyName))
+				throw new Exception(sprintf("Value of %s->%s, which is primary key column, is null", get_class($entity), $keyName));
+
+			$execute[] = $entity->$keyName;
+			$columns[] = "{$column->name} = {$placeHolder}";
+		}
+
+		$sth = $this->prepare(sprintf("DELETE FROM %s.%s WHERE %s", $entity::SCHEME, $entity::TABLE, implode(" AND ", $columns)));
+		$sth->execute($execute);
+
+		if($sth->affected())
+			return true;
+
+		return false;
+	}
 
 	/**
 	 * Closes a database connection
@@ -558,6 +597,15 @@ abstract class DBD
 	}
 
 	/**
+	 * @param Entity $entity
+	 *
+	 * @return Entity
+	 */
+	public function insertEntity(Entity $entity) {
+		return $entity;
+	}
+
+	/**
 	 * Creates a prepared statement for later execution
 	 *
 	 * @param string $statement
@@ -760,6 +808,16 @@ abstract class DBD
 		}
 
 		return $this->query($this->_compileUpdate($table, $params, $where, $return), $params['ARGS']);
+	}
+
+	/**
+	 * @param Entity $entity
+	 *
+	 * @return Entity
+	 */
+	public function updateEntity(Entity $entity) {
+
+		return $entity;
 	}
 
 	/**
