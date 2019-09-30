@@ -339,6 +339,7 @@ abstract class DBD
 	 * @throws Exception
 	 * @throws InvalidArgumentException
 	 * @throws ReflectionException
+	 * @throws \Exception
 	 */
 	public function execute() {
 		// Set result to false

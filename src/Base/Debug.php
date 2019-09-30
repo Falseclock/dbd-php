@@ -25,8 +25,8 @@
 
 namespace DBD\Base;
 
+use Exception;
 use Falseclock\DBD\Common\Singleton;
-use Falseclock\DBD\Common\DBDException as Exception;
 
 final class Debug extends Singleton
 {
