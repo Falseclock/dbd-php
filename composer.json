@@ -29,7 +29,7 @@
   "require":     {
     "php":                       "^5.4 || ^7.0",
     "psr/simple-cache":          "*",
-    "openlss/lib-array2xml":     "0.5.*",
+    "openlss/lib-array2xml":     "^1",
     "falseclock/dbd-php-common": "dev-master",
     "falseclock/dbd-php-entity": "dev-master"
   },
