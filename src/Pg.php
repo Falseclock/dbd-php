@@ -357,7 +357,14 @@ class Pg extends DBD
 	 * @see Pg::_prepare
 	 */
 	protected function _prepare($uniqueName, $statement) {
-		return @pg_prepare($this->resourceLink, $uniqueName, $statement);
+		try {
+			$return = pg_prepare($this->resourceLink, $uniqueName, $statement);
+		}
+		catch(\Exception $e) {
+			return false;
+		}
+
+		return $return;
 	}
 
 	/**
@@ -368,7 +375,14 @@ class Pg extends DBD
 	 * @return resource|bool
 	 */
 	protected function _query($statement) {
-		return @pg_query($this->resourceLink, $statement);
+		try {
+			$return = pg_query($this->resourceLink, $statement);
+		}
+		catch(\Exception $e) {
+			return false;
+		}
+
+		return $return;
 	}
 
 	/**

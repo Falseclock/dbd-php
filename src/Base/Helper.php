@@ -236,9 +236,7 @@ final class Helper
 
 		foreach($ARGS as $arg) {
 			if(is_array($arg)) {
-				foreach($arg as $subArg) {
-					$args[] = $subArg;
-				}
+				$args = self::arrayFlatten($arg);
 			}
 			else {
 				$args[] = $arg;
@@ -254,7 +252,7 @@ final class Helper
 	 * @return array
 	 */
 	final public static function prepareArgs($ARGS) {
-		if (count($ARGS) == 1 and is_array($ARGS[0])) {
+		if(count($ARGS) == 1 and is_array($ARGS[0])) {
 			$ARGS = $ARGS[0];
 		}
 		// Shift query from passed arguments. Query is always first
@@ -266,6 +264,26 @@ final class Helper
 			$statement,
 			$args,
 		];
+	}
+
+	private static function arrayFlatten($array) {
+		if(!is_array($array)) {
+			return false;
+		}
+		$result = [];
+		foreach($array as $key => $value) {
+			if(is_array($value)) {
+				$arrayList = self::arrayFlatten($value);
+				foreach($arrayList as $listItem) {
+					$result[] = $listItem;
+				}
+			}
+			else {
+				$result[$key] = $value;
+			}
+		}
+
+		return $result;
 	}
 
 	/**

@@ -35,6 +35,7 @@ use DBD\Base\Options;
 use DBD\Base\Query;
 use Falseclock\DBD\Common\DBDException as Exception;
 use Falseclock\DBD\Entity\Common\EntityException;
+use Falseclock\DBD\Entity\Constraint;
 use Falseclock\DBD\Entity\ConstraintRaw;
 use Falseclock\DBD\Entity\Entity;
 use Psr\SimpleCache\CacheInterface;
@@ -92,6 +93,8 @@ abstract class DBD
 	private $storage;
 	/** @var bool $inTransaction Stores current transaction state */
 	private $inTransaction = false;
+	/** @var int $transactionsIntermediate */
+	private $transactionsIntermediate = 0;
 	/** @var array $preparedStatements */
 	private static $preparedStatements = [];
 
@@ -147,18 +150,20 @@ abstract class DBD
 	/**
 	 * Starts database transaction
 	 *
+	 * @param bool $useSameTransaction
+	 *
 	 * @return bool
 	 * @throws Exception
 	 */
 	public function begin() {
-		if($this->inTransaction == true) {
+		if($this->inTransaction == true)
 			throw new Exception("Already in transaction");
-		}
+
 		$this->connectionPreCheck();
 		$this->result = $this->_begin();
-		if($this->result === false) {
+		if($this->result === false)
 			throw new Exception("Can't start transaction: " . $this->_errorMessage());
-		}
+
 		$this->inTransaction = true;
 
 		return true;
@@ -247,29 +252,6 @@ abstract class DBD
 	abstract public function connect();
 
 	/**
-	 * @noinspection PhpUnused
-	 *
-	 * @param Entity $entity
-	 *
-	 * @return bool
-	 * @throws EntityException
-	 * @throws Exception
-	 * @throws InvalidArgumentException
-	 * @throws ReflectionException
-	 */
-	public function deleteEntity(Entity $entity) {
-		list($execute, $columns) = $this->getPrimaryKeysForEntity($entity);
-
-		$sth = $this->prepare(sprintf("DELETE FROM %s.%s WHERE %s", $entity::SCHEME, $entity::TABLE, implode(" AND ", $columns)));
-		$sth->execute($execute);
-
-		if($sth->affected())
-			return true;
-
-		return false;
-	}
-
-	/**
 	 * Closes a database connection
 	 *
 	 * @return $this
@@ -313,6 +295,240 @@ abstract class DBD
 		$sth = $this->query($statement, $args);
 
 		return $sth->rows;
+	}
+
+	/**
+	 * @noinspection PhpUnused
+	 *
+	 * @param Entity $entity
+	 *
+	 * @return bool
+	 * @throws EntityException
+	 * @throws Exception
+	 * @throws InvalidArgumentException
+	 * @throws ReflectionException
+	 */
+	public function entityDelete(Entity $entity) {
+		list($execute, $columns) = $this->getPrimaryKeysForEntity($entity);
+
+		$sth = $this->prepare(sprintf("DELETE FROM %s.%s WHERE %s", $entity::SCHEME, $entity::TABLE, implode(" AND ", $columns)));
+		$sth->execute($execute);
+
+		if($sth->affected())
+			return true;
+
+		return false;
+	}
+
+	/**
+	 * @noinspection PhpUnused
+	 *
+	 * @param Entity $entity
+	 *
+	 * @return Entity
+	 * @throws EntityException
+	 * @throws Exception
+	 * @throws InvalidArgumentException
+	 * @throws ReflectionException
+	 */
+	public function entityInsert(Entity $entity) {
+
+		$record = [];
+		$columns = $entity::map()->getColumns();
+
+		// Cycle through all available columns according to Mapper definition
+		foreach($columns as $propertyName => $column) {
+
+			$originName = $column->name;
+
+			if($column->nullable == false) {
+
+				// Mostly we always define properties for any columns
+				if(property_exists($entity, $propertyName)) {
+					if(!isset($entity->$propertyName) and $column->isAuto === false)
+						throw new Exception(sprintf("Property '%s' of %s can't be null according to Mapper annotation", $propertyName, get_class($entity)));
+
+					// Finally add column to record if it is set
+					if(isset($entity->$propertyName))
+						$record[$originName] = $entity->$propertyName;
+				}
+				else {
+					// But sometimes we do not use reference fields in Entity directly, but use them as constraint
+					$constraints = $entity::map()->getConstraints();
+
+					$columnFound = false;
+					foreach($constraints as $constraintName => $constraint) {
+						// We have definition of Constraint which is public variable
+						if(property_exists($entity, $constraintName)) {
+							if($constraint->localColumn->name == $column->name) {
+								$columnFound = true;
+
+								if(isset($entity->$constraintName)) {
+									$foreignProperty = $this->findForeignProperty($constraint);
+
+									if(isset($entity->$constraintName->$foreignProperty)) {
+										$record[$originName] = $entity->$constraintName->$foreignProperty;
+									}
+									else {
+										if($column->nullable !== false) {
+											throw new Exception(sprintf("Property '%s->%s' of %s can't be null", $constraintName, $foreignProperty, get_class($entity)));
+										}
+										else {
+											if(isset($column->defaultValue))
+												$record[$originName] = $column->defaultValue;
+										}
+									}
+								}
+								else {
+									throw new Exception(sprintf("Property '%s' of %s not set.", $constraintName, get_class($entity)));
+								}
+							}
+						}
+					}
+					if($columnFound == false) {
+						throw new Exception(sprintf("Can't understand how to get value of %s(%s) in %s", $propertyName, $column->name, get_class($entity)));
+					}
+				}
+			}
+			else {
+				// Finally add column to record if it is set
+				if(isset($entity->$propertyName)) {
+					$record[$originName] = $entity->$propertyName;
+				}
+				else {
+					// If value not set and we have some default value, let's define also
+					if($column->isAuto === false and isset($column->defaultValue)) {
+						$record[$originName] = $column->defaultValue;
+					}
+				}
+			}
+		}
+
+		$sth = $this->insert($entity::table(), $record, "*");
+
+		/** @var Entity $class */
+		$class = get_class($entity);
+
+		return new $class($sth->fetchRow());
+	}
+
+	/**
+	 * Common usage when you have an Entity object with filled primary key only and want to fetch all available data
+	 *
+	 * @param Entity $entity
+	 *
+	 * @return Entity
+	 * @throws EntityException
+	 * @throws Exception
+	 * @throws InvalidArgumentException
+	 * @throws ReflectionException
+	 */
+	public function entitySelect(Entity &$entity) {
+
+		list($execute, $columns) = $this->getPrimaryKeysForEntity($entity);
+
+		$sth = $this->prepare(sprintf("SELECT * FROM %s.%s WHERE %s", $entity::SCHEME, $entity::TABLE, implode(" AND ", $columns)));
+		$sth->execute($execute);
+
+		if(!$sth->rows())
+			throw new Exception(sprintf("No data found for entity %s with ", get_class($entity)));
+
+		/** @var Entity $class */
+		$class = get_class($entity);
+
+		$entity = new $class($sth->fetchRow());
+
+		return $entity;
+	}
+
+	/**
+	 * TODO: обновлять поле констрейнта, если оно присутствует в Entity помимо Complex
+	 *
+	 * @noinspection PhpUnused
+	 *
+	 * @param Entity $entity
+	 *
+	 * @return Entity
+	 * @throws EntityException
+	 * @throws Exception
+	 * @throws InvalidArgumentException
+	 * @throws ReflectionException
+	 */
+	public function entityUpdate(Entity &$entity) {
+		list($execute, $primaryColumns) = $this->getPrimaryKeysForEntity($entity);
+
+		$record = [];
+		$columns = $entity::map()->getColumns();
+		$constraints = $entity::map()->getConstraints();
+
+		foreach($columns as $propertyName => $column) {
+
+			if($column->nullable === false) {
+				if(property_exists($entity, $propertyName)) {
+					if(isset($entity->$propertyName))
+						$record[$column->name] = $entity->$propertyName;
+					else
+						throw new Exception(sprintf("Property '%s' of %s can't be null", $propertyName, get_class($entity)));
+				}
+				else {
+					throw new Exception(sprintf("Property '%s' of %s not set", $propertyName, get_class($entity)));
+				}
+			}
+			else {
+				if(property_exists($entity, $propertyName)) {
+					$record[$column->name] = $entity->$propertyName;
+				}
+				else {
+					// Possibly we got reference constraint field
+					foreach($constraints as $constraintName => $constraint) {
+						if(property_exists($entity, $constraintName)) {
+							if($constraint->localColumn->name == $column->name and isset($entity->$constraintName)) {
+
+								$foreignProperty = $this->findForeignProperty($constraint);
+
+								if(isset($entity->$constraintName->$foreignProperty)) {
+									$record[$column->name] = $entity->$constraintName->$foreignProperty;
+								}
+								// Otherwise it seems we do not want update reference value
+							}
+						}
+					}
+				}
+			}
+		}
+		$this->beginIntermediate();
+		$sth = $this->update($entity::table(), $record, implode(" AND ", $primaryColumns), $execute, "*");
+		$affected = $sth->affectedRows();
+		if($affected > 1) {
+			$this->rollbackIntermediate();
+			throw new Exception(sprintf("More then one records updated with query. Transaction rolled back!"));
+		}
+		else if($affected == 0) {
+			$this->rollbackIntermediate();
+			throw new Exception(sprintf("No any records updated."));
+		}
+
+		$this->commitIntermediate();
+
+		/** @var Entity $class */
+		$class = get_class($entity);
+
+		$newEntity = new $class($sth->fetchRow());
+
+		// Nobody knows what we updated with this query, so lets' cycle trough all constraints and recheck new values
+		foreach($constraints as $constraintName => $constraint) {
+			if(property_exists($entity, $constraintName)) {
+				$foreignProperty = $this->findForeignProperty($constraint);
+				if($entity->$constraintName->$foreignProperty != $newEntity->$constraintName->$foreignProperty) {
+					// Reselect data for this constraint if it is references to new record
+					$newEntity->$constraintName = $this->entitySelect($newEntity->$constraintName);
+				}
+			}
+		}
+
+		$entity = $newEntity;
+
+		return $entity;
 	}
 
 	public function escape($string) {
@@ -390,7 +606,7 @@ abstract class DBD
 				$this->storage = self::STORAGE_DATABASE;
 			}
 			else {
-				throw new Exception ($this->_errorMessage(), $preparedQuery, $this->Options->isPrepareExecute() ? $executeArguments : null);
+				throw new Exception ($this->_errorMessage(), $preparedQuery, $this->Options->isPrepareExecute() ? Helper::parseArgs($executeArguments) : null);
 			}
 
 			// If query from cache
@@ -465,6 +681,7 @@ abstract class DBD
 
 		return array_shift($this->fetch);
 	}
+
 	/**
 	 * @noinspection PhpUnused
 	 *
@@ -551,35 +768,6 @@ abstract class DBD
 	}
 
 	/**
-	 * Common usage when you have an Entity object with filled primary key only and want to fetch all available data
-	 *
-	 * @param Entity $entity
-	 *
-	 * @return Entity
-	 * @throws EntityException
-	 * @throws Exception
-	 * @throws InvalidArgumentException
-	 * @throws ReflectionException
-	 */
-	public function getEntity(Entity &$entity) {
-
-		list($execute, $columns) = $this->getPrimaryKeysForEntity($entity);
-
-		$sth = $this->prepare(sprintf("SELECT * FROM %s.%s WHERE %s", $entity::SCHEME, $entity::TABLE, implode(" AND ", $columns)));
-		$sth->execute($execute);
-
-		if(!$sth->rows())
-			throw new Exception(sprintf("No data found for entity %s with ", get_class($entity)));
-
-		/** @var Entity $class */
-		$class = get_class($entity);
-
-		$entity = new $class($sth->fetchRow());
-
-		return $entity;
-	}
-
-	/**
 	 * @return array|resource|string
 	 */
 	public function getResult() {
@@ -612,104 +800,6 @@ abstract class DBD
 		$sth->execute($params['ARGS']);
 
 		return $sth;
-	}
-
-	/**
-	 * @noinspection PhpUnused
-	 *
-	 * @param Entity $entity
-	 *
-	 * @return Entity
-	 * @throws EntityException
-	 * @throws Exception
-	 * @throws InvalidArgumentException
-	 * @throws ReflectionException
-	 */
-	public function insertEntity(Entity $entity) {
-
-		$record = [];
-		$columns = $entity::map()->getColumns();
-
-		// Cycle through all available columns according to Mapper definition
-		foreach($columns as $propertyName => $column) {
-
-			$originName = $column->name;
-
-			if($column->nullable == false) {
-
-				// Mostly we always define properties for any columns
-				if(property_exists($entity, $propertyName)) {
-					if(!isset($entity->$propertyName) and $column->isAuto === false)
-						throw new Exception(sprintf("Property '%s' of %s can't be null according to Mapper annotation", $propertyName, get_class($entity)));
-
-					// Finally add column to record if it is set
-					if(isset($entity->$propertyName))
-						$record[$originName] = $entity->$propertyName;
-				}
-				else {
-					// But sometimes we do not use reference fields in Entity directly, but use them as constraint
-					$constraints = $entity::map()->getConstraints();
-
-					$columnFound = false;
-					foreach($constraints as $constraintName => $constraint) {
-						if(property_exists($entity, $constraintName)) {
-							if($constraint->localColumn->name == $column->name) {
-								$columnFound = true;
-
-								if(isset($entity->$constraintName)) {
-									/** @var Entity $constraintEntity */
-									$constraintEntity = new $constraint->class;
-
-									$fields = array_flip($constraintEntity::map()->getOriginFieldNames());
-
-									/** @var string $foreignColumn name of origin column */
-									$foreignColumn = $constraint instanceof ConstraintRaw ? $constraint->foreignColumn : $constraint->foreignColumn->name;
-									$field = $fields[$foreignColumn];
-
-									if(isset($entity->$constraintName->$field)) {
-										$record[$originName] = $entity->$constraintName->$field;
-									}
-									else {
-										if($column->nullable !== false) {
-											throw new Exception(sprintf("Property '%s->%s' of %s can't be null", $constraintName, $field, get_class($entity)));
-										}
-										else {
-											if(isset($column->defaultValue))
-												$record[$originName] = $column->defaultValue;
-										}
-									}
-								}
-								else {
-									throw new Exception(sprintf("Property '%s' of %s not set.", $constraintName, get_class($entity)));
-								}
-							}
-						}
-					}
-					if($columnFound == false) {
-						throw new Exception(sprintf("Can't understand how to get value of %s(%s) in %s", $propertyName, $column->name, get_class($entity)));
-					}
-				}
-			}
-			else {
-				// Finally add column to record if it is set
-				if(isset($entity->$propertyName)) {
-					$record[$originName] = $entity->$propertyName;
-				}
-				else {
-					// If value not set and we have some default value, let's define also
-					if($column->isAuto === false and isset($column->defaultValue)) {
-						$record[$originName] = $column->defaultValue;
-					}
-				}
-			}
-		}
-
-		$sth = $this->insert($entity::table(), $record, "*");
-
-		/** @var Entity $class */
-		$class = get_class($entity);
-
-		return new $class($sth->fetchRow());
 	}
 
 	/**
@@ -780,7 +870,7 @@ abstract class DBD
 			$this->connectionPreCheck();
 			$this->result = $this->_rollback();
 			if($this->result === false) {
-				throw new Exception("Can not end transaction " . pg_errormessage());
+				throw new Exception("Can not end transaction: " . $this->_errorMessage());
 			}
 		}
 		else {
@@ -915,21 +1005,6 @@ abstract class DBD
 		}
 
 		return $this->query($this->_compileUpdate($table, $params, $where, $return), $params['ARGS']);
-	}
-
-	/**
-	 * TODO: обновлять поле констрейнта, если оно присутствует в Entity помимо Complex
-	 *
-	 * @noinspection PhpUnused
-	 *
-	 * @param Entity $entity
-	 *
-	 * @return Entity
-	 *
-	 */
-	public function updateEntity(Entity &$entity) {
-
-		return $entity;
 	}
 
 	/**
@@ -1153,6 +1228,39 @@ abstract class DBD
 	}
 
 	/**
+	 * Begin transaction internally of we don't know was transaction started somewhere else or not
+	 *
+	 * @return bool
+	 * @throws Exception
+	 */
+	private function beginIntermediate() {
+
+		$this->transactionsIntermediate++;
+
+		if($this->inTransaction == false)
+			return $this->begin();
+		else
+			return true;
+	}
+
+	/**
+	 *  Commit transaction internally of we don't know was transaction started somewhere else or not
+	 *
+	 * @return bool
+	 * @throws Exception
+	 */
+	private function commitIntermediate() {
+
+		$this->transactionsIntermediate--;
+
+		if($this->transactionsIntermediate == 0) {
+			return $this->commit();
+		}
+
+		return true;
+	}
+
+	/**
 	 * Check connection existence and do connection if not
 	 *
 	 * @return void
@@ -1204,6 +1312,24 @@ abstract class DBD
 		$class->query = $statement;
 
 		return $class;
+	}
+
+	/**
+	 * @param Constraint $constraint
+	 *
+	 * @return mixed
+	 * @throws EntityException
+	 */
+	private function findForeignProperty(Constraint $constraint) {
+		/** @var Entity $constraintEntity */
+		$constraintEntity = new $constraint->class;
+		$fields = array_flip($constraintEntity::map()->getOriginFieldNames());
+
+		/** @var string $foreignColumn name of origin column */
+		$foreignColumn = $constraint instanceof ConstraintRaw ? $constraint->foreignColumn : $constraint->foreignColumn->name;
+		$foreignProperty = $fields[$foreignColumn];
+
+		return $foreignProperty;
 	}
 
 	/**
@@ -1276,5 +1402,24 @@ abstract class DBD
 		}
 
 		return [ $execute, $columns ];
+	}
+
+	/**
+	 * @return bool
+	 * @throws Exception
+	 */
+	private function rollbackIntermediate() {
+		if($this->inTransaction) {
+			$this->transactionsIntermediate--;
+
+			if($this->transactionsIntermediate == 0) {
+				return $this->rollback();
+			}
+		}
+		else {
+			throw new Exception("No transaction to rollback");
+		}
+
+		return true;
 	}
 }
