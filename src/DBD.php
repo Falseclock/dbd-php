@@ -247,6 +247,8 @@ abstract class DBD
 	abstract public function connect();
 
 	/**
+	 * @noinspection PhpUnused
+	 *
 	 * @param Entity $entity
 	 *
 	 * @return bool
@@ -256,23 +258,7 @@ abstract class DBD
 	 * @throws ReflectionException
 	 */
 	public function deleteEntity(Entity $entity) {
-		$keys = $entity::map()->getPrimaryKey();
-
-		if(!count($keys))
-			throw new Exception(sprintf("Entity %s does not have any defined primary key", get_class($entity)));
-
-		$columns = [];
-		$execute = [];
-
-		$placeHolder = $this->Options->getPlaceHolder();
-
-		foreach($keys as $keyName => $column) {
-			if(!isset($entity->$keyName))
-				throw new Exception(sprintf("Value of %s->%s, which is primary key column, is null", get_class($entity), $keyName));
-
-			$execute[] = $entity->$keyName;
-			$columns[] = "{$column->name} = {$placeHolder}";
-		}
+		list($execute, $columns) = $this->getPrimaryKeysForEntity($entity);
 
 		$sth = $this->prepare(sprintf("DELETE FROM %s.%s WHERE %s", $entity::SCHEME, $entity::TABLE, implode(" AND ", $columns)));
 		$sth->execute($execute);
@@ -479,8 +465,9 @@ abstract class DBD
 
 		return array_shift($this->fetch);
 	}
-
 	/**
+	 * @noinspection PhpUnused
+	 *
 	 * @return array
 	 */
 	public function fetchArraySet() {
@@ -564,6 +551,35 @@ abstract class DBD
 	}
 
 	/**
+	 * Common usage when you have an Entity object with filled primary key only and want to fetch all available data
+	 *
+	 * @param Entity $entity
+	 *
+	 * @return Entity
+	 * @throws EntityException
+	 * @throws Exception
+	 * @throws InvalidArgumentException
+	 * @throws ReflectionException
+	 */
+	public function getEntity(Entity &$entity) {
+
+		list($execute, $columns) = $this->getPrimaryKeysForEntity($entity);
+
+		$sth = $this->prepare(sprintf("SELECT * FROM %s.%s WHERE %s", $entity::SCHEME, $entity::TABLE, implode(" AND ", $columns)));
+		$sth->execute($execute);
+
+		if(!$sth->rows())
+			throw new Exception(sprintf("No data found for entity %s with ", get_class($entity)));
+
+		/** @var Entity $class */
+		$class = get_class($entity);
+
+		$entity = new $class($sth->fetchRow());
+
+		return $entity;
+	}
+
+	/**
 	 * @return array|resource|string
 	 */
 	public function getResult() {
@@ -599,6 +615,8 @@ abstract class DBD
 	}
 
 	/**
+	 * @noinspection PhpUnused
+	 *
 	 * @param Entity $entity
 	 *
 	 * @return Entity
@@ -900,11 +918,16 @@ abstract class DBD
 	}
 
 	/**
+	 * TODO: обновлять поле констрейнта, если оно присутствует в Entity помимо Complex
+	 *
+	 * @noinspection PhpUnused
+	 *
 	 * @param Entity $entity
 	 *
 	 * @return Entity
+	 *
 	 */
-	public function updateEntity(Entity $entity) {
+	public function updateEntity(Entity &$entity) {
 
 		return $entity;
 	}
@@ -1159,7 +1182,7 @@ abstract class DBD
 
 	/**
 	 * Copies object variables after extended class construction
-	 * FIXME: may be clone?
+	 * TODO: may be clone?
 	 *
 	 * @param DBD    $context
 	 * @param string $statement
@@ -1224,5 +1247,34 @@ abstract class DBD
 		}
 
 		return $preparedQuery;
+	}
+
+	/**
+	 * @param Entity $entity
+	 *
+	 * @return array
+	 * @throws EntityException
+	 * @throws Exception
+	 */
+	private function getPrimaryKeysForEntity(Entity $entity) {
+		$keys = $entity::map()->getPrimaryKey();
+
+		if(!count($keys))
+			throw new Exception(sprintf("Entity %s does not have any defined primary key", get_class($entity)));
+
+		$columns = [];
+		$execute = [];
+
+		$placeHolder = $this->Options->getPlaceHolder();
+
+		foreach($keys as $keyName => $column) {
+			if(!isset($entity->$keyName))
+				throw new Exception(sprintf("Value of %s->%s, which is primary key column, is null", get_class($entity), $keyName));
+
+			$execute[] = $entity->$keyName;
+			$columns[] = "{$column->name} = {$placeHolder}";
+		}
+
+		return [ $execute, $columns ];
 	}
 }
