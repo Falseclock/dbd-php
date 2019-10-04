@@ -2,7 +2,7 @@
 /*************************************************************************************
  *   MIT License                                                                     *
  *                                                                                   *
- *   Copyright (C) 2009-2017 by Nurlan Mukhanov <nurike@gmail.com>                   *
+ *   Copyright (C) 2009-2019 by Nurlan Mukhanov <nurike@gmail.com>                   *
  *                                                                                   *
  *   Permission is hereby granted, free of charge, to any person obtaining a copy    *
  *   of this software and associated documentation files (the "Software"), to deal   *
@@ -16,7 +16,7 @@
  *                                                                                   *
  *   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR      *
  *   IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,        *
- *   FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE     *
+ *   FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT. IN NO EVENT SHALL THE    *
  *   AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER          *
  *   LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,   *
  *   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE   *
@@ -25,31 +25,14 @@
 
 namespace DBD\Base;
 
-use DBD\Base\DBDPHPInstantiatable as Instantiatable;
-use DBD\Base\DBDPHPSingleton as Singleton;
+use Exception;
+use Falseclock\DBD\Common\Singleton;
 
-final class DBDQuery
-{
-	public $query;
-	public $cost;
-	public $caller;
-	public $mark;
-	public $driver;
-
-	public function __construct($query, $cost, $caller, $mark, $driver) {
-		$this->query = $query;
-		$this->cost = $cost;
-		$this->caller = $caller;
-		$this->mark = $mark;
-		$this->driver = $driver;
-	}
-}
-
-final class DBDDebug extends Singleton implements Instantiatable
+final class Debug extends Singleton
 {
 	/** @var float $maxExecutionTime in milliseconds */
 	public static $maxExecutionTime = 20;
-	/** @var DBDQuery[] $queries */
+	/** @var Query[] $queries */
 	private static $queries;
 	/** @var int $totalQueries */
 	private static $totalQueries = 0;
@@ -59,7 +42,7 @@ final class DBDDebug extends Singleton implements Instantiatable
 	private $startTime = null;
 
 	/**
-	 * @param DBDQuery $queries
+	 * @param Query $queries
 	 */
 	public static function addQueries($queries) {
 		self::$queries[] = $queries;
@@ -79,6 +62,10 @@ final class DBDDebug extends Singleton implements Instantiatable
 		self::$totalQueries += $count;
 	}
 
+	public function endTimer() {
+		return $this->difference($this->startTime);
+	}
+
 	/**
 	 * @return array
 	 */
@@ -94,7 +81,7 @@ final class DBDDebug extends Singleton implements Instantiatable
 	}
 
 	/**
-	 * @return DBDQuery[]
+	 * @return Query[]
 	 */
 	public static function getQueries() {
 		return self::$queries;
@@ -115,15 +102,17 @@ final class DBDDebug extends Singleton implements Instantiatable
 	}
 
 	/**
-	 * @return DBDDebug
-	 * @throws \Exception
+	 * @return Debug
+	 * @throws Exception
 	 */
 	public static function me() {
 		return Singleton::getInstance(__CLASS__);
 	}
 
-	public function endTimer() {
-		return $this->difference($this->startTime);
+	public function startTimer() {
+		$this->startTime = microtime();
+
+		return $this->startTime;
 	}
 
 	private function difference($start, $end = null) {
@@ -139,11 +128,5 @@ final class DBDDebug extends Singleton implements Instantiatable
 		$diffBase = floatval($endBase) - floatval($startBase);
 
 		return round(((floatval($diffSec) + $diffBase) * 1000), 3);
-	}
-
-	public function startTimer() {
-		$this->startTime = microtime();
-
-		return $this->startTime;
 	}
 }

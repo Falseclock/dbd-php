@@ -2,7 +2,7 @@
 /*************************************************************************************
  *   MIT License                                                                     *
  *                                                                                   *
- *   Copyright (C) 2009-2017 by Nurlan Mukhanov <nurike@gmail.com>                   *
+ *   Copyright (C) 2009-2019 by Nurlan Mukhanov <nurike@gmail.com>                   *
  *                                                                                   *
  *   Permission is hereby granted, free of charge, to any person obtaining a copy    *
  *   of this software and associated documentation files (the "Software"), to deal   *
@@ -16,7 +16,7 @@
  *                                                                                   *
  *   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR      *
  *   IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,        *
- *   FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE     *
+ *   FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT. IN NO EVENT SHALL THE    *
  *   AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER          *
  *   LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,   *
  *   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE   *
@@ -25,7 +25,7 @@
 
 namespace DBD;
 
-use DBD\Base\DBDPHPException as Exception;
+use Falseclock\DBD\Common\DBDException as Exception;
 
 /**
  * Class Pg
@@ -36,6 +36,30 @@ class Pg extends DBD
 {
 	const CAST_FORMAT_INSERT = "?::%s";
 	const CAST_FORMAT_UPDATE = "%s = ?::%s";
+
+	/**
+	 * Setup connection to the resource
+	 *
+	 * @return Pg
+	 * @throws Exception
+	 */
+	public function connect() {
+
+		$dsn = "host={$this->Config->getDsn()} ";
+		$dsn .= "dbname={$this->Config->getDatabase()} ";
+		$dsn .= $this->Config->getUsername() ? "user={$this->Config->getUsername()} " : "";
+		$dsn .= $this->Config->getPassword() ? "password={$this->Config->getPassword()} " : "";
+		$dsn .= $this->Config->getPort() ? "port={$this->Config->getPort()} " : "";
+		$dsn .= "application_name={$this->Config->getIdentity()} ";
+
+		$this->Config->setDsn($dsn);
+
+		if($this->Options->isOnDemand() === false) {
+			$this->_connect();
+		}
+
+		return $this;
+	}
 
 	/**
 	 * returns the number of tuples (instances/records/rows) affected by INSERT, UPDATE, and DELETE queries.
@@ -105,6 +129,13 @@ class Pg extends DBD
 			throw new Exception("Can not connect to PostgreSQL server! ");
 	}
 
+	/**
+	 * @param $data
+	 * @param $type
+	 *
+	 * @return array|mixed
+	 * @throws Exception
+	 */
 	protected function _convertBoolean(&$data, $type) {
 		if($type == 'row') {
 			if(isset($data) and is_array($data) and count($data) > 0) {
@@ -211,7 +242,9 @@ class Pg extends DBD
 					if(array_key_exists($types[$i], $map)) {
 						// using data key, cause can be
 						//printf("Type: %s\n",$types[$i]);
-						$data[$key] = ($map[$types[$i]] == 'integer' ? intval($value) : floatval($value));
+						if(isset($value)) {
+							$data[$key] = ($map[$types[$i]] == 'integer' ? intval($value) : floatval($value));
+						}
 					}
 					$i++;
 				}
@@ -253,15 +286,36 @@ class Pg extends DBD
 		if(!isset($value) or $value === null) {
 			return "NULL";
 		}
-/*		if(is_numeric($value)) {
-			return $value;
-		}*/
+		/*		if(is_numeric($value)) {
+					return $value;
+				}*/
 		if(is_bool($value)) {
 			return ($value) ? "TRUE" : "FALSE";
 		}
 		$str = pg_escape_string($value);
 
 		return "'$str'";
+	}
+
+	/**
+	 * @param $uniqueName
+	 * @param $arguments
+	 *
+	 * @return mixed
+	 * @see MSSQL::_execute
+	 * @see MySQL::_execute
+	 * @see OData::_execute
+	 * @see Pg::_execute
+	 */
+	protected function _execute($uniqueName, $arguments) {
+		try {
+			$return = pg_execute($this->resourceLink, $uniqueName, $arguments);
+		}
+		catch(\Exception $e) {
+			return false;
+		}
+
+		return $return;
 	}
 
 	/**
@@ -292,6 +346,28 @@ class Pg extends DBD
 	}
 
 	/**
+	 * @param $uniqueName
+	 *
+	 * @param $statement
+	 *
+	 * @return mixed
+	 * @see MSSQL::_prepare
+	 * @see MySQL::_prepare
+	 * @see OData::_prepare
+	 * @see Pg::_prepare
+	 */
+	protected function _prepare($uniqueName, $statement) {
+		try {
+			$return = pg_prepare($this->resourceLink, $uniqueName, $statement);
+		}
+		catch(\Exception $e) {
+			return false;
+		}
+
+		return $return;
+	}
+
+	/**
 	 * Executes the query on the specified database connection.
 	 *
 	 * @param $statement
@@ -300,11 +376,13 @@ class Pg extends DBD
 	 */
 	protected function _query($statement) {
 		try {
-			return @pg_query($this->resourceLink, $statement);
+			$return = pg_query($this->resourceLink, $statement);
 		}
 		catch(\Exception $e) {
 			return false;
 		}
+
+		return $return;
 	}
 
 	/**
@@ -314,29 +392,5 @@ class Pg extends DBD
 	 */
 	protected function _rollback() {
 		return $this->_query("ROLLBACK;");
-	}
-
-	/**
-	 * Setup connection to the resource
-	 *
-	 * @return Pg
-	 * @throws Exception
-	 */
-	public function connect() {
-
-		$dsn = "host={$this->Config->getDsn()} ";
-		$dsn .= "dbname={$this->Config->getDatabase()} ";
-		$dsn .= $this->Config->getUsername() ? "user={$this->Config->getUsername()} " : "";
-		$dsn .= $this->Config->getPassword() ? "password={$this->Config->getPassword()} " : "";
-		$dsn .= $this->Config->getPort() ? "port={$this->Config->getPort()} " : "";
-		$dsn .= "application_name={$this->Config->getIdentity()} ";
-
-		$this->Config->setDsn($dsn);
-
-		if($this->Options->isOnDemand() === false) {
-			$this->_connect();
-		}
-
-		return $this;
 	}
 }

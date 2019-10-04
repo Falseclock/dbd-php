@@ -1,4 +1,8 @@
 <?php
+
+use DBD\DBD;
+use DBD\Pg;
+
 require_once('/var/www/crm.virtex.kz/lib/vendor/autoload.php');
 
 /** @var array $TEST */
@@ -95,7 +99,7 @@ foreach($TEST['database'] as $database) {
         $database['options']['CacheDriver'] = $cache;
     }
 
-    /** @var \DBD\Pg $dbd */
+    /** @var Pg $dbd */
     $dbd = new $driver;
     $dbh = $dbd->setup($database['host'], $database['port'], $database['database'], $database['user'], $database['password'], $database['options']);
     $db = $dbh->connect();
@@ -575,7 +579,7 @@ final class Tests
     }
 
     public function TableInsert() {
-        /** @var \DBD\DBD $db */
+        /** @var DBD $db */
         $db = $this->db;
 
         $this->testHeader("Insert method");
