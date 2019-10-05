@@ -23,10 +23,10 @@
  *   SOFTWARE.                                                                       *
  ************************************************************************************/
 
-namespace Falseclock\DBD;
+namespace DBD;
 
-use Falseclock\DBD\Base\Helper;
-use Falseclock\DBD\Common\DBDException as Exception;
+use DBD\Base\Helper;
+use DBD\Common\DBDException as Exception;
 use LSS\XML2Array;
 
 class OData extends DBD

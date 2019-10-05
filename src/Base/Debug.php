@@ -23,10 +23,10 @@
  *   SOFTWARE.                                                                       *
  ************************************************************************************/
 
-namespace Falseclock\DBD\Base;
+namespace DBD\Base;
 
+use DBD\Common\Singleton;
 use Exception;
-use Falseclock\DBD\Common\Singleton;
 
 final class Debug extends Singleton
 {

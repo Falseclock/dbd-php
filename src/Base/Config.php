@@ -23,10 +23,10 @@
  *   SOFTWARE.                                                                       *
  ************************************************************************************/
 
-namespace Falseclock\DBD\Base;
+namespace DBD\Base;
 
+use DBD\Cache;
 use Exception;
-use Falseclock\DBD\Cache;
 use Psr\SimpleCache\CacheInterface;
 
 final class Config

@@ -23,9 +23,9 @@
  *   SOFTWARE.                                                                       *
  ************************************************************************************/
 
-namespace Falseclock\DBD;
+namespace DBD;
 
-use Falseclock\DBD\Common\DBDException as Exception;
+use DBD\Common\DBDException as Exception;
 
 /**
  * Class Pg

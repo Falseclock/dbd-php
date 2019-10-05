@@ -23,9 +23,9 @@
  *   SOFTWARE.                                                                       *
  ************************************************************************************/
 
-namespace Falseclock\DBD\Base;
+namespace DBD\Base;
 
-use Falseclock\DBD\Common\DBDException as Exception;
+use DBD\Common\DBDException as Exception;
 
 final class Options
 {

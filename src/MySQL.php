@@ -24,7 +24,7 @@
  *   SOFTWARE.                                                                       *
  ************************************************************************************/
 
-namespace Falseclock\DBD;
+namespace DBD;
 
 /**
  * Class MySQL

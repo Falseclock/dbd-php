@@ -1,6 +1,6 @@
 <?php
 
-namespace Falseclock\DBD\Base;
+namespace DBD\Base;
 
 final class Query
 {

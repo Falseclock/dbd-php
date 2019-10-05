@@ -23,10 +23,10 @@
  *   SOFTWARE.                                                                       *
  ************************************************************************************/
 
-namespace Falseclock\DBD;
+namespace DBD;
 
 use DateInterval;
-use Falseclock\DBD\Common\Singleton;
+use DBD\Common\Singleton;
 use Psr\SimpleCache\CacheInterface;
 
 abstract class Cache extends Singleton implements CacheInterface

@@ -23,11 +23,11 @@
  *   SOFTWARE.                                                                       *
  ************************************************************************************/
 
-namespace Falseclock\DBD\Cache;
+namespace DBD\Cache;
 
 use DateInterval;
+use DBD\Cache;
 use Exception;
-use Falseclock\DBD\Cache;
 
 class MemCache extends Cache
 {

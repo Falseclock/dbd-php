@@ -25,19 +25,19 @@
  * SOFTWARE.
  */
 
-namespace Falseclock\DBD;
+namespace DBD;
 
 use DateInterval;
-use Falseclock\DBD\Base\Config;
-use Falseclock\DBD\Base\Debug;
-use Falseclock\DBD\Base\Helper;
-use Falseclock\DBD\Base\Options;
-use Falseclock\DBD\Base\Query;
-use Falseclock\DBD\Common\DBDException as Exception;
-use Falseclock\DBD\Entity\Common\EntityException;
-use Falseclock\DBD\Entity\Constraint;
-use Falseclock\DBD\Entity\ConstraintRaw;
-use Falseclock\DBD\Entity\Entity;
+use DBD\Base\Config;
+use DBD\Base\Debug;
+use DBD\Base\Helper;
+use DBD\Base\Options;
+use DBD\Base\Query;
+use DBD\Common\DBDException as Exception;
+use DBD\Entity\Common\EntityException;
+use DBD\Entity\Constraint;
+use DBD\Entity\ConstraintRaw;
+use DBD\Entity\Entity;
 use Psr\SimpleCache\CacheInterface;
 use Psr\SimpleCache\InvalidArgumentException;
 use ReflectionClass;
