@@ -1,7 +1,7 @@
 <?php
 
-use DBD\DBD;
-use DBD\Pg;
+use Falseclock\DBD\DBD;
+use Falseclock\DBD\Pg;
 
 require_once('/var/www/crm.virtex.kz/lib/vendor/autoload.php');
 
@@ -78,7 +78,7 @@ $TEST = [
 
 $cache = null;
 if($TEST['memcache']) {
-    $cache = DBD\Cache\MemCache::me()->setup($TEST['memcache'], false, "10 sec")->connect();
+    $cache = \Falseclock\DBD\Cache\MemCache::me()->setup($TEST['memcache'], false, "10 sec")->connect();
 }
 
 $db_options = [
@@ -248,7 +248,7 @@ final class Tests
     /**
      * Tests constructor.
      *
-     * @param DBD\Pg $db
+     * @param \Falseclock\DBD\Pg $db
      */
     public function __construct($db) {
 
@@ -303,7 +303,7 @@ final class Tests
         }
         $result3 = $sta->fetchRowSet();
 
-        $result4 = DBD\Cache\MemCache::me()::me()->get('test_purposed');
+        $result4 = \Falseclock\DBD\Cache\MemCache::me()::me()->get('test_purposed');
 
         if($result1 !== $result2) {
             $this->testFail("cache fetchrowset \$result1 != \$result2");
@@ -316,7 +316,7 @@ final class Tests
         }
 
         sleep(6);
-        $result5 = DBD\Cache\MemCache::me()->get('test_purposed');
+        $result5 = \Falseclock\DBD\Cache\MemCache::me()->get('test_purposed');
 
         if($result5 !== false) {
             $this->testFail("cache test5 failed");
@@ -344,7 +344,7 @@ final class Tests
         }
         $result3 = $sta->fetchRow();
 
-        $result4 = DBD\Cache\MemCache::me()->get('test_purposed')[0];
+        $result4 = \Falseclock\DBD\Cache\MemCache::me()->get('test_purposed')[0];
 
         if($result1 !== $result2) {
             $this->testFail("cache fetchrow \$result1 != \$result2");
@@ -359,7 +359,7 @@ final class Tests
         }
 
         sleep(6);
-        $result5 = DBD\Cache\MemCache::me()::me()->get('test_purposed');
+        $result5 = \Falseclock\DBD\Cache\MemCache::me()::me()->get('test_purposed');
 
         if($result5 !== false) {
             $this->testFail("cache test9 failed");

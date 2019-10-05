@@ -23,7 +23,7 @@
  *   SOFTWARE.                                                                       *
  ************************************************************************************/
 
-namespace DBD\Base;
+namespace Falseclock\DBD\Base;
 
 use Falseclock\DBD\Common\DBDException as Exception;
 

@@ -23,9 +23,9 @@
  *   SOFTWARE.                                                                       *
  ************************************************************************************/
 
-namespace DBD;
+namespace Falseclock\DBD;
 
-use DBD\Base\Helper;
+use Falseclock\DBD\Base\Helper;
 use Falseclock\DBD\Common\DBDException as Exception;
 use LSS\XML2Array;
 

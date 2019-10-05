@@ -182,7 +182,7 @@ resource query ( string $statement [, mixed $params ] )
 ```php
 <?php
 
-$dsn = (new DBD\Pg())->create("localhost", 5432, "my_database", "user", "secret_password", $db_options);
+$dsn = (new Falseclock\DBD\Pg())->create("localhost", 5432, "my_database", "user", "secret_password", $db_options);
 $db  = $dsn->connect();
 
 $sth = $db->query("UPDATE invoices SET invoice_uuid = ? WHERE invoice_date = ?", '550e8400-e29b-41d4-a716-446655440000', '2018-01-01');
@@ -314,7 +314,7 @@ $db_options = array(
     'UseDebug'          => true
 );
 // Create DSN 
-$dsn = (new DBD\Pg())->create("host=localhost;port=5432;dbname=falseclock", "username","password", $db_options);
+$dsn = (new Falseclock\DBD\Pg())->create("host=localhost;port=5432;dbname=falseclock", "username","password", $db_options);
 
 // make connection to the database
 $db = $dsn->connect();
@@ -397,7 +397,7 @@ $db_options = array(
     'UseDebug'          => true
 );
 // Create DSN 
-$dsn = (new DBD\Pg())->create("host=localhost;port=5432;dbname=falseclock", "username","password", $db_options);
+$dsn = (new Falseclock\DBD\Pg())->create("host=localhost;port=5432;dbname=falseclock", "username","password", $db_options);
 
 // make connection to the database
 $db = $dsn->connect();
@@ -760,7 +760,7 @@ $db_options = array(
     'UseDebug'          => true
 );
 // Create DSN 
-$dsn = (new DBD\Pg())->create("host=localhost;port=5432;dbname=falseclock", "username","password", $db_options);
+$dsn = (new Falseclock\DBD\Pg())->create("host=localhost;port=5432;dbname=falseclock", "username","password", $db_options);
 
 // make connection to the database
 $db = $dsn->connect();

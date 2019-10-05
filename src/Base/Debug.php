@@ -23,7 +23,7 @@
  *   SOFTWARE.                                                                       *
  ************************************************************************************/
 
-namespace DBD\Base;
+namespace Falseclock\DBD\Base;
 
 use Exception;
 use Falseclock\DBD\Common\Singleton;

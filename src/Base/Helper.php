@@ -23,10 +23,10 @@
  *   SOFTWARE.                                                                       *
  ************************************************************************************/
 
-namespace DBD\Base;
+namespace Falseclock\DBD\Base;
 
-use DBD\DBD;
 use Falseclock\DBD\Common\DBDException;
+use Falseclock\DBD\DBD;
 use ReflectionClass;
 use ReflectionException;
 

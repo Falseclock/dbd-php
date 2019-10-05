@@ -178,7 +178,7 @@ $db_options = array(
     'UseDebug'          => true
 );
 // Create DSN 
-$dsn = (new DBD\Pg())->create("host=localhost;port=5432;dbname=falseclock", "username","password", $db_options);
+$dsn = (new Falseclock\DBD\Pg())->create("host=localhost;port=5432;dbname=falseclock", "username","password", $db_options);
 
 // make connection to the database
 $db = $dsn->connect();
@@ -298,7 +298,7 @@ $db_options = array(
     'UseDebug'          => true
 );
 // Create DSN 
-$dsn = (new DBD\Pg())->create("host=localhost;port=5432;dbname=falseclock", "username","password", $db_options);
+$dsn = (new Falseclock\DBD\Pg())->create("host=localhost;port=5432;dbname=falseclock", "username","password", $db_options);
 
 // make connection to the database
 $db = $dsn->connect();
@@ -661,7 +661,7 @@ $db_options = array(
     'UseDebug'          => true
 );
 // Create DSN 
-$dsn = (new DBD\Pg())->create("host=localhost;port=5432;dbname=falseclock", "username","password", $db_options);
+$dsn = (new Falseclock\DBD\Pg())->create("host=localhost;port=5432;dbname=falseclock", "username","password", $db_options);
 
 // make connection to the database
 $db = $dsn->connect();

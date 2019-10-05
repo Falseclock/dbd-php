@@ -25,14 +25,14 @@
  * SOFTWARE.
  */
 
-namespace DBD;
+namespace Falseclock\DBD;
 
 use DateInterval;
-use DBD\Base\Config;
-use DBD\Base\Debug as Debug;
-use DBD\Base\Helper;
-use DBD\Base\Options;
-use DBD\Base\Query;
+use Falseclock\DBD\Base\Config;
+use Falseclock\DBD\Base\Debug;
+use Falseclock\DBD\Base\Helper;
+use Falseclock\DBD\Base\Options;
+use Falseclock\DBD\Base\Query;
 use Falseclock\DBD\Common\DBDException as Exception;
 use Falseclock\DBD\Entity\Common\EntityException;
 use Falseclock\DBD\Entity\Constraint;
@@ -149,8 +149,6 @@ abstract class DBD
 
 	/**
 	 * Starts database transaction
-	 *
-	 * @param bool $useSameTransaction
 	 *
 	 * @return bool
 	 * @throws Exception

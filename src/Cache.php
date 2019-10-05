@@ -23,10 +23,9 @@
  *   SOFTWARE.                                                                       *
  ************************************************************************************/
 
-namespace DBD;
+namespace Falseclock\DBD;
 
 use DateInterval;
-use Falseclock\DBD\Common\DBDException;
 use Falseclock\DBD\Common\Singleton;
 use Psr\SimpleCache\CacheInterface;
 
