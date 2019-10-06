@@ -1,21 +1,16 @@
 <?php
 /**
  * DBD package
- *
  * MIT License
- *
  * Copyright (C) 2009-2019 by Nurlan Mukhanov <nurike@gmail.com>
- *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- *
  * The above copyright notice and this permission notice shall be included in all
  * copies or substantial portions of the Software.
- *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -123,17 +118,7 @@ abstract class DBD
 	}
 
 	/**
-	 * Same as affectedRows but returns boolean
-	 *
-	 * @return bool
-	 */
-	public function isAffected() {
-		return $this->affectedRows() > 0;
-	}
-
-	/**
 	 * Returns number of affected rows during update or delete
-	 *
 	 * ```
 	 * $sth = $db->prepare("DELETE FROM foo WHERE bar = ?");
 	 * $sth->execute($someVar);
@@ -170,7 +155,6 @@ abstract class DBD
 
 	/**
 	 * Must be called after statement prepare
-	 *
 	 * ```
 	 * $sth = $db->prepare("SELECT bank_id AS id, bank_name AS name FROM banks ORDER BY bank_name ASC");
 	 * $sth->cache("AllBanks");
@@ -236,7 +220,6 @@ abstract class DBD
 
 	/**
 	 * Base and main method to start. Returns self instance of DBD driver
-	 *
 	 * ```
 	 * $db = (new DBD\Pg())->connect($config, $options);
 	 * ```
@@ -245,7 +228,6 @@ abstract class DBD
 	 * @see MSSQL::connect
 	 * @see MySQL::connect
 	 * @see OData::connect
-	 *
 	 * @see Pg::connect
 	 */
 	abstract public function connect();
@@ -270,7 +252,6 @@ abstract class DBD
 
 	/**
 	 * For simple SQL query, mostly delete or update, when you do not need to get results and only want to know affected rows
-	 *
 	 * Example 1:
 	 * ```
 	 * $affectedRows = $db->doit("UPDATE table SET column1 = ? WHERE column2 = ?", NULL, 'must be null');
@@ -284,6 +265,7 @@ abstract class DBD
 	 * @throws Exception
 	 * @throws InvalidArgumentException
 	 * @throws ReflectionException
+	 * @deprecated use do
 	 */
 	public function doIt() {
 		if(!func_num_args())
@@ -535,6 +517,24 @@ abstract class DBD
 	}
 
 	/**
+	 * @return int
+	 * @throws Exception
+	 * @throws InvalidArgumentException
+	 * @throws ReflectionException
+	 */
+	public function do() {
+		if(!func_num_args())
+			throw new Exception("query failed: statement is not set or empty");
+
+		list ($statement, $args) = Helper::prepareArgs(func_get_args());
+
+		$sth = $this->query($statement, $args);
+
+		return $sth->rows;
+	}
+
+
+	/**
 	 * Sends a request to execute a prepared statement with given parameters, and waits for the result.
 	 *
 	 * @return mixed
@@ -683,7 +683,6 @@ abstract class DBD
 
 	/**
 	 * @noinspection PhpUnused
-	 *
 	 * @return array
 	 */
 	public function fetchArraySet() {
@@ -767,16 +766,16 @@ abstract class DBD
 	}
 
 	/**
-	 * @deprecated
 	 * @return array|resource|string
+	 * @deprecated
 	 */
 	public function getResult() {
 		return $this->result;
 	}
 
 	/**
-	 * @deprecated
 	 * @return string
+	 * @deprecated
 	 */
 	public function getStorage() {
 		return $this->storage;
@@ -804,6 +803,15 @@ abstract class DBD
 	}
 
 	/**
+	 * Same as affectedRows but returns boolean
+	 *
+	 * @return bool
+	 */
+	public function isAffected() {
+		return $this->affectedRows() > 0;
+	}
+
+	/**
 	 * Creates a prepared statement for later execution
 	 *
 	 * @param string $statement
@@ -820,7 +828,6 @@ abstract class DBD
 
 	/**
 	 * Like doit method, but return self instance
-	 *
 	 * Example 1:
 	 * ```
 	 * $sth = $db->query("SELECT * FROM invoices");
@@ -828,9 +835,7 @@ abstract class DBD
 	 *      //do something
 	 * }
 	 * ```
-	 *
 	 * Example 2:
-	 *
 	 * ```
 	 * $sth = $db->query("UPDATE invoices SET invoice_uuid=?",'550e8400-e29b-41d4-a716-446655440000');
 	 * echo($sth->affectedRows());
@@ -863,7 +868,6 @@ abstract class DBD
 	 * Rolls back a transaction that was begun
 	 *
 	 * @return bool
-	 *
 	 * @throws Exception
 	 */
 	public function rollback() {
@@ -919,9 +923,7 @@ abstract class DBD
 
 	/**
 	 * Simplifies update procedures. Method makes updates of the rows by giving parameters and prepared values. Returns self instance.
-	 *
 	 * Example 1:
-	 *
 	 * ```php
 	 * $update = [
 	 *     'invoice_date'   => $doc['Date'],
@@ -931,9 +933,7 @@ abstract class DBD
 	 * // this will update all rows in a table
 	 * $sth = $db->update('invoices', $update);
 	 * echo($sth->rows);
-	 *
 	 * Example 2:
-	 *
 	 * ```php
 	 * $update = array(
 	 *     'invoice_date'   => [ $doc['Date'], 'date' ] ,
@@ -944,7 +944,6 @@ abstract class DBD
 	 * $sth = $db->update('invoices', $update, "invoice_uuid=  ?", $doc['UUID']);
 	 * echo ($sth->rows);
 	 * ```
-	 *
 	 * Example 3:
 	 * ```php
 	 * $update = array(
@@ -959,7 +958,6 @@ abstract class DBD
 	 *     printf("Updated invoice with ID=%d\n", $row['invoice_id']);
 	 * }
 	 * ```
-	 *
 	 * Example 4:
 	 * ```php
 	 * $update = [
@@ -1046,7 +1044,6 @@ abstract class DBD
 	 *
 	 * @return mixed
 	 * @see OData::_compileInsert
-	 *
 	 * @see insert
 	 * @see Pg::_compileInsert
 	 * @see MSSQL::_compileInsert
@@ -1066,7 +1063,6 @@ abstract class DBD
 	 * @see MSSQL::_compileUpdate
 	 * @see MySQL::_compileUpdate
 	 * @see OData::_compileUpdate
-	 *
 	 */
 	abstract protected function _compileUpdate($table, $params, $where, $return = "");
 
@@ -1087,7 +1083,6 @@ abstract class DBD
 	 * @return mixed
 	 * @see MySQL::_convertBoolean
 	 * @see OData::_convertBoolean
-	 *
 	 * @see convertTypes
 	 * @see Pg::_convertBoolean
 	 * @see MSSQL::_convertBoolean
@@ -1101,7 +1096,6 @@ abstract class DBD
 	 * @return mixed
 	 * @see MySQL::_convertIntFloat
 	 * @see OData::_convertIntFloat
-	 *
 	 * @see convertTypes
 	 * @see Pg::_convertIntFloat
 	 * @see MSSQL::_convertIntFloat
@@ -1134,7 +1128,6 @@ abstract class DBD
 	 * @see MSSQL::_escape
 	 * @see MySQL::_escape
 	 * @see OData::_escape
-	 *
 	 * @see getPreparedQuery
 	 * @see Pg::_escape
 	 */
@@ -1185,7 +1178,6 @@ abstract class DBD
 
 	/**
 	 * @param string $uniqueName
-	 *
 	 * @param string $statement
 	 *
 	 * @return mixed
@@ -1203,7 +1195,6 @@ abstract class DBD
 	 * @see MSSQL::_query
 	 * @see MySQL::_query
 	 * @see OData::_query
-	 *
 	 * @see execute
 	 * @see Pg::_query
 	 */
@@ -1335,7 +1326,6 @@ abstract class DBD
 
 	/**
 	 * @param      $ARGS
-	 *
 	 * @param bool $overrideOption
 	 *
 	 * @return string

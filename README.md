@@ -42,7 +42,7 @@ $dbh->disconnect();
 ## Basic methods
 
 * [connect](#connect)
-* [doIt](#doit)
+* [do](#do)
 * [query](#query)
 * [prepare](#prepare)
 * [execute](#execute)
@@ -79,17 +79,17 @@ resource connect ()
 **connect()** opens a connection to a database using **Option** instance provided in construction.
 
 * * *
-# **doit**
+# **do**
 
-**doIt** — Returns number of affected records (tuples)
+**do** — Returns number of affected records (tuples)
 
 ### Description
 
 ```php
-int doIt ( string $statement [, mixed $params ] )
+int do ( string $statement [, mixed $params ] )
 ```
 
-**doIt()** returns the number of tuples (instances/records/rows) affected by INSERT, UPDATE, and DELETE queries.
+**do()** returns the number of tuples (instances/records/rows) affected by INSERT, UPDATE, and DELETE queries.
 
 Since PostgreSQL 9.0 and above, the server returns the number of SELECTed rows. Older PostgreSQL return 0 for SELECT.
 
@@ -117,11 +117,11 @@ $db->connect();
 
 // The following example is insecure against SQL injections
 $param = "'must be null'";
-$result = $db->doit("UPDATE table SET column1 = NULL WHERE column2 = $param");
+$result = $db->do("UPDATE table SET column1 = NULL WHERE column2 = $param");
 
 // more easiest, simple and safe for SQL injections example.
 // Number of affected tuples will be stored in $result variable
-$result = $db->doit("UPDATE table SET column1 = ? WHERE column2 = ?", NULL, 'must be null');
+$result = $db->do("UPDATE table SET column1 = ? WHERE column2 = ?", NULL, 'must be null');
 ?>
 ```
 * * *
@@ -135,7 +135,7 @@ $result = $db->doit("UPDATE table SET column1 = ? WHERE column2 = ?", NULL, 'mus
 resource query ( string $statement [, mixed $params ] )
 ```
 
-**query()** do the same as [doIt](#doit)() method, but returns self instance.
+**query()** do the same as [do](#do)() method, but returns self instance.
 
 
 ### Parameters
