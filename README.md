@@ -30,7 +30,7 @@ $config = new Config("127.0.0.1", 5432, "db_name", "user_name", "user_password")
 $dbh =  new Pg($config);
 $dbh->connect();
 
-/**
+/*
 ... do some staff
 */
 
@@ -192,7 +192,7 @@ foreach ($fruits as $fruit) {
 	$sth->execute(NULL,$fruit);
 }
 
-/** 
+/*
 this code will execute three statements
 UPDATE table SET column1 = NULL WHERE column2 = 'apple';
 UPDATE table SET column1 = NULL WHERE column2 = 'banana';
@@ -237,7 +237,7 @@ while ($row = $sth->fetchRow()) {
     	$std->execute(FALSE, NULL, $row['col2']);
     }
 }
-/** 
+/*
 this code will execute this statement
 UPDATE table2 SET col2 = FALSE WHERE col1 = NULL AND col2 = <value of col2 from table1>;
 */
