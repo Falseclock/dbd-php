@@ -16,9 +16,9 @@ inspired by DBI::DBD library I tried to develop the same functionality for PHP.
 * Extendable by other drivers (only PostgreSQL fully ready)
 * Automatic conversion of records to objects with dbd-php-entity library
 
-## Setup database instance
+## Getting instance
 
-very easy
+Very and very easy:
 
 ```php
 <?php
@@ -31,14 +31,14 @@ $dbh =  new Pg($config);
 $dbh->connect();
 
 /*
-... do some staff
+... do some stuff
 */
 
 $dbh->disconnect();
 ?>
 ``` 
 
-## Main methods
+## Basic methods
 
 * [connect](#connect)
 * [doIt](#doIt)
@@ -54,10 +54,6 @@ $dbh->disconnect();
 * [commit](#commit)
 * [rollback](#rollback)
 * [cache](#cache)
-* [drop](#drop)
-* [rows](#rows)
-* [getColumn](#getColumn)
-* [result](#result)
 
 * * *
 # **connect**
