@@ -8,8 +8,9 @@ inspired by DBI::DBD library I tried to develop the same functionality for PHP.
 
 #### Basic feature list:
 
+* Much comfortable and easy than PDO
 * SQL injections protection
-* DBD/DBI perl-like 
+* DBD/DBI perl-like library
 * Easy caching integration
 * Better error handling
 * Measurements and debugging
@@ -41,13 +42,13 @@ $dbh->disconnect();
 ## Basic methods
 
 * [connect](#connect)
-* [doIt](#doIt)
+* [doIt](#doit)
 * [query](#query)
 * [prepare](#prepare)
 * [execute](#execute)
 * [fetch](#fetch)
-* [fetchRow](#fetchRow)
-* [fetchRowSet](#fetchRowSet)
+* [fetchRow](#fetchrow)
+* [fetchRowSet](#fetchrowset)
 * [insert](#insert)
 * [update](#update)
 * [begin](#begin)
@@ -69,7 +70,7 @@ resource connect ()
 **connect()** opens a connection to a database using **Option** instance provided in construction.
 
 * * *
-# **doIt**
+# **doit**
 
 **doIt** — Returns number of affected records (tuples)
 
@@ -105,12 +106,11 @@ $config = new Config("127.0.0.1", 5432, "db_name", "user_name", "user_password")
 $db =  new Pg($config);
 $db->connect();
 
-// Bad example how SQL can be injected as every string parameter must be escaped 
-// manually or with $db->quote('must be null');
+// The following example is insecure against SQL injections
 $param = "'must be null'";
 $result = $db->doit("UPDATE table SET column1 = NULL WHERE column2 = $param");
 
-// more easiest, simple and safe for SQL injections way.
+// more easiest, simple and safe for SQL injections example.
 // Number of affected tuples will be stored in $result variable
 $result = $db->doit("UPDATE table SET column1 = ? WHERE column2 = ?", NULL, 'must be null');
 ?>
@@ -126,7 +126,7 @@ $result = $db->doit("UPDATE table SET column1 = ? WHERE column2 = ?", NULL, 'mus
 resource query ( string $statement [, mixed $params ] )
 ```
 
-**query()** do the same as [doIt](#doIt)() method, but returns self instance.
+**query()** do the same as [doIt](#doit)() method, but returns self instance.
 
 
 ### Parameters
@@ -142,7 +142,8 @@ resource query ( string $statement [, mixed $params ] )
 
 ```php
 <?php
-/** @var \DBD\Pg $db */
+use DBD\Pg;
+/** @var Pg $db */
 $sth = $db->query("SELECT * FROM invoices");
 
 while ($row = $sth->fetchRow()) {
@@ -178,7 +179,8 @@ resource prepare ( string $statement )
 
 ```php
 <?php
-/** @var \DBD\Pg $db */
+use DBD\Pg;
+/** @var Pg $db */
 // Common usage for repeatedly SELECT queries
 $sth = $db->prepare("UPDATE table SET column1 = ? WHERE column2 = ?");
 
@@ -220,7 +222,8 @@ resource execute ( [ mixed $params ] )
 
 ```php
 <?php
-/** @var \DBD\Pg $db */
+use DBD\Pg;
+/** @var Pg $db */
 
 // Common usage for repeatedly UPDATE queries
 $sth = $db->prepare("SELECT col1, col2, col3 FROM table1");
@@ -258,7 +261,8 @@ mixed fetch ()
 
 ```php
 <?php
-/** @var \DBD\Pg $db */
+use DBD\Pg;
+/** @var Pg $db */
 $sth = $db->prepare("SELECT 'VIR-TEX LLC' AS company, generate_series AS wrh_id, 'Warehouse #'||trunc(random()*1000) AS wrh_name, trunc((random()*1000)::numeric, 2) AS wrh_volume FROM generate_series(1,3)");
 
 /* select result example
@@ -291,7 +295,7 @@ Company name: VIR-TEX LLP
 ```
 
 * * *
-# **fetchRow**
+# **fetchrow**
 
 **fetchRow** — fetch a row as an associative array
 
@@ -313,7 +317,8 @@ FALSE is returned if row exceeds the number of rows in the set, there are no mor
 
 ```php
 <?php
-/** @var \DBD\Pg $db */
+use DBD\Pg;
+/** @var Pg $db */
 $sth = $db->prepare("SELECT *, 'orange' AS col1, 'apple' AS col2, 'tomato'  AS col3 FROM generate_series(1,3)");
 $sth->execute();
 print_r($sth->fetchrow());
@@ -331,7 +336,7 @@ Array
 ```
 
 * * *
-# **fetchRowSet**
+# **fetchrowset**
 
 **fetchRowSet** — fetch a full result as multidimensional array, where each element is an associative array that corresponds to the fetched row.
 
@@ -356,7 +361,8 @@ Values in a row Database NULL values are returned as NULL.
 
 ```php
 <?php
-/** @var \DBD\Pg $db */
+use DBD\Pg;
+/** @var Pg $db */
 $sth = $db->prepare("SELECT generate_series AS wrh_id, 'Warehouse #'||trunc(random()*1000) AS wrh_name, trunc((random()*1000)::numeric, 2) AS wrh_volume FROM generate_series(1,3)");
 $sth->execute();
 print_r($sth->fetchRowSet());
@@ -446,6 +452,8 @@ mixed insert (string $table, array $values [, string $return])
 
 ```php
 <?php
+use DBD\Pg;
+/** @var Pg $db */
 /** @var array $doc */
 $record = [
 	'invoice_uuid' => $doc['Ref'],
@@ -454,7 +462,6 @@ $record = [
 	'invoice_amount' => $doc['Amount'],
 	'waybill_uuid' => $doc['reference']['uuid']
 ];
-/** @var \DBD\Pg $db */
 $sth = $db->insert('vatInvoices',$record);
 echo ($sth->affectedRows());
 
@@ -464,6 +471,8 @@ echo ($sth->affectedRows());
 
 ```php
 <?php
+use DBD\Pg;
+/** @var Pg $db */
 /** @var array $payment */
 $record = [
 	//'payment_id' => IS SERIAL, will be generated automatically
@@ -472,7 +481,7 @@ $record = [
 	'payment_number' => $payment['Number'],
 	'payment_amount' => $payment['Amount']
 ];
-/** @var \DBD\Pg $db */
+
 $sth = $db->insert('payments', $record, 'payment_id, payment_uuid');
 
 while ($row = $sth->fetchrow()) {
@@ -513,13 +522,15 @@ mixed update (string $table, array $values [, mixed $where..., [ mixed $args...]
 
 ```php
 <?php
+use DBD\Pg;
+/** @var Pg $db */
 /** @var array $doc */
 $update = [
 	'invoice_date' => $doc['Date'],
 	'invoice_number' => $doc['Number'],
 	'invoice_amount' => $doc['Amount']
 ];
-/** @var \DBD\Pg $db this will update all rows in a table */
+/* this will update all rows in a table */
 $sth = $db->update('invoices',$update);
 echo ($sth->affectedRows());
 ?>
@@ -528,13 +539,15 @@ echo ($sth->affectedRows());
 
 ```php
 <?php
+use DBD\Pg;
+/** @var Pg $db */
 /** @var array $doc */
 $update = [
 	'invoice_date' => $doc['Date'],
 	'invoice_number' => $doc['Number'],
 	'invoice_amount' => $doc['Amount']
 ];
-/** @var \DBD\Pg $db this will update all rows in a table where vat_invoice_uuid equals to some value */
+/* this will update all rows in a table where vat_invoice_uuid equals to some value */
 $sth = $db->update('vat_invoices', $update, "vat_invoice_uuid=?", $doc['UUID']);
 echo ($sth->affectedRows());
 ?>
@@ -543,15 +556,18 @@ echo ($sth->affectedRows());
 
 ```php
 <?php
+use DBD\Pg;
+/** @var Pg $db */
 /** @var array $doc */
 $update = array(
 	'vatinvoice_date' => $doc['Date'],
 	'vatinvoice_number' => $doc['Number'],
 	'vatinvoice_amount' => $doc['Amount']
 );
-// this will update all rows in a table where vatinvoice_uuid is null
-// query will return vatinvoice_id
-/** @var \DBD\Pg $db */
+/* 
+this will update all rows in a table where vatinvoice_uuid is null
+query will return vatinvoice_id
+*/
 $sth = $db->update('vatinvoices', $update, "vatinvoice_uuid IS NULL", "vatinvoice_id");
 while ($row = $sth->fetchRow()) {
 	printf("Updated vatinvoice with ID=%d\n", $row['vatinvoice_id']);
@@ -562,6 +578,8 @@ while ($row = $sth->fetchRow()) {
 
 ```php
 <?php
+use DBD\Pg;
+/** @var Pg $db */
 /** @var array $doc */
 $update = array(
 	'vatinvoice_date' => $doc['Date'],
@@ -570,7 +588,6 @@ $update = array(
 );
 // this will update all rows in a table where vatinvoice_uuid equals to some value
 // query will return vatinvoice_id
-/** @var \DBD\Pg $db */
 $sth = $db->update('vatinvoices',$update,"vatinvoice_uuid =? ", $doc['UUID'], "vatinvoice_id, vatinvoice_uuid");
 while ($row = $sth->fetchRow()) {
 	printf("Updated vatinvoice with ID=%d and UUID=%s\n",$row['vatinvoice_id'],$row['vatinvoice_uuid']);
@@ -594,7 +611,8 @@ mixed begin ()
 
 ```php
 <?php
-/** @var \DBD\Pg $db */
+use DBD\Pg;
+/** @var Pg $db */
 
 $db->begin();
 
@@ -637,5 +655,19 @@ mixed rollback ()
 ```
 
 **rollback()** undo the most recent series of uncommitted database changes if the database supports transactions and AutoCommit is off.
+
+
+* * *
+# **cache**
+
+**cache** — cache select result 
+
+### Description
+
+```php
+mixed cache ()
+```
+
+**cache()** bla bla la
 
 
