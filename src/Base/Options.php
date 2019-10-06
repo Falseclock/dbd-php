@@ -30,7 +30,7 @@ use DBD\Common\DBDException as Exception;
 final class Options
 {
 	/** @var bool $OnDemand */
-	private $OnDemand = false;
+	private $OnDemand = true;
 	/** @var bool $PrintError */
 	private $PrintError = true;
 	/** @var bool $RaiseError */
@@ -48,7 +48,20 @@ final class Options
 	/** @var string $placeHolder */
 	private $placeHolder = "?";
 
-	public function __construct($OnDemand = null, $PrintError = null, $RaiseError = null, $ShowErrorStatement = null, $ConvertNumeric = null, $ConvertBoolean = null, $UseDebug = null, $PrepareExecute = null, $placeholder = null) {
+	/**
+	 * Options constructor.
+	 *
+	 * @param bool|null   $OnDemand
+	 * @param bool|null   $PrintError
+	 * @param bool|null   $RaiseError
+	 * @param bool|null   $ShowErrorStatement
+	 * @param bool|null   $ConvertNumeric
+	 * @param bool|null   $ConvertBoolean
+	 * @param bool|null   $UseDebug
+	 * @param bool|null   $PrepareExecute
+	 * @param string|null $placeholder
+	 */
+	public function __construct(bool $OnDemand = null, bool $PrintError = null, bool $RaiseError = null, bool $ShowErrorStatement = null, bool $ConvertNumeric = null, bool $ConvertBoolean = null, bool $UseDebug = null, bool $PrepareExecute = null, string $placeholder = null) {
 		if(isset($OnDemand))
 			$this->OnDemand = $OnDemand;
 

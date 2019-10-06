@@ -1,53 +1,32 @@
 ##
-## Database driver for PHP (beta version)
-*(not native English speaker, any help appreciated)*
-
-#### Why not standard PDO?
-Actually, development of this library was started before PHP 5.0. Being mostly Perl developer and
-inspired by DBI::DBD library I tried to develop the same functionality for PHP. 
+## Database driver for PHP (applicable for v1 only)
 
 #### Basic feature list:
 
-* SQL injections protection
-* DBD/DBI perl-like 
-* Easy caching integration
-* Better error handling
-* Measurements and debugging
-* Extendable by other drivers (only PostgreSQL fully ready)
-* Automatic conversion of records to objects with dbd-php-entity library
+* Protection from SQL injections
+* DBD/DBI perl-like
+* Easy coding
+* Memcache easy integration
+* Error handling
+* Extendable by other drivers (only PostgreSQL ready, other coming)
 
-## Setup database instance
+## Database operations
 
-very easy
-
-```php
-<?php
-use DBD\Base\Config;
-use DBD\Pg;
-
-$config = new Config("127.0.0.1", 5432, "db_name", "user_name", "user_password");
-
-$dbh =  new Pg($config);
-$dbh->connect();
-
-/**
-... do some staff
-*/
-
-$dbh->disconnect();
-?>
-``` 
+* [connect](#connect)
+* [setOption](#setOption)
+* [getOption](#getOption)
+* [disconnect](#disconnect)
+* [isConnected](#isConnected)
 
 ## Main methods
 
-* [connect](#connect)
-* [doIt](#doIt)
+* [du](#du)
 * [query](#query)
 * [prepare](#prepare)
 * [execute](#execute)
 * [fetch](#fetch)
-* [fetchRow](#fetchRow)
-* [fetchRowSet](#fetchRowSet)
+* [fetchrow](#fetchrow)
+* [fetchrowset](#fetchrowset)
 * [insert](#insert)
 * [update](#update)
 * [begin](#begin)
@@ -67,23 +46,114 @@ $dbh->disconnect();
 ### Description
 
 ```php
-resource connect ()
+resource connect ( string $dsn [, string $username [, string $password [, array $options ]]] )
 ```
 
-**connect()** opens a connection to a database using **Option** instance provided in construction.
+**connect()** opens a connection to a database specified by the **dsn**.
+
+
+### Parameters
+
+***dsn***
+>The *dsn* should contain one or more parameter settings separated by semicolon. Each parameter setting is in the form keyword = value.
+The currently recognized parameter keywords are: **host**, **port**, **dbname**, **user**, **password**,
+
+***username***
+>Database username. If provided, then should be omitted in dsn.
+
+***password***
+>Database user password. If provided, then should be omitted in dsn.
+
+***options***
+>array of options. The currently recognized options are:
+>
+>| Parameter          | default value | definition                                                                                                                   |
+>|--------------------|:-------------:|------------------------------------------------------------------------------------------------------------------------------|
+>| PrintError         |      true     | Print out errors to current output handler in case of SQL syntax error                                                       |
+>| RaiseError         |      true     | If true, then HTTP status 500 will be thrown with exception.                                                                 |
+>| ShowErrorStatement |     false     | Works only if PrintError set to true. If true, then error message will contain failed SQL statement                          |
+>| HTMLError          |     false     | Works only if PrintError set to true. By default error message has text format. Set to true if HTML error is preferred.      |
+>| Persistent         |     false     | Will initiate persistent connection in case of true value                                                                    |
+>| ConvertNumeric     |     false     | By default PHP native library returns all integer and float values as text. Set to true if you need convert to proper type.  |
+>| UseDebug           |     false     | If true counts queries and benchmark each with EXPLAIN. Can be printed out before disconnect.                                |
+>| ErrorHandler       |      null     | You can create own error handler and use it errors catcher.                                                                    |
+>| CacheDriver        |      null     | Cache driver instance.                                                                                                       |
+>
+>## **HTML Error Example**
+>![Image of Yaktocat](https://cloud.githubusercontent.com/assets/3299139/24210184/77632df8-0f52-11e7-95fd-3514ed4ad60d.PNG)
+>
+>## **TEXT Error Example**
+>![Image of Yaktocat](https://cloud.githubusercontent.com/assets/3299139/24210187/78dd0168-0f52-11e7-8294-ed0ed8b105af.PNG)
+>
+>## **ErrorHandler Example**
+>Class **DBD\Base\ErrorHandler** has three public classes: **composeData()**, **composeTETXError**, **composeHTMLError**
+>```php
+>$db_options = array(
+>	'ErrorHandler'		=> 'SQLErrorHandler'
+>);
+>
+>// Create DSN 
+>$dsn = (new DBD\Pg())->create("host=localhost;port=5432;dbname=falseclock", "username","password", $db_options);
+>
+>// make connection to the database
+>$db = $dsn->connect();
+>
+>class SQLErrorHandler extends DBD\Base\ErrorHandler
+>{
+>	public function __construct($query, $errstr, $caller, $options=null) {
+>		
+>		$error = $this->composeData($query, $errstr, $caller);
+>			
+>		$filename = "sql.log";
+>		$file_data = json_encode($error, JSON_UNESCAPED_UNICODE)."\n";
+>			
+>		if (! file_exists($filename)) { @file_put_contents($filename, ''); }
+>		$file_data .= @file_get_contents($filename);
+>		@file_put_contents($filename, $file_data);
+>		@chmod($filename,0666);
+>		
+>		$html = $this->composeHTMLError($query, $errstr, $caller, $options);
+>		
+>		echo($html);
+>		exit();
+>	}
+>}
+>```
+>
+>## **CacheDriver Example**
+>```php
+>$cache = DBD\Cache\MemCache::me()->create(array(['host' => '127.0.0.1', 'port' => 11211]), false, 15)->open();
+>
+>$db_options = array(
+>	'CacheDriver'    => $cache,
+>	'ErrorHandler'   => 'SQLErrorHandler'
+>);
+>
+>// Create DSN 
+>$dsn = (new DBD\Pg())->create("host=localhost;port=5432;dbname=falseclock", "username","password", $db_options);
+>
+>// make connection to the database
+>$db = $dsn->connect();
+>
+>$sth = $db->prepare("SELECT bank_id AS id, bank_name AS name FROM banks ORDER BY bank_name ASC");
+>$sth->cache("AllBanks"); // <--- this will
+>$sth->execute(); // Will try to fetch from catch if exist or will query database and store to cache
+>
+>```
+
 
 * * *
-# **doIt**
+# **du**
 
-**doIt** — Returns number of affected records (tuples)
+**du** — Returns number of affected records (tuples)
 
 ### Description
 
 ```php
-int doIt ( string $statement [, mixed $params ] )
+int du ( string $statement [, mixed $params ] )
 ```
 
-**doIt()** returns the number of tuples (instances/records/rows) affected by INSERT, UPDATE, and DELETE queries.
+**du()** returns the number of tuples (instances/records/rows) affected by INSERT, UPDATE, and DELETE queries.
 
 Since PostgreSQL 9.0 and above, the server returns the number of SELECTed rows. Older PostgreSQL return 0 for SELECT.
 
@@ -101,13 +171,16 @@ Since PostgreSQL 9.0 and above, the server returns the number of SELECTed rows. 
 
 ```php
 <?php
-use DBD\Base\Config;
-use DBD\Pg;
 
-$config = new Config("127.0.0.1", 5432, "db_name", "user_name", "user_password");
+$db_options = array(
+    'ConvertNumeric'    => true,
+    'UseDebug'          => true
+);
+// Create DSN 
+$dsn = (new DBD\Pg())->create("host=localhost;port=5432;dbname=falseclock", "username","password", $db_options);
 
-$db =  new Pg($config);
-$db->connect();
+// make connection to the database
+$db = $dsn->connect();
 
 // Bad example how SQL can be injected as every string parameter must be escaped 
 // manually or with $db->quote('must be null');
@@ -130,7 +203,7 @@ $result = $db->doit("UPDATE table SET column1 = ? WHERE column2 = ?", NULL, 'mus
 resource query ( string $statement [, mixed $params ] )
 ```
 
-**query()** do the same as [doIt](#doIt)() method, but returns self instance.
+**query()** do the same as [du](#du)() method, but returns self instance.
 
 
 ### Parameters
@@ -146,24 +219,22 @@ resource query ( string $statement [, mixed $params ] )
 
 ```php
 <?php
-/** @var \DBD\Pg $db */
-$sth = $db->query("SELECT * FROM invoices");
 
-while ($row = $sth->fetchRow()) {
-	echo($row['invoice_id']);
+$sth = $db->query("SELECT * FROM invoices");
+while ($row = $sth->fetchrow()) {
+	// do something
 }
 
-$sth = $db->query("UPDATE invoices SET invoice_uuid = ?",'550e8400-e29b-41d4-a716-446655440000');
+$sth = $db->query("UPDATE invoices SET invoice_uuid=?",'550e8400-e29b-41d4-a716-446655440000');
 
-echo($sth->affectedRows());
+echo($sth->rows);
 
 ?>
 ```
 * * *
 # **prepare**
 
-**prepare** — creates a prepared statement for later execution with [execute](#execute)() method. 
-This feature allows commands that will be used repeatedly to be parsed and planned just once, rather than each time they are executed.
+**prepare** — creates a prepared statement for later execution with [execute](#execute)() method. This feature allows commands that will be used repeatedly to be parsed and planned just once, rather than each time they are executed.
 
 ### Description
 
@@ -182,7 +253,6 @@ resource prepare ( string $statement )
 
 ```php
 <?php
-/** @var \DBD\Pg $db */
 // Common usage for repeatedly SELECT queries
 $sth = $db->prepare("UPDATE table SET column1 = ? WHERE column2 = ?");
 
@@ -192,12 +262,10 @@ foreach ($fruits as $fruit) {
 	$sth->execute(NULL,$fruit);
 }
 
-/** 
-this code will execute three statements
-UPDATE table SET column1 = NULL WHERE column2 = 'apple';
-UPDATE table SET column1 = NULL WHERE column2 = 'banana';
-UPDATE table SET column1 = NULL WHERE column2 = 'apricot';
-*/
+// this code will execute three statements
+// UPDATE table SET column1 = NULL WHERE column2 = 'apple';
+// UPDATE table SET column1 = NULL WHERE column2 = 'banana';
+// UPDATE table SET column1 = NULL WHERE column2 = 'apricot';
 ?>
 ```
 
@@ -224,7 +292,15 @@ resource execute ( [ mixed $params ] )
 
 ```php
 <?php
-/** @var \DBD\Pg $db */
+$db_options = array(
+    'ConvertNumeric'    => true,
+    'UseDebug'          => true
+);
+// Create DSN 
+$dsn = (new DBD\Pg())->create("host=localhost;port=5432;dbname=falseclock", "username","password", $db_options);
+
+// make connection to the database
+$db = $dsn->connect();
 
 // Common usage for repeatedly UPDATE queries
 $sth = $db->prepare("SELECT col1, col2, col3 FROM table1");
@@ -232,15 +308,11 @@ $std = $db->prepare("UPDATE table2 SET col2 =? WHERE col1=? AND col2=?");
 
 $sth->execute();
 
-while ($row = $sth->fetchRow()) {
+while ($row = $sth->fetchrow()) {
 	if ($row['col1'] == 'banana') {
-    	$std->execute(FALSE, NULL, $row['col2']);
+    	$std->execute(FALSE,NULL,$row[col2]);
     }
 }
-/** 
-this code will execute this statement
-UPDATE table2 SET col2 = FALSE WHERE col1 = NULL AND col2 = <value of col2 from table1>;
-*/
 ?>
 ```
 
@@ -262,8 +334,7 @@ mixed fetch ()
 
 ```php
 <?php
-/** @var \DBD\Pg $db */
-$sth = $db->prepare("SELECT 'VIR-TEX LLC' AS company, generate_series AS wrh_id, 'Warehouse #'||trunc(random()*1000) AS wrh_name, trunc((random()*1000)::numeric, 2) AS wrh_volume FROM generate_series(1,3)");
+$sth = $db->prepare("SELECT 'VIR-TEX LLP' AS company, generate_series AS wrh_id, 'Warehouse #'||trunc(random()*1000) AS wrh_name, trunc((random()*1000)::numeric, 2) AS wrh_volume FROM generate_series(1,3)");
 
 /* select result example
    company   | wrh_id |    wrh_name    | wrh_volume
@@ -279,13 +350,13 @@ $company_name = $sth->fetch(); // getting first column
 $wrh_id = $sth->fetch(); // getting second column as an example of subsequent invoking
 $wrh_name = $sth->fetch(); // getting third column
 
-echo ("Company name: $company_name\n");
+echo ("Company name: $company\n");
 
-while ($row = $sth->fetchRow()) {
+while ($row = $sth->fetchrow()) {
 	echo("	{$row['wrh_name']} volume {$row['wrh_volume']}\n");
 }
 
-/* cycle above will produce following printout
+/* cycle abobe will produce following printout
 Company name: VIR-TEX LLP
 	Warehouse #845 volume: 489.20
 	Warehouse #790 volume: 241.80
@@ -295,17 +366,17 @@ Company name: VIR-TEX LLP
 ```
 
 * * *
-# **fetchRow**
+# **fetchrow**
 
-**fetchRow** — fetch a row as an associative array
+**fetchrow** — fetch a row as an associative array
 
 ### Description
 
 ```php
-array fetchRow ()
+array fetchrow ()
 ```
 
-**fetchRow()** returns an associative array that corresponds to the fetched row (records).
+**fetchrow()** returns an associative array that corresponds to the fetched row (records).
 
 ### Return Values
 
@@ -317,7 +388,6 @@ FALSE is returned if row exceeds the number of rows in the set, there are no mor
 
 ```php
 <?php
-/** @var \DBD\Pg $db */
 $sth = $db->prepare("SELECT *, 'orange' AS col1, 'apple' AS col2, 'tomato'  AS col3 FROM generate_series(1,3)");
 $sth->execute();
 print_r($sth->fetchrow());
@@ -335,14 +405,14 @@ Array
 ```
 
 * * *
-# **fetchRowSet**
+# **fetchrowset**
 
-**fetchRowSet** — fetch a full result as multidimensional array, where each element is an associative array that corresponds to the fetched row.
+**fetchrowset** — fetch a full result as multidimensional array, where each element is an associative array that corresponds to the fetched row.
 
 ### Description
 
 ```php
-array fetchRowSet ([ string $key ])
+array fetchrowset ([ string $key ])
 ```
 
 ### Parameters
@@ -360,10 +430,9 @@ Values in a row Database NULL values are returned as NULL.
 
 ```php
 <?php
-/** @var \DBD\Pg $db */
 $sth = $db->prepare("SELECT generate_series AS wrh_id, 'Warehouse #'||trunc(random()*1000) AS wrh_name, trunc((random()*1000)::numeric, 2) AS wrh_volume FROM generate_series(1,3)");
 $sth->execute();
-print_r($sth->fetchRowSet());
+print_r($sth->fetchrowset());
 
 /* code above will produce following printout
 Array
@@ -393,7 +462,7 @@ Array
 */
 
 $sth->execute();
-print_r($sth->fetchRowSet('wrh_name'));
+print_r($sth->fetchrowset('wrh_name'));
 
 /*
 Array
@@ -443,42 +512,36 @@ mixed insert (string $table, array $values [, string $return])
 >An associative array where key is field name and value is a field value.
 
 ***return***
->You can define which fields of the table you want return after successful insert
+>You can define which fields of the table you want return after succesfull insert
 
 
 ### Example 1
 
 ```php
 <?php
-/** @var array $doc */
-$record = [
-	'invoice_uuid' => $doc['Ref'],
-	'invoice_date' => $doc['Date'],
-	'invoice_number' => $doc['Number'],
-	'invoice_amount' => $doc['Amount'],
+$insert = array(
+	'vatinvoice_uuid' => $doc['Ref'],
+	'vatinvoice_date' => $doc['Date'],
+	'vatinvoice_number' => $doc['Number'],
+	'vatinvoice_amount' => $doc['Amount'],
 	'waybill_uuid' => $doc['reference']['uuid']
-];
-/** @var \DBD\Pg $db */
-$sth = $db->insert('vatInvoices',$record);
-echo ($sth->affectedRows());
-
+);
+$sth = $db->insert('vatinvoices',$insert);
+echo ($sth->rows);
 ?>
 ```
 ### Example 2
 
 ```php
 <?php
-/** @var array $payment */
-$record = [
+$insert = array(
 	//'payment_id' => IS SERIAL, will be generated automatically
 	'payment_uuid' => $payment['Ref'],
 	'payment_date' => $payment['Date'],
 	'payment_number' => $payment['Number'],
 	'payment_amount' => $payment['Amount']
-];
-/** @var \DBD\Pg $db */
-$sth = $db->insert('payments', $record, 'payment_id, payment_uuid');
-
+);
+$sth = $db->insert('payments',$insert,'payment_id, payment_uuid');
 while ($row = $sth->fetchrow()) {
 	printf("We inserted new payment with ID=%d and UUID=%s\n",$row['payment_id'],$row['payment_uuid']);
 }
@@ -517,37 +580,34 @@ mixed update (string $table, array $values [, mixed $where..., [ mixed $args...]
 
 ```php
 <?php
-/** @var array $doc */
-$update = [
-	'invoice_date' => $doc['Date'],
-	'invoice_number' => $doc['Number'],
-	'invoice_amount' => $doc['Amount']
-];
-/** @var \DBD\Pg $db this will update all rows in a table */
-$sth = $db->update('invoices',$update);
-echo ($sth->affectedRows());
+$update = array(
+	'vatinvoice_date' => $doc['Date'],
+	'vatinvoice_number' => $doc['Number'],
+	'vatinvoice_amount' => $doc['Amount']
+);
+// this will update all rows in a table
+$sth = $db->update('vatinvoices',$update);
+echo ($sth->rows);
 ?>
 ```
 ### Example 2
 
 ```php
 <?php
-/** @var array $doc */
-$update = [
-	'invoice_date' => $doc['Date'],
-	'invoice_number' => $doc['Number'],
-	'invoice_amount' => $doc['Amount']
-];
-/** @var \DBD\Pg $db this will update all rows in a table where vat_invoice_uuid equals to some value */
-$sth = $db->update('vat_invoices', $update, "vat_invoice_uuid=?", $doc['UUID']);
-echo ($sth->affectedRows());
+$update = array(
+	'vatinvoice_date' => $doc['Date'],
+	'vatinvoice_number' => $doc['Number'],
+	'vatinvoice_amount' => $doc['Amount']
+);
+// this will update all rows in a table where vatinvoice_uuid equals to some value
+$sth = $db->update('vatinvoices', $update, "vatinvoice_uuid=?", $doc['UUID']);
+echo ($sth->rows);
 ?>
 ```
 ### Example 3
 
 ```php
 <?php
-/** @var array $doc */
 $update = array(
 	'vatinvoice_date' => $doc['Date'],
 	'vatinvoice_number' => $doc['Number'],
@@ -555,9 +615,8 @@ $update = array(
 );
 // this will update all rows in a table where vatinvoice_uuid is null
 // query will return vatinvoice_id
-/** @var \DBD\Pg $db */
 $sth = $db->update('vatinvoices', $update, "vatinvoice_uuid IS NULL", "vatinvoice_id");
-while ($row = $sth->fetchRow()) {
+while ($row = $sth->fetchrow()) {
 	printf("Updated vatinvoice with ID=%d\n", $row['vatinvoice_id']);
 }
 ?>
@@ -566,7 +625,6 @@ while ($row = $sth->fetchRow()) {
 
 ```php
 <?php
-/** @var array $doc */
 $update = array(
 	'vatinvoice_date' => $doc['Date'],
 	'vatinvoice_number' => $doc['Number'],
@@ -574,9 +632,8 @@ $update = array(
 );
 // this will update all rows in a table where vatinvoice_uuid equals to some value
 // query will return vatinvoice_id
-/** @var \DBD\Pg $db */
 $sth = $db->update('vatinvoices',$update,"vatinvoice_uuid =? ", $doc['UUID'], "vatinvoice_id, vatinvoice_uuid");
-while ($row = $sth->fetchRow()) {
+while ($row = $sth->fetchrow()) {
 	printf("Updated vatinvoice with ID=%d and UUID=%s\n",$row['vatinvoice_id'],$row['vatinvoice_uuid']);
 }
 ?>
@@ -598,8 +655,15 @@ mixed begin ()
 
 ```php
 <?php
-/** @var \DBD\Pg $db */
+$db_options = array(
+    'ConvertNumeric'    => true,
+    'UseDebug'          => true
+);
+// Create DSN 
+$dsn = (new DBD\Pg())->create("host=localhost;port=5432;dbname=falseclock", "username","password", $db_options);
 
+// make connection to the database
+$db = $dsn->connect();
 $db->begin();
 
 // Common usage for repeatedly UPDATE queries
@@ -610,7 +674,7 @@ $sth->execute();
 
 while ($row = $sth->fetchrow()) {
 	if ($row['col1'] == 'banana') {
-    	$std->execute(FALSE,NULL,$row['col2']);
+    	$std->execute(FALSE,NULL,$row[col2]);
     }
 }
 $db->commit();
