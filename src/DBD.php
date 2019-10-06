@@ -63,6 +63,7 @@ abstract class DBD
 	 */
 	const UNDEFINED = "UNDEF";
 	/**
+	 * @deprecated make private
 	 * @var int
 	 */
 	public $rows = 0;
@@ -126,7 +127,7 @@ abstract class DBD
 	 *
 	 * @return bool
 	 */
-	public function affected() {
+	public function isAffected() {
 		return $this->affectedRows() > 0;
 	}
 
@@ -312,7 +313,7 @@ abstract class DBD
 		$sth = $this->prepare(sprintf("DELETE FROM %s.%s WHERE %s", $entity::SCHEME, $entity::TABLE, implode(" AND ", $columns)));
 		$sth->execute($execute);
 
-		if($sth->affected())
+		if($sth->isAffected())
 			return true;
 
 		return false;
@@ -766,6 +767,7 @@ abstract class DBD
 	}
 
 	/**
+	 * @deprecated
 	 * @return array|resource|string
 	 */
 	public function getResult() {
@@ -773,6 +775,7 @@ abstract class DBD
 	}
 
 	/**
+	 * @deprecated
 	 * @return string
 	 */
 	public function getStorage() {

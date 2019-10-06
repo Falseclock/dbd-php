@@ -49,12 +49,21 @@ $dbh->disconnect();
 * [fetch](#fetch)
 * [fetchRow](#fetchrow)
 * [fetchRowSet](#fetchrowset)
+* [fetchArraySet](#fetcharrayset)
 * [insert](#insert)
 * [update](#update)
 * [begin](#begin)
 * [commit](#commit)
 * [rollback](#rollback)
 * [cache](#cache)
+* [isAffected](#isaffected)
+* [escape](#escape)
+* [affectedRows](#affectedrows)
+* [entityInsert](#entityinsert)
+* [entitySelect](#entityselect)
+* [entityUpdate](#entityupdate)
+* [entityDelete](#entitydelete)
+* [disconnect](#disconnect)
 
 * * *
 # **connect**
