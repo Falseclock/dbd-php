@@ -251,6 +251,23 @@ abstract class DBD
 	}
 
 	/**
+	 * @return int
+	 * @throws Exception
+	 * @throws InvalidArgumentException
+	 * @throws ReflectionException
+	 */
+	public function do() {
+		if(!func_num_args())
+			throw new Exception("query failed: statement is not set or empty");
+
+		list ($statement, $args) = Helper::prepareArgs(func_get_args());
+
+		$sth = $this->query($statement, $args);
+
+		return $sth->rows;
+	}
+
+	/**
 	 * For simple SQL query, mostly delete or update, when you do not need to get results and only want to know affected rows
 	 * Example 1:
 	 * ```
@@ -397,23 +414,27 @@ abstract class DBD
 	 * Common usage when you have an Entity object with filled primary key only and want to fetch all available data
 	 *
 	 * @param Entity $entity
+	 * @param bool   $exceptionIfNoRecord
 	 *
-	 * @return Entity
+	 * @return Entity|null
 	 * @throws EntityException
 	 * @throws Exception
 	 * @throws InvalidArgumentException
 	 * @throws ReflectionException
 	 */
-	public function entitySelect(Entity &$entity) {
+	public function entitySelect(Entity &$entity, bool $exceptionIfNoRecord = true) {
 
 		list($execute, $columns) = $this->getPrimaryKeysForEntity($entity);
 
 		$sth = $this->prepare(sprintf("SELECT * FROM %s.%s WHERE %s", $entity::SCHEME, $entity::TABLE, implode(" AND ", $columns)));
 		$sth->execute($execute);
 
-		if(!$sth->rows())
-			throw new Exception(sprintf("No data found for entity %s with ", get_class($entity)));
-
+		if(!$sth->rows()) {
+			if($exceptionIfNoRecord)
+				throw new Exception(sprintf("No data found for entity %s with ", get_class($entity)));
+			else
+				return null;
+		}
 		/** @var Entity $class */
 		$class = get_class($entity);
 
@@ -515,24 +536,6 @@ abstract class DBD
 	public function escape($string) {
 		return $this->_escape($string);
 	}
-
-	/**
-	 * @return int
-	 * @throws Exception
-	 * @throws InvalidArgumentException
-	 * @throws ReflectionException
-	 */
-	public function do() {
-		if(!func_num_args())
-			throw new Exception("query failed: statement is not set or empty");
-
-		list ($statement, $args) = Helper::prepareArgs(func_get_args());
-
-		$sth = $this->query($statement, $args);
-
-		return $sth->rows;
-	}
-
 
 	/**
 	 * Sends a request to execute a prepared statement with given parameters, and waits for the result.
