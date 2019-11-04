@@ -37,6 +37,7 @@ use Psr\SimpleCache\CacheInterface;
 use Psr\SimpleCache\InvalidArgumentException;
 use ReflectionClass;
 use ReflectionException;
+use Throwable;
 
 /**
  * Class DBD
@@ -498,19 +499,25 @@ abstract class DBD
 				}
 			}
 		}
-		$this->beginIntermediate();
-		$sth = $this->update($entity::table(), $record, implode(" AND ", $primaryColumns), $execute, "*");
-		$affected = $sth->affectedRows();
-		if($affected > 1) {
-			$this->rollbackIntermediate();
-			throw new Exception(sprintf("More then one records updated with query. Transaction rolled back!"));
-		}
-		else if($affected == 0) {
-			$this->rollbackIntermediate();
-			throw new Exception(sprintf("No any records updated."));
-		}
+		try {
+			$this->beginIntermediate();
+			$sth = $this->update($entity::table(), $record, implode(" AND ", $primaryColumns), $execute, "*");
+			$affected = $sth->affectedRows();
+			if($affected > 1) {
+				$this->rollbackIntermediate();
+				throw new Exception(sprintf("More then one records updated with query. Transaction rolled back!"));
+			}
+			else if($affected == 0) {
+				$this->rollbackIntermediate();
+				throw new Exception(sprintf("No any records updated."));
+			}
 
-		$this->commitIntermediate();
+			$this->commitIntermediate();
+		}
+		catch(Throwable $throwable) {
+			$this->rollbackIntermediate();
+			throw new Exception($throwable->getMessage());
+		}
 
 		/** @var Entity $class */
 		$class = get_class($entity);
