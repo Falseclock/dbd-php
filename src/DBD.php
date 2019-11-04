@@ -343,7 +343,7 @@ abstract class DBD
 
 				// Mostly we always define properties for any columns
 				if(property_exists($entity, $propertyName)) {
-					if(!isset($entity->$propertyName) and $column->isAuto === false)
+					if(!isset($entity->$propertyName) and ($column->isAuto === false and !isset($column->defaultValue)))
 						throw new Exception(sprintf("Property '%s' of %s can't be null according to Mapper annotation", $propertyName, get_class($entity)));
 
 					// Finally add column to record if it is set
