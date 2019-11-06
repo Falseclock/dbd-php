@@ -334,6 +334,7 @@ abstract class DBD
 
 		$record = [];
 		$columns = $entity::map()->getColumns();
+		$constraints = $entity::map()->getConstraints();
 
 		// Cycle through all available columns according to Mapper definition
 		foreach($columns as $propertyName => $column) {
@@ -353,7 +354,6 @@ abstract class DBD
 				}
 				else {
 					// But sometimes we do not use reference fields in Entity directly, but use them as constraint
-					$constraints = $entity::map()->getConstraints();
 
 					$columnFound = false;
 					foreach($constraints as $constraintName => $constraint) {
@@ -398,6 +398,21 @@ abstract class DBD
 					// If value not set and we have some default value, let's define also
 					if($column->isAuto === false and isset($column->defaultValue)) {
 						$record[$originName] = $column->defaultValue;
+					} else {
+						// В некоторых случаях, мы объявляем констрейнт в маппере, но поле остается protected.
+						// в этом случае у нас отсутствует поле как таковое в объекте, так как мы не можем его вызвать или засэтить,
+						// но в Entity может быть объектное поле, в котором создан инстанс и определен primary key
+						// Типичный пример: таблица ссылается на саму себя, но поле может быть null
+						foreach($constraints as $constraintName => $constraint) {
+							if ($originName == $constraint->localColumn->name and isset($entity->$constraintName)) {
+								/** @var Entity $constraintClass */
+								$constraintClass = $constraint->class;
+								$constraintPKs = $constraintClass::map()->getPrimaryKey();
+								foreach($constraintPKs as $keyName => $key) {
+									$record[$originName] = $entity->$constraintName->$keyName;
+								}
+							}
+						}
 					}
 				}
 			}
