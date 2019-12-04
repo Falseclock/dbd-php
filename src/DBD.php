@@ -930,7 +930,7 @@ abstract class DBD
 	}
 
 	/**
-	 * @return bool|mixed
+	 * @return null|mixed
 	 * @throws Exception
 	 * @throws InvalidArgumentException
 	 * @throws ReflectionException
