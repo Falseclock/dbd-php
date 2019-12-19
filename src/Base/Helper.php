@@ -40,7 +40,7 @@ final class Helper
 	 */
 	final public static function caller($context) {
 		$return = [];
-		$debug = debug_backtrace();
+		$debug = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS);
 
 		// working directory
 		$wd = is_link($_SERVER["DOCUMENT_ROOT"]) ? readlink($_SERVER["DOCUMENT_ROOT"]) : $_SERVER["DOCUMENT_ROOT"];
