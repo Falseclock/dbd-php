@@ -264,6 +264,23 @@ class Pg extends DBD
 	}
 
 	/**
+	 * @inheritDoc
+	 */
+	protected function _dump(string $preparedQuery, string $fileName, string $delimiter, string $nullString, bool $showHeader, string $tmpPath) {
+		$file = realpath($tmpPath) . DIRECTORY_SEPARATOR . $fileName . "." . DBD::CSV_EXTENSION;
+
+		file_put_contents($file, "");
+		chmod($file, 0666);
+
+		$showHeader = $showHeader ? 'true' : 'false';
+
+		if($this->_query("COPY ($preparedQuery) TO '{$file}' (FORMAT csv, DELIMITER  E'{$delimiter}', NULL  E'$nullString', HEADER {$showHeader})") === false)
+			throw new Exception ($this->_errorMessage(), $preparedQuery);
+
+		return $file;
+	}
+
+	/**
 	 * Returns the last error message for a given connection.
 	 *
 	 * @return string
@@ -347,7 +364,6 @@ class Pg extends DBD
 
 	/**
 	 * @param $uniqueName
-	 *
 	 * @param $statement
 	 *
 	 * @return mixed
@@ -392,12 +408,5 @@ class Pg extends DBD
 	 */
 	protected function _rollback() {
 		return $this->_query("ROLLBACK;");
-	}
-
-	/**
-	 * @inheritDoc
-	 */
-	protected function _dump(string $fileName, string $delimiter, string $nullString, bool $header, string $tmpPath) {
-		// TODO: Implement _dump() method.
 	}
 }

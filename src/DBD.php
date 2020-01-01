@@ -46,18 +46,22 @@ use Throwable;
  */
 abstract class DBD
 {
+	const CSV_EXTENSION = "csv";
+
 	/**
 	 *
 	 */
 	const STORAGE_CACHE = "Cache";
+
 	/**
 	 *
 	 */
 	const STORAGE_DATABASE = "database";
+
 	/**
 	 *
 	 */
-	const UNDEFINED = "UNDEF";
+	const UNDEFINED     = "UNDEF";
 
 	/**
 	 * @deprecated make private
@@ -312,6 +316,7 @@ abstract class DBD
 	/**
 	 * Dumping result as CSV file
 	 *
+	 * @param array  $executeArguments
 	 * @param string $fileName
 	 * @param string $delimiter
 	 * @param string $nullString
@@ -319,8 +324,13 @@ abstract class DBD
 	 * @param string $tmpPath
 	 *
 	 * @return mixed
+	 * @throws Exception
 	 */
-	public function dump($fileName = "dump", $delimiter = ",", $nullString = "", $header = true, $tmpPath = "/tmp") {
+	public function dump(?array $executeArguments = [], $fileName = "dump", $delimiter = "\\t", $nullString = "", $header = true, $tmpPath = "/tmp") {
+
+		$preparedQuery = $this->getPreparedQuery($executeArguments);
+
+		$file = $this->_dump($preparedQuery, $fileName, $delimiter, $nullString, $header, $tmpPath);
 
 		header('Content-Description: File Transfer');
 		header('Content-Type: text/csv');
@@ -330,8 +340,12 @@ abstract class DBD
 		header('Cache-Control: max-age=1');
 		header('Expires: 0');
 		header('Pragma: public');
+		header('Content-Length: ' . filesize($file));
 
-		readfile($this->_dump($fileName, $delimiter, $nullString, $header, $tmpPath));
+		readfile($file);
+
+		unlink($file);
+
 		exit;
 	}
 
@@ -1178,10 +1192,11 @@ abstract class DBD
 	abstract protected function _disconnect();
 
 	/**
+	 * @param string $preparedQuery
 	 * @param string $fileName
 	 * @param string $delimiter
 	 * @param string $nullString
-	 * @param bool   $header
+	 * @param bool   $showHeader
 	 * @param string $tmpPath
 	 *
 	 * @return string full file path
@@ -1189,9 +1204,9 @@ abstract class DBD
 	 * @see MSSQL::_dump
 	 * @see MySQL::_dump
 	 * @see OData::_dump
-	 * @see disconnect
+	 * @see DBD::dump()
 	 */
-	abstract protected function _dump(string $fileName, string $delimiter, string $nullString, bool $header, string $tmpPath);
+	abstract protected function _dump(string $preparedQuery, string $fileName, string $delimiter, string $nullString, bool $showHeader, string $tmpPath);
 
 	/**
 	 * @return string

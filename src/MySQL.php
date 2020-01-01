@@ -167,7 +167,7 @@ class MySQL extends DBD
 	/**
 	 * @inheritDoc
 	 */
-	protected function _dump(string $fileName, string $delimiter, string $nullString, bool $header, string $tmpPath) {
+	protected function _dump(string $preparedQuery, string $fileName, string $delimiter, string $nullString, bool $showHeader, string $tmpPath) {
 		// TODO: Implement _dump() method.
 	}
 }
