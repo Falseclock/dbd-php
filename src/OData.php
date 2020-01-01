@@ -750,4 +750,11 @@ class OData extends DBD
 
 		return $string;
 	}
+
+	/**
+	 * @inheritDoc
+	 */
+	protected function _dump(string $fileName, string $delimiter, string $nullString, bool $header, string $tmpPath) {
+		// TODO: Implement _dump() method.
+	}
 }

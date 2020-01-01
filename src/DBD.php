@@ -58,13 +58,16 @@ abstract class DBD
 	 *
 	 */
 	const UNDEFINED = "UNDEF";
+
 	/**
 	 * @deprecated make private
 	 * @var int
 	 */
 	public $rows = 0;
+
 	/** @var CacheInterface|Cache */
 	public $CacheDriver;
+
 	/**
 	 * @var array
 	 */
@@ -74,24 +77,34 @@ abstract class DBD
 		'compress' => null,
 		'expire'   => null,
 	];
+
 	/** @var resource $resourceLink Database or curl connection resource */
 	protected $resourceLink;
+
 	/** @var string $query SQL query */
 	protected $query;
+
 	/** @var resource|string|array $result Query result data */
 	protected $result;
+
 	/** @var Options $Options */
 	protected $Options;
+
 	/** @var Config $Config */
 	protected $Config;
+
 	/** @var mixed $fetch */
 	private $fetch = self::UNDEFINED;
+
 	/** @var string $storage This param is used for identifying where data taken from */
 	private $storage;
+
 	/** @var bool $inTransaction Stores current transaction state */
 	private $inTransaction = false;
+
 	/** @var int $transactionsIntermediate */
 	private $transactionsIntermediate = 0;
+
 	/** @var array $preparedStatements */
 	private static $preparedStatements = [];
 
@@ -261,7 +274,7 @@ abstract class DBD
 		if(!func_num_args())
 			throw new Exception("query failed: statement is not set or empty");
 
-		list ($statement, $args) = Helper::prepareArgs(func_get_args());
+		[ $statement, $args ] = Helper::prepareArgs(func_get_args());
 
 		$sth = $this->query($statement, $args);
 
@@ -289,11 +302,37 @@ abstract class DBD
 		if(!func_num_args())
 			throw new Exception("query failed: statement is not set or empty");
 
-		list ($statement, $args) = Helper::prepareArgs(func_get_args());
+		[ $statement, $args ] = Helper::prepareArgs(func_get_args());
 
 		$sth = $this->query($statement, $args);
 
 		return $sth->rows;
+	}
+
+	/**
+	 * Dumping result as CSV file
+	 *
+	 * @param string $fileName
+	 * @param string $delimiter
+	 * @param string $nullString
+	 * @param bool   $header
+	 * @param string $tmpPath
+	 *
+	 * @return mixed
+	 */
+	public function dump($fileName = "dump", $delimiter = ",", $nullString = "", $header = true, $tmpPath = "/tmp") {
+
+		header('Content-Description: File Transfer');
+		header('Content-Type: text/csv');
+		header('Content-Disposition: attachment;filename="' . $fileName . '.csv"');
+		header('Cache-Control: max-age=0');
+		// If you're serving to IE 9, then the following may be needed
+		header('Cache-Control: max-age=1');
+		header('Expires: 0');
+		header('Pragma: public');
+
+		readfile($this->_dump($fileName, $delimiter, $nullString, $header, $tmpPath));
+		exit;
 	}
 
 	/**
@@ -308,7 +347,7 @@ abstract class DBD
 	 * @throws ReflectionException
 	 */
 	public function entityDelete(Entity $entity) {
-		list($execute, $columns) = $this->getPrimaryKeysForEntity($entity);
+		[ $execute, $columns ] = $this->getPrimaryKeysForEntity($entity);
 
 		$sth = $this->prepare(sprintf("DELETE FROM %s.%s WHERE %s", $entity::SCHEME, $entity::TABLE, implode(" AND ", $columns)));
 		$sth->execute($execute);
@@ -398,13 +437,14 @@ abstract class DBD
 					// If value not set and we have some default value, let's define also
 					if($column->isAuto === false and isset($column->defaultValue)) {
 						$record[$originName] = $column->defaultValue;
-					} else {
+					}
+					else {
 						// В некоторых случаях, мы объявляем констрейнт в маппере, но поле остается protected.
 						// в этом случае у нас отсутствует поле как таковое в объекте, так как мы не можем его вызвать или засэтить,
 						// но в Entity может быть объектное поле, в котором создан инстанс и определен primary key
 						// Типичный пример: таблица ссылается на саму себя, но поле может быть null
 						foreach($constraints as $constraintName => $constraint) {
-							if ($originName == $constraint->localColumn->name and isset($entity->$constraintName)) {
+							if($originName == $constraint->localColumn->name and isset($entity->$constraintName)) {
 								/** @var Entity $constraintClass */
 								$constraintClass = $constraint->class;
 								$constraintPKs = $constraintClass::map()->getPrimaryKey();
@@ -440,7 +480,7 @@ abstract class DBD
 	 */
 	public function entitySelect(Entity &$entity, bool $exceptionIfNoRecord = true) {
 
-		list($execute, $columns) = $this->getPrimaryKeysForEntity($entity);
+		[ $execute, $columns ] = $this->getPrimaryKeysForEntity($entity);
 
 		$sth = $this->prepare(sprintf("SELECT * FROM %s.%s WHERE %s", $entity::SCHEME, $entity::TABLE, implode(" AND ", $columns)));
 		$sth->execute($execute);
@@ -473,7 +513,7 @@ abstract class DBD
 	 * @throws ReflectionException
 	 */
 	public function entityUpdate(Entity &$entity) {
-		list($execute, $primaryColumns) = $this->getPrimaryKeysForEntity($entity);
+		[ $execute, $primaryColumns ] = $this->getPrimaryKeysForEntity($entity);
 
 		$record = [];
 		$columns = $entity::map()->getColumns();
@@ -875,7 +915,7 @@ abstract class DBD
 		if(!func_num_args())
 			throw new Exception("query failed: statement is not set or empty");
 
-		list ($statement, $args) = Helper::prepareArgs(func_get_args());
+		[ $statement, $args ] = Helper::prepareArgs(func_get_args());
 
 		$sth = $this->prepare($statement);
 
@@ -1136,6 +1176,22 @@ abstract class DBD
 	 * @see disconnect
 	 */
 	abstract protected function _disconnect();
+
+	/**
+	 * @param string $fileName
+	 * @param string $delimiter
+	 * @param string $nullString
+	 * @param bool   $header
+	 * @param string $tmpPath
+	 *
+	 * @return string full file path
+	 * @see Pg::_dump
+	 * @see MSSQL::_dump
+	 * @see MySQL::_dump
+	 * @see OData::_dump
+	 * @see disconnect
+	 */
+	abstract protected function _dump(string $fileName, string $delimiter, string $nullString, bool $header, string $tmpPath);
 
 	/**
 	 * @return string

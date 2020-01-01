@@ -393,4 +393,11 @@ class Pg extends DBD
 	protected function _rollback() {
 		return $this->_query("ROLLBACK;");
 	}
+
+	/**
+	 * @inheritDoc
+	 */
+	protected function _dump(string $fileName, string $delimiter, string $nullString, bool $header, string $tmpPath) {
+		// TODO: Implement _dump() method.
+	}
 }

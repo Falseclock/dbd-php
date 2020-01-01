@@ -163,4 +163,11 @@ class MySQL extends DBD
 	protected function _rollback() {
 		return mysqli_rollback($this->resourceLink);
 	}
+
+	/**
+	 * @inheritDoc
+	 */
+	protected function _dump(string $fileName, string $delimiter, string $nullString, bool $header, string $tmpPath) {
+		// TODO: Implement _dump() method.
+	}
 }
