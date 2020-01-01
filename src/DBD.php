@@ -47,21 +47,18 @@ use Throwable;
 abstract class DBD
 {
 	const CSV_EXTENSION = "csv";
-
 	/**
 	 *
 	 */
 	const STORAGE_CACHE = "Cache";
-
 	/**
 	 *
 	 */
 	const STORAGE_DATABASE = "database";
-
 	/**
 	 *
 	 */
-	const UNDEFINED     = "UNDEF";
+	const UNDEFINED = "UNDEF";
 
 	/**
 	 * @deprecated make private
@@ -322,15 +319,17 @@ abstract class DBD
 	 * @param string $nullString
 	 * @param bool   $header
 	 * @param string $tmpPath
+	 * @param bool   $utf8
 	 *
 	 * @return mixed
 	 * @throws Exception
 	 */
-	public function dump(?array $executeArguments = [], $fileName = "dump", $delimiter = "\\t", $nullString = "", $header = true, $tmpPath = "/tmp") {
+	public function dump(?array $executeArguments = [], $fileName = "dump", $delimiter = "\\t", $nullString = "", $header = true, $tmpPath = "/tmp", $utf8 = true) {
 
+		$BOM = b"\xEF\xBB\xBF";
 		$preparedQuery = $this->getPreparedQuery($executeArguments);
 
-		$file = $this->_dump($preparedQuery, $fileName, $delimiter, $nullString, $header, $tmpPath);
+		$filename = $this->_dump($preparedQuery, $fileName, $delimiter, $nullString, $header, $tmpPath);
 
 		header('Content-Description: File Transfer');
 		header('Content-Type: text/csv');
@@ -340,11 +339,24 @@ abstract class DBD
 		header('Cache-Control: max-age=1');
 		header('Expires: 0');
 		header('Pragma: public');
-		header('Content-Length: ' . filesize($file));
 
-		readfile($file);
+		if($utf8) {
+			$file = @fopen($filename, "r");
+			$bom = fread($file, 3);
+			fclose($file);
 
-		unlink($file);
+			if($bom != $BOM) {
+				header('Content-Length: ' . (filesize($filename) + mb_strlen($BOM)));
+				echo $BOM;
+			}
+		}
+		else {
+			header('Content-Length: ' . filesize($filename));
+		}
+
+		readfile($filename);
+
+		unlink($filename);
 
 		exit;
 	}
