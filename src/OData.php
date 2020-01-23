@@ -231,7 +231,7 @@ class OData extends DBD
 					$object[$Property['@attributes']['Name']] = [
 						'Type'     => $Property['@attributes']['Type'],
 						'Nullable' => $Property['@attributes']['Nullable'],
-					];;
+					];
 				}
 			}
 			$metadata[$EntityType['@attributes']['Name']] = $object;
