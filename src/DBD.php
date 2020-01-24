@@ -1507,9 +1507,8 @@ abstract class DBD
 				$this->fetch = array_shift($this->cache['result']);
 			}
 		}
-		if(!count($this->fetch)) {
-			return false;
-		}
+		if(!count($this->fetch))
+			return null;
 
 		return array_shift($this->fetch);
 	}
