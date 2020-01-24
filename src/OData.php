@@ -470,6 +470,13 @@ class OData extends DBD
 		return $array;
 	}
 
+	/**
+	 * @param string $table
+	 * @param array  $content
+	 * @param null   $return
+	 *
+	 * @return DBD|mixed
+	 */
 	public function insert($table, $content, $return = null) {
 		$this->dropVars();
 
