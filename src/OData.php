@@ -544,7 +544,10 @@ class OData extends DBD
 	}
 
 	public function rows() {
-		return count($this->result);
+		if(is_iterable($this->result) and count($this->result) == 1 and !isset($this->result['value'])) // FIXME: исправить в выборке
+			return count($this->result);
+
+		return 0;
 	}
 
 	public function update() {
