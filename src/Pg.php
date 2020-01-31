@@ -240,10 +240,10 @@ class Pg extends DBD
 				foreach($data as $key => $value) {
 					// if type of current column exist in map array
 					if(array_key_exists($types[$i], $map)) {
-						// using data key, cause can be
-						//printf("Type: %s\n",$types[$i]);
-						if(isset($value)) {
+						if(!is_null($value)) {
 							$data[$key] = ($map[$types[$i]] == 'integer' ? intval($value) : floatval($value));
+						} else {
+							$data[$key] = null;
 						}
 					}
 					$i++;
