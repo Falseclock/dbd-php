@@ -266,7 +266,7 @@ abstract class DBD
 	 * @return $this
 	 * @throws Exception
 	 */
-	public function prepare($statement) {
+	public function prepare(string $statement) {
 		if(!isset($statement) or empty($statement))
 			throw new Exception("prepare failed: statement is not set or empty");
 
