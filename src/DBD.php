@@ -1338,22 +1338,6 @@ abstract class DBD
 	}
 
 	/**
-	 * @param $statement
-	 *
-	 * @return string|null
-	 */
-	private function getQueryType($statement) {
-		if(is_array($statement))
-			$statement = key($statement);
-
-		$matches = null;
-		if(!preg_match('/^\s*(SELECT|INSERT|REPLACE|UPDATE|DELETE)\b/si', $statement, $matches))
-			return null;
-
-		return strtoupper(trim($matches[1]));
-	}
-
-	/**
 	 * Begin transaction internally of we don't know was transaction started somewhere else or not
 	 *
 	 * @return bool
@@ -1377,8 +1361,20 @@ abstract class DBD
 			return;
 
 		if($this->Options->isSetApplicationOnDelete() or $this->Options->isSetApplicationOnInsert() or $this->Options->isSetApplicationOnUpdate()) {
-			if(in_array($this->getQueryType($statement), [ 'INSERT', 'UPDATE', 'DELETE' ]))
-				$this->_setApplicationName();
+			switch($this->getQueryType($statement)) {
+				case 'INSERT':
+					if($this->Options->isSetApplicationOnInsert())
+						$this->_setApplicationName();
+					break;
+				case 'UPDATE':
+					if($this->Options->isSetApplicationOnUpdate())
+						$this->_setApplicationName();
+					break;
+				case 'DELETE':
+					if($this->Options->isSetApplicationOnDelete())
+						$this->_setApplicationName();
+					break;
+			}
 		}
 	}
 
@@ -1539,6 +1535,22 @@ abstract class DBD
 		}
 
 		return [ $execute, $columns ];
+	}
+
+	/**
+	 * @param $statement
+	 *
+	 * @return string|null
+	 */
+	private function getQueryType($statement) {
+		if(is_array($statement))
+			$statement = key($statement);
+
+		$matches = null;
+		if(!preg_match('/^\s*(SELECT|INSERT|REPLACE|UPDATE|DELETE)\b/si', $statement, $matches))
+			return null;
+
+		return strtoupper(trim($matches[1]));
 	}
 
 	/**
