@@ -29,24 +29,32 @@ use DBD\Common\DBDException as Exception;
 
 final class Options
 {
+	/** @var bool $ConvertBoolean */
+	private $ConvertBoolean = false;
+	/** @var bool $ConvertNumeric */
+	private $ConvertNumeric = false;
 	/** @var bool $OnDemand */
 	private $OnDemand = true;
+	/** @var bool $PrepareExecute use real prepared and execute towards database */
+	private $PrepareExecute = false;
 	/** @var bool $PrintError */
 	private $PrintError = true;
 	/** @var bool $RaiseError */
 	private $RaiseError = true;
 	/** @var bool $ShowErrorStatement */
 	private $ShowErrorStatement = false;
-	/** @var bool $ConvertNumeric */
-	private $ConvertNumeric = false;
-	/** @var bool $ConvertBoolean */
-	private $ConvertBoolean = false;
 	/** @var bool $UseDebug */
 	private $UseDebug = false;
-	/** @var bool $PrepareExecute use real prepared and execute towards database */
-	private $PrepareExecute = false;
+	/** @var null $applicationName connection identity */
+	private $applicationName = null;
 	/** @var string $placeHolder */
 	private $placeHolder = "?";
+	/** @var bool $setApplicationOnDelete if true, then before each update driver will execute 'set application_name to my_application;' */
+	private $setApplicationOnDelete = false;
+	/** @var bool $setApplicationOnInsert if true, then before each update driver will execute 'set application_name to my_application;' */
+	private $setApplicationOnInsert = false;
+	/** @var bool $setApplicationOnUpdate if true, then before each update driver will execute 'set application_name to my_application;' */
+	private $setApplicationOnUpdate = false;
 
 	/**
 	 * Options constructor.
@@ -88,6 +96,13 @@ final class Options
 
 		if(isset($placeholder))
 			$this->placeHolder = $placeholder;
+	}
+
+	/**
+	 * @return string
+	 */
+	public function getApplicationName() {
+		return $this->applicationName;
 	}
 
 	/**
@@ -142,6 +157,27 @@ final class Options
 	/**
 	 * @return bool
 	 */
+	public function isSetApplicationOnDelete() {
+		return $this->setApplicationOnDelete;
+	}
+
+	/**
+	 * @return bool
+	 */
+	public function isSetApplicationOnInsert() {
+		return $this->setApplicationOnInsert;
+	}
+
+	/**
+	 * @return bool
+	 */
+	public function isSetApplicationOnUpdate() {
+		return $this->setApplicationOnUpdate;
+	}
+
+	/**
+	 * @return bool
+	 */
 	public function isShowErrorStatement() {
 		return $this->ShowErrorStatement;
 	}
@@ -154,11 +190,22 @@ final class Options
 	}
 
 	/**
+	 * @param null $applicationName
+	 *
+	 * @return Options
+	 */
+	public function setApplicationName($applicationName): Options {
+		$this->applicationName = $applicationName;
+
+		return $this;
+	}
+
+	/**
 	 * @param bool $ConvertBoolean
 	 *
 	 * @return Options
 	 */
-	public function setConvertBoolean($ConvertBoolean) {
+	public function setConvertBoolean($ConvertBoolean): Options {
 		$this->ConvertBoolean = $ConvertBoolean;
 
 		return $this;
@@ -169,7 +216,7 @@ final class Options
 	 *
 	 * @return Options
 	 */
-	public function setConvertNumeric($ConvertNumeric) {
+	public function setConvertNumeric($ConvertNumeric): Options {
 		$this->ConvertNumeric = $ConvertNumeric;
 
 		return $this;
@@ -180,7 +227,7 @@ final class Options
 	 *
 	 * @return Options
 	 */
-	public function setOnDemand($OnDemand) {
+	public function setOnDemand($OnDemand): Options {
 		$this->OnDemand = $OnDemand;
 
 		return $this;
@@ -188,16 +235,24 @@ final class Options
 
 	/**
 	 * @param string $placeHolder
+	 *
+	 * @return Options
 	 */
-	public function setPlaceHolder($placeHolder) {
+	public function setPlaceHolder($placeHolder): Options {
 		$this->placeHolder = $placeHolder;
+
+		return $this;
 	}
 
 	/**
 	 * @param bool $PrepareExecute
+	 *
+	 * @return Options
 	 */
-	public function setPrepareExecute($PrepareExecute) {
+	public function setPrepareExecute($PrepareExecute): Options {
 		$this->PrepareExecute = $PrepareExecute;
+
+		return $this;
 	}
 
 	/**
@@ -205,7 +260,7 @@ final class Options
 	 *
 	 * @return Options
 	 */
-	public function setPrintError($PrintError) {
+	public function setPrintError($PrintError): Options {
 		$this->PrintError = $PrintError;
 
 		return $this;
@@ -216,8 +271,41 @@ final class Options
 	 *
 	 * @return Options
 	 */
-	public function setRaiseError($RaiseError) {
+	public function setRaiseError($RaiseError): Options {
 		$this->RaiseError = $RaiseError;
+
+		return $this;
+	}
+
+	/**
+	 * @param bool $onDelete
+	 *
+	 * @return Options
+	 */
+	public function setSetApplicationOnDelete(bool $onDelete): Options {
+		$this->setApplicationOnDelete = $onDelete;
+
+		return $this;
+	}
+
+	/**
+	 * @param bool $onInsert
+	 *
+	 * @return Options
+	 */
+	public function setSetApplicationOnInsert(bool $onInsert): Options {
+		$this->setApplicationOnInsert = $onInsert;
+
+		return $this;
+	}
+
+	/**
+	 * @param bool $onUpdate
+	 *
+	 * @return Options
+	 */
+	public function setSetApplicationOnUpdate(bool $onUpdate): Options {
+		$this->setApplicationOnUpdate = $onUpdate;
 
 		return $this;
 	}
@@ -227,7 +315,7 @@ final class Options
 	 *
 	 * @return Options
 	 */
-	public function setShowErrorStatement($ShowErrorStatement) {
+	public function setShowErrorStatement($ShowErrorStatement): Options {
 		$this->ShowErrorStatement = $ShowErrorStatement;
 
 		return $this;
@@ -238,7 +326,7 @@ final class Options
 	 *
 	 * @return Options
 	 */
-	public function setUseDebug($UseDebug) {
+	public function setUseDebug($UseDebug): Options {
 		$this->UseDebug = $UseDebug;
 
 		return $this;

@@ -242,7 +242,8 @@ class Pg extends DBD
 					if(array_key_exists($types[$i], $map)) {
 						if(!is_null($value)) {
 							$data[$key] = ($map[$types[$i]] == 'integer' ? intval($value) : floatval($value));
-						} else {
+						}
+						else {
 							$data[$key] = null;
 						}
 					}
@@ -408,5 +409,15 @@ class Pg extends DBD
 	 */
 	protected function _rollback() {
 		return $this->_query("ROLLBACK;");
+	}
+
+	/**
+	 * @return void
+	 */
+	protected function _setApplicationName() {
+		if(!$this->applicationNameIsSet)
+			$this->_query(sprintf("SET application_name TO '%s'", pg_escape_string($this->Options->getApplicationName())));
+
+		$this->applicationNameIsSet = true;
 	}
 }

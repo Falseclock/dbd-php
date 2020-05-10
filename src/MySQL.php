@@ -170,4 +170,11 @@ class MySQL extends DBD
 	protected function _dump(string $preparedQuery, string $fileName, string $delimiter, string $nullString, bool $showHeader, string $tmpPath) {
 		// TODO: Implement _dump() method.
 	}
+
+	/**
+	 * @return void
+	 */
+	protected function _setApplicationName() {
+		$this->applicationNameIsSet = true;
+	}
 }

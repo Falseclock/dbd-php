@@ -46,53 +46,44 @@ use Throwable;
  */
 abstract class DBD
 {
-	const CSV_EXTENSION = "csv";
-	/**
-	 *
-	 */
-	const STORAGE_CACHE = "Cache";
-	/**
-	 *
-	 */
+	const CSV_EXTENSION    = "csv";
+	const STORAGE_CACHE    = "Cache";
 	const STORAGE_DATABASE = "database";
-	/**
-	 *
-	 */
-	const UNDEFINED = "UNDEF";
-	/** @var array $preparedStatements */
-	private static $preparedStatements = [];
+	const UNDEFINED        = "UNDEF";
+	/** @var CacheInterface|Cache */
+	public $CacheDriver;
 	/**
 	 * @deprecated make private
 	 * @var int
 	 */
 	public $rows = 0;
-	/** @var CacheInterface|Cache */
-	public $CacheDriver;
-	/**
-	 * @var array
-	 */
+	/** @var Config $Config */
+	protected $Config;
+	/** @var Options $Options */
+	protected $Options;
+	/** @var bool $applicationNameIsSet just to set it once */
+	protected $applicationNameIsSet = false;
+	/** @var array */
 	protected $cache = [
 		'key'      => null,
 		'result'   => null,
 		'compress' => null,
 		'expire'   => null,
 	];
-	/** @var resource $resourceLink Database or curl connection resource */
-	protected $resourceLink;
 	/** @var string $query SQL query */
 	protected $query;
+	/** @var resource $resourceLink Database or curl connection resource */
+	protected $resourceLink;
 	/** @var resource|string|array $result Query result data */
 	protected $result;
-	/** @var Options $Options */
-	protected $Options;
-	/** @var Config $Config */
-	protected $Config;
 	/** @var mixed $fetch */
 	private $fetch = self::UNDEFINED;
-	/** @var string $storage This param is used for identifying where data taken from */
-	private $storage;
 	/** @var bool $inTransaction Stores current transaction state */
 	private $inTransaction = false;
+	/** @var array $preparedStatements */
+	private static $preparedStatements = [];
+	/** @var string $storage This param is used for identifying where data taken from */
+	private $storage;
 	/** @var int $transactionsIntermediate */
 	private $transactionsIntermediate = 0;
 
@@ -117,6 +108,42 @@ abstract class DBD
 		else {
 			$this->Options = new Options;
 		}
+	}
+
+	/**
+	 * Returns number of affected rows during update or delete
+	 * ```
+	 * $sth = $db->prepare("DELETE FROM foo WHERE bar = ?");
+	 * $sth->execute($someVar);
+	 * if ($sth->affectedRows()) {
+	 *      // Do something
+	 * }
+	 * ```
+	 *
+	 * @return int
+	 */
+	public function affectedRows() {
+		return $this->_affectedRows();
+	}
+
+	/**
+	 * Starts database transaction
+	 *
+	 * @return bool
+	 * @throws Exception
+	 */
+	public function begin() {
+		if($this->inTransaction == true)
+			throw new Exception("Already in transaction");
+
+		$this->connectionPreCheck();
+		$this->result = $this->_begin();
+		if($this->result === false)
+			throw new Exception("Can't start transaction: " . $this->_errorMessage());
+
+		$this->inTransaction = true;
+
+		return true;
 	}
 
 	/**
@@ -162,6 +189,29 @@ abstract class DBD
 	}
 
 	/**
+	 * Commits a transaction that was begun
+	 *
+	 * @return bool
+	 * @throws Exception
+	 */
+	public function commit() {
+		if(!$this->isConnected()) {
+			throw new Exception("No connection established yet");
+		}
+		if($this->inTransaction) {
+			$this->result = $this->_commit();
+			if($this->result === false)
+				throw new Exception("Can not commit transaction: " . $this->_errorMessage());
+		}
+		else {
+			throw new Exception("No transaction to commit");
+		}
+		$this->inTransaction = false;
+
+		return true;
+	}
+
+	/**
 	 * Base and main method to start. Returns self instance of DBD driver
 	 * ```
 	 * $db = (new DBD\Pg())->connect($config, $options);
@@ -194,16 +244,6 @@ abstract class DBD
 	}
 
 	/**
-	 * @return bool true on successful disconnection
-	 * @see Pg::_disconnect
-	 * @see MSSQL::_disconnect
-	 * @see MySQL::_disconnect
-	 * @see OData::_disconnect
-	 * @see disconnect
-	 */
-	abstract protected function _disconnect();
-
-	/**
 	 * @return int
 	 * @throws Exception
 	 * @throws InvalidArgumentException
@@ -219,441 +259,6 @@ abstract class DBD
 
 		return $sth->rows;
 	}
-
-	/**
-	 * Like doit method, but return self instance
-	 * Example 1:
-	 * ```
-	 * $sth = $db->query("SELECT * FROM invoices");
-	 * while ($row = $sth->fetchrow()) {
-	 *      //do something
-	 * }
-	 * ```
-	 * Example 2:
-	 * ```
-	 * $sth = $db->query("UPDATE invoices SET invoice_uuid=?",'550e8400-e29b-41d4-a716-446655440000');
-	 * echo($sth->affectedRows());
-	 * ```
-	 *
-	 * @return DBD
-	 * @throws Exception
-	 * @throws InvalidArgumentException
-	 * @throws ReflectionException
-	 */
-	public function query() {
-		if(!func_num_args())
-			throw new Exception("query failed: statement is not set or empty");
-
-		[ $statement, $args ] = Helper::prepareArgs(func_get_args());
-
-		$sth = $this->prepare($statement);
-
-		if(is_array($args)) {
-			$sth->execute($args);
-		}
-		else {
-			$sth->execute();
-		}
-
-		return $sth;
-	}
-
-	/**
-	 * Creates a prepared statement for later execution
-	 *
-	 * @param string $statement
-	 *
-	 * @return $this
-	 * @throws Exception
-	 */
-	public function prepare(string $statement) {
-		if(!isset($statement) or empty($statement))
-			throw new Exception("prepare failed: statement is not set or empty");
-
-		return $this->extendMe($this, $statement);
-	}
-
-	/**
-	 * Sends a request to execute a prepared statement with given parameters, and waits for the result.
-	 *
-	 * @return mixed
-	 * @throws Exception
-	 * @throws InvalidArgumentException
-	 * @throws ReflectionException
-	 * @throws \Exception
-	 */
-	public function execute() {
-		// Set result to false
-		$this->result = false;
-		$this->fetch = self::UNDEFINED;
-		$this->storage = null;
-		$executeArguments = func_get_args();
-		$preparedQuery = $this->getPreparedQuery($executeArguments);
-
-		//--------------------------------------
-		// Is query uses cache?
-		//--------------------------------------
-		if(isset($this->CacheDriver)) {
-			if($this->cache['key'] !== null) {
-				// Get data from cache
-				if($this->Options->isUseDebug()) {
-					Debug::me()->startTimer();
-				}
-				$this->cache['result'] = $this->CacheDriver->get($this->cache['key']);
-
-				// Cache not empty?
-				if($this->cache['result'] !== false) {
-					$cost = Debug::me()->endTimer();
-					// To avoid errors as result by default is NULL
-					$this->result = "cached";
-					$this->storage = self::STORAGE_CACHE;
-					$this->rows = count($this->cache['result']);
-				}
-			}
-		}
-
-		// If not found in cache, then let's get from DB
-		if($this->result != "cached") {
-
-			$this->connectionPreCheck();
-			if($this->Options->isUseDebug()) {
-				Debug::me()->startTimer();
-			}
-			if($this->Options->isPrepareExecute()) {
-				$uniqueName = crc32($preparedQuery);
-
-				if(!in_array($uniqueName, self::$preparedStatements)) {
-					self::$preparedStatements[] = $uniqueName;
-					$prepareResult = $this->_prepare($uniqueName, $preparedQuery);
-
-					if($prepareResult === false) {
-						throw new Exception ($this->_errorMessage(), $preparedQuery);
-					}
-				}
-
-				$this->result = $this->_execute($uniqueName, Helper::parseArgs($executeArguments));
-			}
-			else {
-				// Execute query to the database
-				$this->result = $this->_query($preparedQuery);
-			}
-			$cost = Debug::me()->endTimer();
-
-			if($this->result !== false) {
-				$this->rows = $this->_numRows();
-				$this->storage = self::STORAGE_DATABASE;
-			}
-			else {
-				throw new Exception ($this->_errorMessage(), $preparedQuery, $this->Options->isPrepareExecute() ? Helper::parseArgs($executeArguments) : null);
-			}
-
-			// If query from cache
-			if($this->cache['key'] !== null) {
-				//  As we already queried database we have to set key to NULL
-				//  because during internal method invoke (fetchRowSet below) this Driver
-				//  will think we have data from cache
-
-				$storedKey = $this->cache['key'];
-				$this->cache['key'] = null;
-
-				// If we have data from query
-				if($this->rows()) {
-					$this->cache['result'] = $this->fetchRowSet();
-				}
-				else {
-					// select is empty
-					$this->cache['result'] = [];
-				}
-
-				// reverting all back, cause we stored data to cache
-				$this->result = "cached";
-				$this->cache['key'] = $storedKey;
-
-				// Setting up our cache
-				$this->CacheDriver->set($this->cache['key'], $this->cache['result'], $this->cache['expire']);
-			}
-		}
-
-		if($this->result === false) {
-			throw new Exception($this->_errorMessage(), $preparedQuery);
-		}
-
-		if($this->Options->isUseDebug()) {
-			$cost = isset($cost) ? $cost : 0;
-
-			$driver = $this->storage == self::STORAGE_CACHE ? self::STORAGE_CACHE : (new ReflectionClass($this))->getShortName();
-			$caller = Helper::caller($this);
-
-			Debug::addQueries(new Query(Helper::cleanSql($this->getPreparedQuery($executeArguments, true)), $cost, $caller[0], Helper::debugMark($cost), $driver)
-			);
-			Debug::addTotalQueries(1);
-			Debug::addTotalCost($cost);
-		}
-
-		return $this->result;
-	}
-
-	/**
-	 * Copies object variables after extended class construction
-	 * TODO: may be clone?
-	 *
-	 * @param DBD    $context
-	 * @param string $statement
-	 *
-	 * @return DBD
-	 */
-	final private function extendMe(DBD $context, string $statement) {
-
-		$className = get_class($context);
-
-		/** @var DBD $class */
-		$class = new $className($context->Config, $context->Options);
-
-		$class->Config = &$context->Config;
-		$class->Options = &$context->Options;
-		$class->resourceLink = &$context->resourceLink;
-		$class->CacheDriver = &$context->CacheDriver;
-		$class->inTransaction = &$context->inTransaction;
-		$class->query = $statement;
-
-		return $class;
-	}
-
-	/**
-	 * @param      $ARGS
-	 * @param bool $overrideOption
-	 *
-	 * @return string
-	 * @throws Exception
-	 */
-	private function getPreparedQuery($ARGS, $overrideOption = false) {
-		$placeHolder = $this->Options->getPlaceHolder();
-		$isPrepareExecute = $this->Options->isPrepareExecute();
-
-		$preparedQuery = $this->query;
-		$binds = substr_count($this->query, $placeHolder);
-		$executeArguments = Helper::parseArgs($ARGS);
-
-		$numberOfArgs = count($executeArguments);
-
-		if($binds != $numberOfArgs) {
-			throw new Exception("Execute failed: called with $numberOfArgs bind variables when $binds are needed", $this->query);
-		}
-
-		if($numberOfArgs) {
-			$query = str_split($this->query);
-
-			$placeholderPosition = 1;
-			foreach($query as $ind => $str) {
-				if($str == $placeHolder) {
-					if($isPrepareExecute and !$overrideOption) {
-						$query[$ind] = "\${$placeholderPosition}";
-						$placeholderPosition++;
-					}
-					else {
-						$query[$ind] = $this->_escape(array_shift($executeArguments));
-					}
-				}
-			}
-			$preparedQuery = implode("", $query);
-		}
-
-		return $preparedQuery;
-	}
-
-	/**
-	 * @param string $uniqueName
-	 * @param string $statement
-	 *
-	 * @return mixed
-	 * @see MSSQL::_prepare
-	 * @see MySQL::_prepare
-	 * @see OData::_prepare
-	 * @see Pg::_prepare
-	 */
-	abstract protected function _prepare($uniqueName, $statement);
-
-	/**
-	 * @param $uniqueName
-	 * @param $arguments
-	 *
-	 * @return mixed
-	 * @see MSSQL::_execute
-	 * @see MySQL::_execute
-	 * @see OData::_execute
-	 * @see Pg::_execute
-	 */
-	abstract protected function _execute($uniqueName, $arguments);
-
-	/**
-	 * @param $statement
-	 *
-	 * @return mixed
-	 * @see MSSQL::_query
-	 * @see MySQL::_query
-	 * @see OData::_query
-	 * @see execute
-	 * @see Pg::_query
-	 */
-	abstract protected function _query($statement);
-
-	/**
-	 * @return mixed
-	 * @see rows
-	 * @see Pg::_numRows
-	 * @see MSSQL::_numRows
-	 * @see MySQL::_numRows
-	 * @see OData::_numRows
-	 * @see execute
-	 */
-	abstract protected function _numRows();
-
-	/**
-	 * Returns the number of rows in a database result resource.
-	 *
-	 * @return int
-	 */
-	public function rows() {
-		if($this->cache['key'] === null) {
-			if(preg_match("/^(\s*?)select\s*?.*?\s*?from/is", $this->query)) {
-				return $this->_numRows();
-			}
-
-			return $this->_affectedRows();
-		}
-		else {
-			return count($this->cache['result']);
-		}
-	}
-
-	/**
-	 * @param null $key
-	 *
-	 * @return array|mixed
-	 */
-	public function fetchRowSet($key = null) {
-		$array = [];
-
-		if($this->cache['key'] === null) {
-			while($row = $this->fetchRow()) {
-				if($key) {
-					$array[$row[$key]] = $row;
-				}
-				else {
-					$array[] = $row;
-				}
-			}
-		}
-		else {
-			$cache = $this->cache['result'];
-			$this->cache['result'] = [];
-
-			if($key) {
-				foreach($cache as $row) {
-					$array[$row[$key]] = $row;
-				}
-			}
-			else {
-				$array = $cache;
-			}
-		}
-
-		return $array;
-	}
-
-	/**
-	 * @param $value
-	 *
-	 * @return mixed
-	 * @see MSSQL::_escape
-	 * @see MySQL::_escape
-	 * @see OData::_escape
-	 * @see getPreparedQuery
-	 * @see Pg::_escape
-	 */
-	abstract protected function _escape($value);
-
-	/**
-	 * @return int number of updated or deleted rows
-	 * @see rows
-	 * @see Pg::_affectedRows
-	 * @see MSSQL::_affectedRows
-	 * @see MySQL::_affectedRows
-	 * @see OData::_affectedRows
-	 * @see affectedRows
-	 */
-	abstract protected function _affectedRows();
-
-	/**
-	 * @return mixed
-	 */
-	public function fetchRow() {
-		if($this->cache['key'] === null) {
-			$return = $this->_fetchAssoc();
-
-			if($this->Options->isConvertNumeric() || $this->Options->isConvertBoolean()) {
-				return $this->convertTypes($return, "row");
-			}
-
-			return $return;
-		}
-		else {
-			return array_shift($this->cache['result']);
-		}
-	}
-
-	/**
-	 * @return mixed
-	 * @see Pg::_fetchAssoc
-	 * @see MSSQL::_fetchAssoc
-	 * @see MySQL::_fetchAssoc
-	 * @see OData::_fetchAssoc
-	 * @see fetchRow
-	 */
-	abstract protected function _fetchAssoc();
-
-	/**
-	 * @param $data
-	 * @param $type
-	 *
-	 * @return mixed
-	 */
-	private function convertTypes(&$data, $type) {
-		if($this->Options->isConvertNumeric()) {
-			$this->_convertIntFloat($data, $type);
-		}
-		if($this->Options->isConvertBoolean()) {
-			$this->_convertBoolean($data, $type);
-		}
-
-		return $data;
-	}
-
-	/**
-	 * @param $data
-	 * @param $type
-	 *
-	 * @return mixed
-	 * @see MySQL::_convertIntFloat
-	 * @see OData::_convertIntFloat
-	 * @see convertTypes
-	 * @see Pg::_convertIntFloat
-	 * @see MSSQL::_convertIntFloat
-	 */
-	abstract protected function _convertIntFloat(&$data, $type);
-
-	/**
-	 * @param $data
-	 * @param $type
-	 *
-	 * @return mixed
-	 * @see MySQL::_convertBoolean
-	 * @see OData::_convertBoolean
-	 * @see convertTypes
-	 * @see Pg::_convertBoolean
-	 * @see MSSQL::_convertBoolean
-	 */
-	abstract protected function _convertBoolean(&$data, $type);
 
 	/**
 	 * For simple SQL query, mostly delete or update, when you do not need to get results and only want to know affected rows
@@ -719,7 +324,6 @@ abstract class DBD
 				header('Content-Type: text/plain');
 				header('Content-Disposition: attachment;filename="' . $fileName . '.txt"');
 				break;
-
 		}
 
 		header('Cache-Control: max-age=0');
@@ -750,23 +354,6 @@ abstract class DBD
 	}
 
 	/**
-	 * @param string $preparedQuery
-	 * @param string $fileName
-	 * @param string $delimiter
-	 * @param string $nullString
-	 * @param bool   $showHeader
-	 * @param string $tmpPath
-	 *
-	 * @return string full file path
-	 * @see Pg::_dump
-	 * @see MSSQL::_dump
-	 * @see MySQL::_dump
-	 * @see OData::_dump
-	 * @see DBD::dump()
-	 */
-	abstract protected function _dump(string $preparedQuery, string $fileName, string $delimiter, string $nullString, bool $showHeader, string $tmpPath);
-
-	/**
 	 * @noinspection PhpUnused
 	 *
 	 * @param Entity $entity
@@ -787,60 +374,6 @@ abstract class DBD
 			return true;
 
 		return false;
-	}
-
-	/**
-	 * @param Entity $entity
-	 *
-	 * @return array
-	 * @throws EntityException
-	 * @throws Exception
-	 */
-	private function getPrimaryKeysForEntity(Entity $entity) {
-		$keys = $entity::map()->getPrimaryKey();
-
-		if(!count($keys))
-			throw new Exception(sprintf("Entity %s does not have any defined primary key", get_class($entity)));
-
-		$columns = [];
-		$execute = [];
-
-		$placeHolder = $this->Options->getPlaceHolder();
-
-		foreach($keys as $keyName => $column) {
-			if(!isset($entity->$keyName))
-				throw new Exception(sprintf("Value of %s->%s, which is primary key column, is null", get_class($entity), $keyName));
-
-			$execute[] = $entity->$keyName;
-			$columns[] = "{$column->name} = {$placeHolder}";
-		}
-
-		return [ $execute, $columns ];
-	}
-
-	/**
-	 * Same as affectedRows but returns boolean
-	 *
-	 * @return bool
-	 */
-	public function isAffected() {
-		return $this->affectedRows() > 0;
-	}
-
-	/**
-	 * Returns number of affected rows during update or delete
-	 * ```
-	 * $sth = $db->prepare("DELETE FROM foo WHERE bar = ?");
-	 * $sth->execute($someVar);
-	 * if ($sth->affectedRows()) {
-	 *      // Do something
-	 * }
-	 * ```
-	 *
-	 * @return int
-	 */
-	public function affectedRows() {
-		return $this->_affectedRows();
 	}
 
 	/**
@@ -952,57 +485,37 @@ abstract class DBD
 	}
 
 	/**
-	 * @param Constraint $constraint
+	 * Common usage when you have an Entity object with filled primary key only and want to fetch all available data
 	 *
-	 * @return mixed
+	 * @param Entity $entity
+	 * @param bool   $exceptionIfNoRecord
+	 *
+	 * @return Entity|null
 	 * @throws EntityException
-	 */
-	private function findForeignProperty(Constraint $constraint) {
-		/** @var Entity $constraintEntity */
-		$constraintEntity = new $constraint->class;
-		$fields = array_flip($constraintEntity::map()->getOriginFieldNames());
-
-		/** @var string $foreignColumn name of origin column */
-		$foreignColumn = $constraint instanceof ConstraintRaw ? $constraint->foreignColumn : $constraint->foreignColumn->name;
-		$foreignProperty = $fields[$foreignColumn];
-
-		return $foreignProperty;
-	}
-
-	/**
-	 * Easy insert operation
-	 *
-	 * @param string $table
-	 * @param array  $args
-	 * @param null   $return
-	 *
-	 * @return DBD
 	 * @throws Exception
 	 * @throws InvalidArgumentException
 	 * @throws ReflectionException
 	 */
-	public function insert($table, $args, $return = null) {
-		$params = Helper::compileInsertArgs($args, $this, $this->Options);
+	public function entitySelect(Entity &$entity, bool $exceptionIfNoRecord = true) {
 
-		$sth = $this->prepare($this->_compileInsert($table, $params, $return));
-		$sth->execute($params['ARGS']);
+		[ $execute, $columns ] = $this->getPrimaryKeysForEntity($entity);
 
-		return $sth;
+		$sth = $this->prepare(sprintf("SELECT * FROM %s.%s WHERE %s", $entity::SCHEME, $entity::TABLE, implode(" AND ", $columns)));
+		$sth->execute($execute);
+
+		if(!$sth->rows()) {
+			if($exceptionIfNoRecord)
+				throw new Exception(sprintf("No data found for entity %s with ", get_class($entity)));
+			else
+				return null;
+		}
+		/** @var Entity $class */
+		$class = get_class($entity);
+
+		$entity = new $class($sth->fetchRow());
+
+		return $entity;
 	}
-
-	/**
-	 * @param        $table
-	 * @param        $params
-	 * @param string $return
-	 *
-	 * @return mixed
-	 * @see OData::_compileInsert
-	 * @see insert
-	 * @see Pg::_compileInsert
-	 * @see MSSQL::_compileInsert
-	 * @see MySQL::_compileInsert
-	 */
-	abstract protected function _compileInsert($table, $params, $return = "");
 
 	/**
 	 * TODO: обновлять поле констрейнта, если оно присутствует в Entity помимо Complex
@@ -1100,20 +613,402 @@ abstract class DBD
 		return $entity;
 	}
 
+	public function escape($string) {
+		return $this->_escape($string);
+	}
+
 	/**
-	 * Begin transaction internally of we don't know was transaction started somewhere else or not
+	 * Sends a request to execute a prepared statement with given parameters, and waits for the result.
+	 *
+	 * @return mixed
+	 * @throws Exception
+	 * @throws InvalidArgumentException
+	 * @throws ReflectionException
+	 * @throws \Exception
+	 */
+	public function execute() {
+		// Set result to false
+		$this->result = false;
+		$this->fetch = self::UNDEFINED;
+		$this->storage = null;
+		$executeArguments = func_get_args();
+		$preparedQuery = $this->getPreparedQuery($executeArguments);
+
+		//--------------------------------------
+		// Is query uses cache?
+		//--------------------------------------
+		if(isset($this->CacheDriver)) {
+			if($this->cache['key'] !== null) {
+				// Get data from cache
+				if($this->Options->isUseDebug()) {
+					Debug::me()->startTimer();
+				}
+				$this->cache['result'] = $this->CacheDriver->get($this->cache['key']);
+
+				// Cache not empty?
+				if($this->cache['result'] !== false) {
+					$cost = Debug::me()->endTimer();
+					// To avoid errors as result by default is NULL
+					$this->result = "cached";
+					$this->storage = self::STORAGE_CACHE;
+					$this->rows = count($this->cache['result']);
+				}
+			}
+		}
+
+		// If not found in cache, then let's get from DB
+		if($this->result != "cached") {
+
+			$this->connectionPreCheck();
+			if($this->Options->isUseDebug()) {
+				Debug::me()->startTimer();
+			}
+			if($this->Options->isPrepareExecute()) {
+				$uniqueName = crc32($preparedQuery);
+
+				if(!in_array($uniqueName, self::$preparedStatements)) {
+					self::$preparedStatements[] = $uniqueName;
+					$prepareResult = $this->_prepare($uniqueName, $preparedQuery);
+
+					if($prepareResult === false) {
+						throw new Exception ($this->_errorMessage(), $preparedQuery);
+					}
+				}
+
+				$this->result = $this->_execute($uniqueName, Helper::parseArgs($executeArguments));
+			}
+			else {
+				$this->checkStatement($preparedQuery);
+				// Execute query to the database
+				$this->result = $this->_query($preparedQuery);
+			}
+			$cost = Debug::me()->endTimer();
+
+			if($this->result !== false) {
+				$this->rows = $this->_numRows();
+				$this->storage = self::STORAGE_DATABASE;
+			}
+			else {
+				throw new Exception ($this->_errorMessage(), $preparedQuery, $this->Options->isPrepareExecute() ? Helper::parseArgs($executeArguments) : null);
+			}
+
+			// If query from cache
+			if($this->cache['key'] !== null) {
+				//  As we already queried database we have to set key to NULL
+				//  because during internal method invoke (fetchRowSet below) this Driver
+				//  will think we have data from cache
+
+				$storedKey = $this->cache['key'];
+				$this->cache['key'] = null;
+
+				// If we have data from query
+				if($this->rows()) {
+					$this->cache['result'] = $this->fetchRowSet();
+				}
+				else {
+					// select is empty
+					$this->cache['result'] = [];
+				}
+
+				// reverting all back, cause we stored data to cache
+				$this->result = "cached";
+				$this->cache['key'] = $storedKey;
+
+				// Setting up our cache
+				$this->CacheDriver->set($this->cache['key'], $this->cache['result'], $this->cache['expire']);
+			}
+		}
+
+		if($this->result === false) {
+			throw new Exception($this->_errorMessage(), $preparedQuery);
+		}
+
+		if($this->Options->isUseDebug()) {
+			$cost = isset($cost) ? $cost : 0;
+
+			$driver = $this->storage == self::STORAGE_CACHE ? self::STORAGE_CACHE : (new ReflectionClass($this))->getShortName();
+			$caller = Helper::caller($this);
+
+			Debug::addQueries(new Query(Helper::cleanSql($this->getPreparedQuery($executeArguments, true)), $cost, $caller[0], Helper::debugMark($cost), $driver)
+			);
+			Debug::addTotalQueries(1);
+			Debug::addTotalCost($cost);
+		}
+
+		return $this->result;
+	}
+
+	/**
+	 * @return bool|mixed
+	 */
+	public function fetch() {
+		if($this->fetch == self::UNDEFINED) {
+
+			if($this->cache['key'] === null) {
+
+				$return = $this->_fetchArray();
+
+				if($this->Options->isConvertNumeric() || $this->Options->isConvertBoolean()) {
+					$return = $this->convertTypes($return, "row");
+				}
+
+				$this->fetch = $return;
+			}
+			else {
+				$this->fetch = array_shift($this->cache['result']);
+			}
+		}
+		if(!count($this->fetch))
+			return null;
+
+		return array_shift($this->fetch);
+	}
+
+	/**
+	 * @noinspection PhpUnused
+	 * @return array
+	 */
+	public function fetchArraySet() {
+		$array = [];
+
+		if($this->cache['key'] === null) {
+			while($row = $this->fetchRow()) {
+				$entry = [];
+				foreach($row as $key => $value) {
+					$entry[] = $value;
+				}
+				$array[] = $entry;
+			}
+		}
+		else {
+			$cache = $this->cache['result'];
+			$this->cache['result'] = [];
+			foreach($cache as $row) {
+				$entry = [];
+				foreach($row as $key => $value) {
+					$entry[] = $value;
+				}
+				$array[] = $entry;
+			}
+		}
+
+		return $array;
+	}
+
+	/**
+	 * @return mixed
+	 */
+	public function fetchRow() {
+		if($this->cache['key'] === null) {
+			$return = $this->_fetchAssoc();
+
+			if($this->Options->isConvertNumeric() || $this->Options->isConvertBoolean()) {
+				return $this->convertTypes($return, "row");
+			}
+
+			return $return;
+		}
+		else {
+			return array_shift($this->cache['result']);
+		}
+	}
+
+	/**
+	 * @param null $key
+	 *
+	 * @return array|mixed
+	 */
+	public function fetchRowSet($key = null) {
+		$array = [];
+
+		if($this->cache['key'] === null) {
+			while($row = $this->fetchRow()) {
+				if($key) {
+					$array[$row[$key]] = $row;
+				}
+				else {
+					$array[] = $row;
+				}
+			}
+		}
+		else {
+			$cache = $this->cache['result'];
+			$this->cache['result'] = [];
+
+			if($key) {
+				foreach($cache as $row) {
+					$array[$row[$key]] = $row;
+				}
+			}
+			else {
+				$array = $cache;
+			}
+		}
+
+		return $array;
+	}
+
+	/**
+	 * @return Options
+	 */
+	public function getOptions(): Options {
+		return $this->Options;
+	}
+
+	/**
+	 * @return array|resource|string
+	 * @deprecated
+	 */
+	public function getResult() {
+		return $this->result;
+	}
+
+	/**
+	 * @return string
+	 * @deprecated
+	 */
+	public function getStorage() {
+		return $this->storage;
+	}
+
+	/**
+	 * Easy insert operation
+	 *
+	 * @param string $table
+	 * @param array  $args
+	 * @param null   $return
+	 *
+	 * @return DBD
+	 * @throws Exception
+	 * @throws InvalidArgumentException
+	 * @throws ReflectionException
+	 */
+	public function insert($table, $args, $return = null) {
+		$params = Helper::compileInsertArgs($args, $this, $this->Options);
+
+		$sth = $this->prepare($this->_compileInsert($table, $params, $return));
+		$sth->execute($params['ARGS']);
+
+		return $sth;
+	}
+
+	/**
+	 * Same as affectedRows but returns boolean
+	 *
+	 * @return bool
+	 */
+	public function isAffected() {
+		return $this->affectedRows() > 0;
+	}
+
+	/**
+	 * Creates a prepared statement for later execution
+	 *
+	 * @param string $statement
+	 *
+	 * @return $this
+	 * @throws Exception
+	 */
+	public function prepare(string $statement) {
+		if(!isset($statement) or empty($statement))
+			throw new Exception("prepare failed: statement is not set or empty");
+
+		return $this->extendMe($this, $statement);
+	}
+
+	/**
+	 * Like doit method, but return self instance
+	 * Example 1:
+	 * ```
+	 * $sth = $db->query("SELECT * FROM invoices");
+	 * while ($row = $sth->fetchrow()) {
+	 *      //do something
+	 * }
+	 * ```
+	 * Example 2:
+	 * ```
+	 * $sth = $db->query("UPDATE invoices SET invoice_uuid=?",'550e8400-e29b-41d4-a716-446655440000');
+	 * echo($sth->affectedRows());
+	 * ```
+	 *
+	 * @return DBD
+	 * @throws Exception
+	 * @throws InvalidArgumentException
+	 * @throws ReflectionException
+	 */
+	public function query() {
+		if(!func_num_args())
+			throw new Exception("query failed: statement is not set or empty");
+
+		[ $statement, $args ] = Helper::prepareArgs(func_get_args());
+
+		$sth = $this->prepare($statement);
+
+		if(is_array($args)) {
+			$sth->execute($args);
+		}
+		else {
+			$sth->execute();
+		}
+
+		return $sth;
+	}
+
+	/**
+	 * Rolls back a transaction that was begun
 	 *
 	 * @return bool
 	 * @throws Exception
 	 */
-	private function beginIntermediate() {
+	public function rollback() {
+		if($this->inTransaction) {
+			$this->connectionPreCheck();
+			$this->result = $this->_rollback();
+			if($this->result === false) {
+				throw new Exception("Can not end transaction: " . $this->_errorMessage());
+			}
+		}
+		else {
+			throw new Exception("No transaction to rollback");
+		}
+		$this->inTransaction = false;
 
-		$this->transactionsIntermediate++;
+		return true;
+	}
 
-		if($this->inTransaction == false)
-			return $this->begin();
-		else
-			return true;
+	/**
+	 * Returns the number of rows in a database result resource.
+	 *
+	 * @return int
+	 */
+	public function rows() {
+		if($this->cache['key'] === null) {
+			if(preg_match("/^(\s*?)select\s*?.*?\s*?from/is", $this->query)) {
+				return $this->_numRows();
+			}
+
+			return $this->_affectedRows();
+		}
+		else {
+			return count($this->cache['result']);
+		}
+	}
+
+	/**
+	 * @return null|mixed
+	 * @throws Exception
+	 * @throws InvalidArgumentException
+	 * @throws ReflectionException
+	 */
+	public function select() {
+
+		$sth = $this->query(func_get_args());
+
+		if($sth->rows()) {
+			return $sth->fetch();
+		}
+
+		return null;
 	}
 
 	/**
@@ -1202,22 +1097,289 @@ abstract class DBD
 	}
 
 	/**
+	 * @return int number of updated or deleted rows
+	 * @see rows
+	 * @see Pg::_affectedRows
+	 * @see MSSQL::_affectedRows
+	 * @see MySQL::_affectedRows
+	 * @see OData::_affectedRows
+	 * @see affectedRows
+	 */
+	abstract protected function _affectedRows();
+
+	/**
+	 * @return bool true on success begin
+	 * @see Pg::_begin
+	 * @see MSSQL::_begin
+	 * @see MySQL::_begin
+	 * @see OData::_begin
+	 * @see begin
+	 */
+	abstract protected function _begin();
+
+	/**
+	 * @return bool true on success commit
+	 * @see Pg::_commit
+	 * @see MSSQL::_commit
+	 * @see MySQL::_commit
+	 * @see OData::_commit
+	 * @see commit
+	 */
+	abstract protected function _commit();
+
+	/**
+	 * @param        $table
+	 * @param        $params
+	 * @param string $return
+	 *
+	 * @return mixed
+	 * @see OData::_compileInsert
+	 * @see insert
+	 * @see Pg::_compileInsert
+	 * @see MSSQL::_compileInsert
+	 * @see MySQL::_compileInsert
+	 */
+	abstract protected function _compileInsert($table, $params, $return = "");
+
+	/**
+	 * @param        $table
+	 * @param        $params
+	 * @param        $where
+	 * @param string $return
+	 *
+	 * @return mixed
+	 * @see update
+	 * @see Pg::_compileUpdate
+	 * @see MSSQL::_compileUpdate
+	 * @see MySQL::_compileUpdate
+	 * @see OData::_compileUpdate
+	 */
+	abstract protected function _compileUpdate($table, $params, $where, $return = "");
+
+	/**
+	 * @return DBD
+	 * @see Pg::_connect
+	 * @see MSSQL::_connect
+	 * @see MySQL::_connect
+	 * @see OData::_connect
+	 * @see connectionPreCheck
+	 */
+	abstract protected function _connect();
+
+	/**
+	 * @param $data
+	 * @param $type
+	 *
+	 * @return mixed
+	 * @see MySQL::_convertBoolean
+	 * @see OData::_convertBoolean
+	 * @see convertTypes
+	 * @see Pg::_convertBoolean
+	 * @see MSSQL::_convertBoolean
+	 */
+	abstract protected function _convertBoolean(&$data, $type);
+
+	/**
+	 * @param $data
+	 * @param $type
+	 *
+	 * @return mixed
+	 * @see MySQL::_convertIntFloat
+	 * @see OData::_convertIntFloat
+	 * @see convertTypes
+	 * @see Pg::_convertIntFloat
+	 * @see MSSQL::_convertIntFloat
+	 */
+	abstract protected function _convertIntFloat(&$data, $type);
+
+	/**
+	 * @return bool true on successful disconnection
+	 * @see Pg::_disconnect
+	 * @see MSSQL::_disconnect
+	 * @see MySQL::_disconnect
+	 * @see OData::_disconnect
+	 * @see disconnect
+	 */
+	abstract protected function _disconnect();
+
+	/**
+	 * @param string $preparedQuery
+	 * @param string $fileName
+	 * @param string $delimiter
+	 * @param string $nullString
+	 * @param bool   $showHeader
+	 * @param string $tmpPath
+	 *
+	 * @return string full file path
+	 * @see Pg::_dump
+	 * @see MSSQL::_dump
+	 * @see MySQL::_dump
+	 * @see OData::_dump
+	 * @see DBD::dump()
+	 */
+	abstract protected function _dump(string $preparedQuery, string $fileName, string $delimiter, string $nullString, bool $showHeader, string $tmpPath);
+
+	/**
+	 * @return string
+	 * @see MSSQL::_errorMessage
+	 * @see MySQL::_errorMessage
+	 * @see OData::_errorMessage
+	 * @see Pg::_errorMessage
+	 */
+	abstract protected function _errorMessage();
+
+	/**
+	 * @param $value
+	 *
+	 * @return mixed
+	 * @see MSSQL::_escape
+	 * @see MySQL::_escape
+	 * @see OData::_escape
+	 * @see getPreparedQuery
+	 * @see Pg::_escape
+	 */
+	abstract protected function _escape($value);
+
+	/**
+	 * @param $uniqueName
+	 * @param $arguments
+	 *
+	 * @return mixed
+	 * @see MSSQL::_execute
+	 * @see MySQL::_execute
+	 * @see OData::_execute
+	 * @see Pg::_execute
+	 */
+	abstract protected function _execute($uniqueName, $arguments);
+
+	/**
+	 * @return mixed
+	 * @see Pg::_fetchArray
+	 * @see MSSQL::_fetchArray
+	 * @see MySQL::_fetchArray
+	 * @see OData::_fetchArray
+	 * @see fetch
+	 */
+	abstract protected function _fetchArray();
+
+	/**
+	 * @return mixed
+	 * @see Pg::_fetchAssoc
+	 * @see MSSQL::_fetchAssoc
+	 * @see MySQL::_fetchAssoc
+	 * @see OData::_fetchAssoc
+	 * @see fetchRow
+	 */
+	abstract protected function _fetchAssoc();
+
+	/**
+	 * @return mixed
+	 * @see rows
+	 * @see Pg::_numRows
+	 * @see MSSQL::_numRows
+	 * @see MySQL::_numRows
+	 * @see OData::_numRows
+	 * @see execute
+	 */
+	abstract protected function _numRows();
+
+	/**
+	 * @param string $uniqueName
+	 * @param string $statement
+	 *
+	 * @return mixed
+	 * @see MSSQL::_prepare
+	 * @see MySQL::_prepare
+	 * @see OData::_prepare
+	 * @see Pg::_prepare
+	 */
+	abstract protected function _prepare($uniqueName, $statement);
+
+	/**
+	 * @param $statement
+	 *
+	 * @return mixed
+	 * @see MSSQL::_query
+	 * @see MySQL::_query
+	 * @see OData::_query
+	 * @see execute
+	 * @see Pg::_query
+	 */
+	abstract protected function _query($statement);
+
+	/**
+	 * @return bool true on successful rollback
+	 * @see Pg::_rollback
+	 * @see MSSQL::_rollback
+	 * @see MySQL::_rollback
+	 * @see OData::_rollback
+	 * @see rollback
+	 */
+	abstract protected function _rollback();
+
+	/**
+	 * @return void
+	 * @see rows
+	 * @see Pg::_setApplicationName
+	 * @see MSSQL::_setApplicationName
+	 * @see MySQL::_setApplicationName
+	 * @see OData::_setApplicationName
+	 * @see execute
+	 */
+	abstract protected function _setApplicationName();
+
+	/**
+	 * Check whether connection is established or not
+	 *
+	 * @return bool true if var is a resource, false otherwise
+	 */
+	protected function isConnected() {
+		return is_resource($this->resourceLink);
+	}
+
+	/**
+	 * @param $statement
+	 *
+	 * @return string|null
+	 */
+	private function getQueryType($statement) {
+		if(is_array($statement))
+			$statement = key($statement);
+
+		$matches = null;
+		if(!preg_match('/^\s*(SELECT|INSERT|REPLACE|UPDATE|DELETE)\b/si', $statement, $matches))
+			return null;
+
+		return strtoupper(trim($matches[1]));
+	}
+
+	/**
+	 * Begin transaction internally of we don't know was transaction started somewhere else or not
+	 *
 	 * @return bool
 	 * @throws Exception
 	 */
-	private function rollbackIntermediate() {
-		if($this->inTransaction) {
-			$this->transactionsIntermediate--;
+	private function beginIntermediate() {
 
-			if($this->transactionsIntermediate == 0) {
-				return $this->rollback();
-			}
-		}
-		else {
-			throw new Exception("No transaction to rollback");
-		}
+		$this->transactionsIntermediate++;
 
-		return true;
+		if($this->inTransaction == false)
+			return $this->begin();
+		else
+			return true;
+	}
+
+	/**
+	 * @param string $statement
+	 */
+	private function checkStatement(string $statement) {
+		if($this->applicationNameIsSet)
+			return;
+
+		if($this->Options->isSetApplicationOnDelete() or $this->Options->isSetApplicationOnInsert() or $this->Options->isSetApplicationOnUpdate()) {
+			if(in_array($this->getQueryType($statement), [ 'INSERT', 'UPDATE', 'DELETE' ]))
+				$this->_setApplicationName();
+		}
 	}
 
 	/**
@@ -1238,59 +1400,6 @@ abstract class DBD
 	}
 
 	/**
-	 * Common usage when you have an Entity object with filled primary key only and want to fetch all available data
-	 *
-	 * @param Entity $entity
-	 * @param bool   $exceptionIfNoRecord
-	 *
-	 * @return Entity|null
-	 * @throws EntityException
-	 * @throws Exception
-	 * @throws InvalidArgumentException
-	 * @throws ReflectionException
-	 */
-	public function entitySelect(Entity &$entity, bool $exceptionIfNoRecord = true) {
-
-		[ $execute, $columns ] = $this->getPrimaryKeysForEntity($entity);
-
-		$sth = $this->prepare(sprintf("SELECT * FROM %s.%s WHERE %s", $entity::SCHEME, $entity::TABLE, implode(" AND ", $columns)));
-		$sth->execute($execute);
-
-		if(!$sth->rows()) {
-			if($exceptionIfNoRecord)
-				throw new Exception(sprintf("No data found for entity %s with ", get_class($entity)));
-			else
-				return null;
-		}
-		/** @var Entity $class */
-		$class = get_class($entity);
-
-		$entity = new $class($sth->fetchRow());
-
-		return $entity;
-	}
-
-	/**
-	 * Starts database transaction
-	 *
-	 * @return bool
-	 * @throws Exception
-	 */
-	public function begin() {
-		if($this->inTransaction == true)
-			throw new Exception("Already in transaction");
-
-		$this->connectionPreCheck();
-		$this->result = $this->_begin();
-		if($this->result === false)
-			throw new Exception("Can't start transaction: " . $this->_errorMessage());
-
-		$this->inTransaction = true;
-
-		return true;
-	}
-
-	/**
 	 * Check connection existence and do connection if not
 	 *
 	 * @return void
@@ -1302,224 +1411,152 @@ abstract class DBD
 	}
 
 	/**
-	 * @return bool true on success begin
-	 * @see Pg::_begin
-	 * @see MSSQL::_begin
-	 * @see MySQL::_begin
-	 * @see OData::_begin
-	 * @see begin
-	 */
-	abstract protected function _begin();
-
-	/**
-	 * @return string
-	 * @see MSSQL::_errorMessage
-	 * @see MySQL::_errorMessage
-	 * @see OData::_errorMessage
-	 * @see Pg::_errorMessage
-	 */
-	abstract protected function _errorMessage();
-
-	/**
-	 * Check whether connection is established or not
+	 * @param $data
+	 * @param $type
 	 *
-	 * @return bool true if var is a resource, false otherwise
+	 * @return mixed
 	 */
-	protected function isConnected() {
-		return is_resource($this->resourceLink);
+	private function convertTypes(&$data, $type) {
+		if($this->Options->isConvertNumeric()) {
+			$this->_convertIntFloat($data, $type);
+		}
+		if($this->Options->isConvertBoolean()) {
+			$this->_convertBoolean($data, $type);
+		}
+
+		return $data;
 	}
 
 	/**
+	 * Copies object variables after extended class construction
+	 * TODO: may be clone?
+	 *
+	 * @param DBD    $context
+	 * @param string $statement
+	 *
 	 * @return DBD
-	 * @see Pg::_connect
-	 * @see MSSQL::_connect
-	 * @see MySQL::_connect
-	 * @see OData::_connect
-	 * @see connectionPreCheck
 	 */
-	abstract protected function _connect();
+	final private function extendMe(DBD $context, string $statement) {
+
+		$className = get_class($context);
+
+		/** @var DBD $class */
+		$class = new $className($context->Config, $context->Options);
+
+		$class->Config = &$context->Config;
+		$class->Options = &$context->Options;
+		$class->resourceLink = &$context->resourceLink;
+		$class->CacheDriver = &$context->CacheDriver;
+		$class->inTransaction = &$context->inTransaction;
+		$class->query = $statement;
+
+		return $class;
+	}
 
 	/**
-	 * @param        $table
-	 * @param        $params
-	 * @param        $where
-	 * @param string $return
+	 * @param Constraint $constraint
 	 *
 	 * @return mixed
-	 * @see update
-	 * @see Pg::_compileUpdate
-	 * @see MSSQL::_compileUpdate
-	 * @see MySQL::_compileUpdate
-	 * @see OData::_compileUpdate
+	 * @throws EntityException
 	 */
-	abstract protected function _compileUpdate($table, $params, $where, $return = "");
+	private function findForeignProperty(Constraint $constraint) {
+		/** @var Entity $constraintEntity */
+		$constraintEntity = new $constraint->class;
+		$fields = array_flip($constraintEntity::map()->getOriginFieldNames());
+
+		/** @var string $foreignColumn name of origin column */
+		$foreignColumn = $constraint instanceof ConstraintRaw ? $constraint->foreignColumn : $constraint->foreignColumn->name;
+
+		return $fields[$foreignColumn];
+	}
 
 	/**
-	 * Rolls back a transaction that was begun
+	 * @param      $ARGS
+	 * @param bool $overrideOption
 	 *
+	 * @return string
+	 * @throws Exception
+	 */
+	private function getPreparedQuery($ARGS, $overrideOption = false) {
+		$placeHolder = $this->Options->getPlaceHolder();
+		$isPrepareExecute = $this->Options->isPrepareExecute();
+
+		$preparedQuery = $this->query;
+		$binds = substr_count($this->query, $placeHolder);
+		$executeArguments = Helper::parseArgs($ARGS);
+
+		$numberOfArgs = count($executeArguments);
+
+		if($binds != $numberOfArgs) {
+			throw new Exception("Execute failed: called with $numberOfArgs bind variables when $binds are needed", $this->query);
+		}
+
+		if($numberOfArgs) {
+			$query = str_split($this->query);
+
+			$placeholderPosition = 1;
+			foreach($query as $ind => $str) {
+				if($str == $placeHolder) {
+					if($isPrepareExecute and !$overrideOption) {
+						$query[$ind] = "\${$placeholderPosition}";
+						$placeholderPosition++;
+					}
+					else {
+						$query[$ind] = $this->_escape(array_shift($executeArguments));
+					}
+				}
+			}
+			$preparedQuery = implode("", $query);
+		}
+
+		return $preparedQuery;
+	}
+
+	/**
+	 * @param Entity $entity
+	 *
+	 * @return array
+	 * @throws EntityException
+	 * @throws Exception
+	 */
+	private function getPrimaryKeysForEntity(Entity $entity) {
+		$keys = $entity::map()->getPrimaryKey();
+
+		if(!count($keys))
+			throw new Exception(sprintf("Entity %s does not have any defined primary key", get_class($entity)));
+
+		$columns = [];
+		$execute = [];
+
+		$placeHolder = $this->Options->getPlaceHolder();
+
+		foreach($keys as $keyName => $column) {
+			if(!isset($entity->$keyName))
+				throw new Exception(sprintf("Value of %s->%s, which is primary key column, is null", get_class($entity), $keyName));
+
+			$execute[] = $entity->$keyName;
+			$columns[] = "{$column->name} = {$placeHolder}";
+		}
+
+		return [ $execute, $columns ];
+	}
+
+	/**
 	 * @return bool
 	 * @throws Exception
 	 */
-	public function rollback() {
+	private function rollbackIntermediate() {
 		if($this->inTransaction) {
-			$this->connectionPreCheck();
-			$this->result = $this->_rollback();
-			if($this->result === false) {
-				throw new Exception("Can not end transaction: " . $this->_errorMessage());
+			$this->transactionsIntermediate--;
+
+			if($this->transactionsIntermediate == 0) {
+				return $this->rollback();
 			}
 		}
 		else {
 			throw new Exception("No transaction to rollback");
 		}
-		$this->inTransaction = false;
 
 		return true;
 	}
-
-	/**
-	 * Commits a transaction that was begun
-	 *
-	 * @return bool
-	 * @throws Exception
-	 */
-	public function commit() {
-		if(!$this->isConnected()) {
-			throw new Exception("No connection established yet");
-		}
-		if($this->inTransaction) {
-			$this->result = $this->_commit();
-			if($this->result === false)
-				throw new Exception("Can not commit transaction: " . $this->_errorMessage());
-		}
-		else {
-			throw new Exception("No transaction to commit");
-		}
-		$this->inTransaction = false;
-
-		return true;
-	}
-
-	/**
-	 * @return bool true on success commit
-	 * @see Pg::_commit
-	 * @see MSSQL::_commit
-	 * @see MySQL::_commit
-	 * @see OData::_commit
-	 * @see commit
-	 */
-	abstract protected function _commit();
-
-	/**
-	 * @return bool true on successful rollback
-	 * @see Pg::_rollback
-	 * @see MSSQL::_rollback
-	 * @see MySQL::_rollback
-	 * @see OData::_rollback
-	 * @see rollback
-	 */
-	abstract protected function _rollback();
-
-	public function escape($string) {
-		return $this->_escape($string);
-	}
-
-	/**
-	 * @noinspection PhpUnused
-	 * @return array
-	 */
-	public function fetchArraySet() {
-		$array = [];
-
-		if($this->cache['key'] === null) {
-			while($row = $this->fetchRow()) {
-				$entry = [];
-				foreach($row as $key => $value) {
-					$entry[] = $value;
-				}
-				$array[] = $entry;
-			}
-		}
-		else {
-			$cache = $this->cache['result'];
-			$this->cache['result'] = [];
-			foreach($cache as $row) {
-				$entry = [];
-				foreach($row as $key => $value) {
-					$entry[] = $value;
-				}
-				$array[] = $entry;
-			}
-		}
-
-		return $array;
-	}
-
-	/**
-	 * @return array|resource|string
-	 * @deprecated
-	 */
-	public function getResult() {
-		return $this->result;
-	}
-
-	/**
-	 * @return string
-	 * @deprecated
-	 */
-	public function getStorage() {
-		return $this->storage;
-	}
-
-	/**
-	 * @return null|mixed
-	 * @throws Exception
-	 * @throws InvalidArgumentException
-	 * @throws ReflectionException
-	 */
-	public function select() {
-
-		$sth = $this->query(func_get_args());
-
-		if($sth->rows()) {
-			return $sth->fetch();
-		}
-
-		return null;
-	}
-
-	/**
-	 * @return bool|mixed
-	 */
-	public function fetch() {
-		if($this->fetch == self::UNDEFINED) {
-
-			if($this->cache['key'] === null) {
-
-				$return = $this->_fetchArray();
-
-				if($this->Options->isConvertNumeric() || $this->Options->isConvertBoolean()) {
-					$return = $this->convertTypes($return, "row");
-				}
-
-				$this->fetch = $return;
-			}
-			else {
-				$this->fetch = array_shift($this->cache['result']);
-			}
-		}
-		if(!count($this->fetch))
-			return null;
-
-		return array_shift($this->fetch);
-	}
-
-	/**
-	 * @return mixed
-	 * @see Pg::_fetchArray
-	 * @see MSSQL::_fetchArray
-	 * @see MySQL::_fetchArray
-	 * @see OData::_fetchArray
-	 * @see fetch
-	 */
-	abstract protected function _fetchArray();
 }

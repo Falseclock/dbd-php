@@ -806,4 +806,11 @@ class OData extends DBD
 
 		return $string;
 	}
+
+	/**
+	 * @return void
+	 */
+	protected function _setApplicationName() {
+		$this->applicationNameIsSet = true;
+	}
 }
