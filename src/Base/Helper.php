@@ -236,7 +236,8 @@ final class Helper
 
 		foreach($ARGS as $arg) {
 			if(is_array($arg)) {
-				$args = self::arrayFlatten($arg);
+				foreach(self::arrayFlatten($arg) as $value)
+					$args[] = $value;
 			}
 			else {
 				$args[] = $arg;
