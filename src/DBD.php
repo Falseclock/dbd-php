@@ -377,8 +377,6 @@ abstract class DBD
 	}
 
 	/**
-	 * @noinspection PhpUnused
-	 *
 	 * @param Entity $entity
 	 *
 	 * @return Entity
