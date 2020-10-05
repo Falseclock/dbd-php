@@ -171,7 +171,7 @@ final class Helper
 		$format = null;
 
 		if(defined("{$className}::CAST_FORMAT_UPDATE")) {
-			/** @noinspection PhpUndefinedFieldInspection */
+			/** @noinspection PhpPossiblePolymorphicInvocationInspection */
 			$format = $driver::CAST_FORMAT_UPDATE;
 		}
 
