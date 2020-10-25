@@ -31,7 +31,6 @@ use DBD\Base\Query;
 use DBD\Common\DBDException as Exception;
 use DBD\Entity\Common\EntityException;
 use DBD\Entity\Constraint;
-use DBD\Entity\ConstraintRaw;
 use DBD\Entity\Entity;
 use Psr\SimpleCache\CacheInterface;
 use Psr\SimpleCache\InvalidArgumentException;
@@ -1447,19 +1446,19 @@ abstract class DBD
 		return $class;
 	}
 
-	/**
-	 * @param Constraint $constraint
-	 *
-	 * @return mixed
-	 * @throws EntityException
-	 */
+    /**
+     * @param Constraint $constraint
+     *
+     * @return mixed
+     * @throws EntityException
+     */
 	private function findForeignProperty(Constraint $constraint) {
 		/** @var Entity $constraintEntity */
 		$constraintEntity = new $constraint->class;
 		$fields = array_flip($constraintEntity::map()->getOriginFieldNames());
 
 		/** @var string $foreignColumn name of origin column */
-		$foreignColumn = $constraint instanceof ConstraintRaw ? $constraint->foreignColumn : $constraint->foreignColumn->name;
+		$foreignColumn = $constraint instanceof Constraint ? $constraint->foreignColumn : $constraint->foreignColumn->name;
 
 		return $fields[$foreignColumn];
 	}
