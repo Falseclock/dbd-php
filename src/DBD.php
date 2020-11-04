@@ -32,6 +32,7 @@ use DBD\Common\DBDException as Exception;
 use DBD\Entity\Common\EntityException;
 use DBD\Entity\Constraint;
 use DBD\Entity\Entity;
+use DBD\Entity\Primitive;
 use Psr\SimpleCache\CacheInterface;
 use Psr\SimpleCache\InvalidArgumentException;
 use ReflectionClass;
@@ -535,6 +536,12 @@ abstract class DBD
 		$constraints = $entity::map()->getConstraints();
 
 		foreach($columns as $propertyName => $column) {
+
+			if(property_exists($entity, $propertyName) and isset($entity->$propertyName)) {
+				if($column->type == Primitive::String and stripos($column->originType, 'json') !== false and !is_string($entity->$propertyName)) {
+					$entity->$propertyName = json_encode($entity->$propertyName, JSON_UNESCAPED_UNICODE);
+				}
+			}
 
 			if($column->nullable === false) {
 				if(property_exists($entity, $propertyName)) {
