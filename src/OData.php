@@ -262,16 +262,6 @@ class OData extends DBD
 
 	/*--------------------------------------------------------------*/
 
-	protected function _convertBoolean(&$data, $type) {
-	}
-
-	/*--------------------------------------------------------------*/
-
-	protected function _convertIntFloat(&$data, $type) {
-	}
-
-	/*--------------------------------------------------------------*/
-
 	protected function _disconnect() {
 		// TODO: Implement _disconnect() method.
 	}
@@ -763,7 +753,7 @@ class OData extends DBD
 		return $this;
 	}
 
-	protected function _convertTypes(&$data, $type) {
+	protected function _convertTypes(&$data): void {
 		// TODO: Implement _convertTypes() method.
 	}
 

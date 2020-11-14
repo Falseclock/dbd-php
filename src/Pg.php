@@ -136,7 +136,7 @@ class Pg extends DBD
 	 * @return array|mixed
 	 * @throws Exception
 	 */
-	protected function _convertBoolean(&$data, $type) {
+	protected function _convertBoolean(&$data) {
 		if($type == 'row') {
 			if(isset($data) and is_array($data) and count($data) > 0) {
 				for($i = 0; $i < pg_num_fields($this->result); $i++) {
@@ -169,44 +169,14 @@ class Pg extends DBD
 	}
 
 	/**
-	 * Convert integer, double and float values to corresponding PHP types. By default Postgres returns them as string
+	 * Converts integer, double, float and boolean values to corresponding PHP types. By default Postgres returns them as string
 	 *
 	 * @param $data
-	 * @param $type
 	 *
-	 * @return mixed
-	 * @throws Exception
+	 * TODO: in case of fetchrowset do not get each time and use static variable
 	 */
-	protected function _convertIntFloat(&$data, $type) {
-		// TODO: in case of fetchrowset do not get each time and use static variable
-		if($data && pg_num_fields($this->result) != count($data)) {
-
-			$names = [];
-			for($i = 0; $i < pg_num_fields($this->result); $i++) {
-				$names[pg_field_name($this->result, $i)]++;
-			}
-			$names = array_filter($names,
-				function($v) {
-					return $v > 1;
-				}
-			);
-
-			$duplications = "";
-
-			foreach($names as $key => $value) {
-				$duplications .= "[{$key}] => {$value}, ";
-			}
-
-			throw new Exception("Statement result has " . pg_num_fields($this->result) . " columns while fetched row only " . count($data) . ". 
-				Fetching it associative reduces number of columns. 
-				Rename column with `AS` inside statement or fetch as indexed array.\n\n
-				Duplicating columns are: {$duplications}\n"
-			);
-		}
-
-		$types = [];
-
-		$map = [
+	protected function _convertTypes(&$data): void {
+		$numericMap = [
 			'int'         => 'integer',
 			'int2'        => 'integer',
 			'int4'        => 'integer',
@@ -227,32 +197,28 @@ class Pg extends DBD
 			'float8'      => 'float',
 		];
 
-		if($type == 'row') {
-			if($data) {
-				// count how many fields we have and get their types
-				for($i = 0; $i < pg_num_fields($this->result); $i++) {
-					$types[] = pg_field_type($this->result, $i);
-				}
+		if(is_iterable($data)) {
+			foreach($data as $key => &$value) {
+				$fieldNumber = pg_field_num($this->result, $key);
+				$fieldType = pg_field_type($this->result, $fieldNumber);
 
-				// Identify on which column we are
-				$i = 0;
-				//        row    idx      value
-				foreach($data as $key => $value) {
-					// if type of current column exist in map array
-					if(array_key_exists($types[$i], $map)) {
+				if($this->Options->isConvertNumeric()) {
+					if(array_key_exists($fieldType, $numericMap)) {
 						if(!is_null($value)) {
-							$data[$key] = ($map[$types[$i]] == 'integer' ? intval($value) : floatval($value));
-						}
-						else {
-							$data[$key] = null;
+							$value = ($numericMap[$fieldType] == 'integer' ? intval($value) : floatval($value));
 						}
 					}
-					$i++;
+				}
+				if ($this->Options->isConvertBoolean()) {
+					if ($fieldType == 'bool') {
+						if($value == 't')
+							$value = true;
+						else if($value == 'f')
+							$value = false;
+					}
 				}
 			}
 		}
-
-		return $data;
 	}
 
 	/**

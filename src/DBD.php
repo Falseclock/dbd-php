@@ -753,7 +753,7 @@ abstract class DBD
 				$return = $this->_fetchArray();
 
 				if($this->Options->isConvertNumeric() || $this->Options->isConvertBoolean()) {
-					$return = $this->convertTypes($return, "row");
+					$return = $this->_convertTypes($return);
 				}
 
 				$this->fetch = $return;
@@ -807,7 +807,7 @@ abstract class DBD
 			$return = $this->_fetchAssoc();
 
 			if($this->Options->isConvertNumeric() || $this->Options->isConvertBoolean()) {
-				return $this->convertTypes($return, "row");
+				$this->_convertTypes($return);
 			}
 
 			return $return;
@@ -1174,27 +1174,13 @@ abstract class DBD
 	 * @param $data
 	 * @param $type
 	 *
-	 * @return mixed
-	 * @see MySQL::_convertBoolean
-	 * @see OData::_convertBoolean
-	 * @see convertTypes
-	 * @see Pg::_convertBoolean
-	 * @see MSSQL::_convertBoolean
+	 * @return void
+	 * @see Pg::_convertTypes
+	 * @see MySQL::_convertTypes
+	 * @see OData::_convertTypes
+	 * @see MSSQL::_convertTypes
 	 */
-	abstract protected function _convertBoolean(&$data, $type);
-
-	/**
-	 * @param $data
-	 * @param $type
-	 *
-	 * @return mixed
-	 * @see MySQL::_convertIntFloat
-	 * @see OData::_convertIntFloat
-	 * @see convertTypes
-	 * @see Pg::_convertIntFloat
-	 * @see MSSQL::_convertIntFloat
-	 */
-	abstract protected function _convertIntFloat(&$data, $type);
+	abstract protected function _convertTypes(&$data): void;
 
 	/**
 	 * @return bool true on successful disconnection
@@ -1408,23 +1394,6 @@ abstract class DBD
 		if(!$this->isConnected()) {
 			$this->_connect();
 		}
-	}
-
-	/**
-	 * @param $data
-	 * @param $type
-	 *
-	 * @return mixed
-	 */
-	private function convertTypes(&$data, $type) {
-		if($this->Options->isConvertNumeric()) {
-			$this->_convertIntFloat($data, $type);
-		}
-		if($this->Options->isConvertBoolean()) {
-			$this->_convertBoolean($data, $type);
-		}
-
-		return $data;
 	}
 
 	/**

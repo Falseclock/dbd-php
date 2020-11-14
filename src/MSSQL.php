@@ -110,17 +110,8 @@ class MSSQL extends DBD
 			throw new Exception($this->_errorMessage());
 	}
 
-	protected function _convertBoolean(&$data, $type) {
-		// TODO: Implement _convertBoolean() method.
-	}
-
-	protected function _convertIntFloat(&$data, $type) {
-		// TODO: Implement _convertIntFloat() method.
-	}
-
-	protected function _convertTypes(&$data, $type) {
+	protected function _convertTypes(&$data): void {
 		// TODO: Implement _convertTypes() method.
-		return $data;
 	}
 
 	protected function _disconnect() {
