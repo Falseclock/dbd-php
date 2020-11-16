@@ -199,7 +199,11 @@ class Pg extends DBD
 
 		if(is_iterable($data)) {
 			foreach($data as $key => &$value) {
-				$fieldNumber = pg_field_num($this->result, $key);
+				if (is_integer($key))
+					$fieldNumber = $key;
+				else
+					$fieldNumber = pg_field_num($this->result, $key);
+
 				$fieldType = pg_field_type($this->result, $fieldNumber);
 
 				if($this->Options->isConvertNumeric()) {

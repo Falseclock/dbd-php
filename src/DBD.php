@@ -753,7 +753,7 @@ abstract class DBD
 				$return = $this->_fetchArray();
 
 				if($this->Options->isConvertNumeric() || $this->Options->isConvertBoolean()) {
-					$return = $this->_convertTypes($return);
+					$this->_convertTypes($return);
 				}
 
 				$this->fetch = $return;
