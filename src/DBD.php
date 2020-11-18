@@ -257,7 +257,7 @@ abstract class DBD
 
 		$sth = $this->query($statement, $args);
 
-		return $sth->rows;
+		return $sth->rows();
 	}
 
 	/**
