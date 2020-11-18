@@ -198,11 +198,18 @@ class Pg extends DBD
 		];
 
 		if(is_iterable($data)) {
+
 			foreach($data as $key => &$value) {
 				if (is_integer($key))
 					$fieldNumber = $key;
 				else
 					$fieldNumber = pg_field_num($this->result, $key);
+
+				// That's a limitation of PQfnumber in libpq-exec
+				if ($fieldNumber === -1 ) {
+					if (is_string($key) and !ctype_lower($key))
+						$fieldNumber = pg_field_num($this->result, sprintf('"%s"', $key));
+				}
 
 				$fieldType = pg_field_type($this->result, $fieldNumber);
 
