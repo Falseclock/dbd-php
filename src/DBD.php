@@ -987,7 +987,7 @@ abstract class DBD
 	 */
 	public function rows() {
 		if($this->cache['key'] === null) {
-			if(preg_match("/^(\s*?)select\s*?.*?\s*?from/is", $this->query)) {
+			if(preg_match("/^(\s*?)(with.*?)?(\s*?)select\s*?.*?\s*?from/is", $this->query)) {
 				return $this->_numRows();
 			}
 
