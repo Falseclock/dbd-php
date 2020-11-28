@@ -397,4 +397,17 @@ class Pg extends DBD
 
 		$this->applicationNameIsSet = true;
 	}
+
+	/**
+	 * @param string|null $binaryString
+	 *
+	 * @return string|null
+	 */
+	protected function _binaryEscape(?string $binaryString): ?string {
+		if (!is_null($binaryString)) {
+			$binaryString = pg_escape_bytea($binaryString);
+		}
+
+		return $binaryString;
+	}
 }

@@ -447,7 +447,10 @@ abstract class DBD
 			else {
 				// Finally add column to record if it is set
 				if(isset($entity->$propertyName)) {
-					$record[$originName] = $entity->$propertyName;
+					if ($column->type->getValue() == Primitive::Binary)
+						$record[$originName] = $this->_binaryEscape($entity->$propertyName);
+					else
+						$record[$originName] = $entity->$propertyName;
 				}
 				else {
 					// If value not set and we have some default value, let's define also
@@ -1326,6 +1329,19 @@ abstract class DBD
 	protected function isConnected() {
 		return is_resource($this->resourceLink);
 	}
+
+	/**
+	 * @param string|null $binaryString
+	 *
+	 * @return string|null
+	 * @see entityInsert
+	 * @see Pg::_binaryEscape
+	 * @see MSSQL::_binaryEscape
+	 * @see MySQL::_binaryEscape
+	 * @see OData::_binaryEscape
+	 * @see execute
+	 */
+	abstract protected function _binaryEscape(?string $binaryString): ?string;
 
 	/**
 	 * Begin transaction internally of we don't know was transaction started somewhere else or not

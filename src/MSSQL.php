@@ -244,4 +244,13 @@ class MSSQL extends DBD
 	protected function _setApplicationName() {
 		$this->applicationNameIsSet = true;
 	}
+
+	/**
+	 * @param string|null $binaryString
+	 *
+	 * @return string|null
+	 */
+	protected function _binaryEscape(?string $binaryString): ?string {
+		// TODO: Implement _binaryEscape() method.
+	}
 }
