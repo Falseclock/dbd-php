@@ -34,7 +34,6 @@ use DBD\Entity\Constraint;
 use DBD\Entity\Entity;
 use DBD\Entity\Primitive;
 use Psr\SimpleCache\CacheInterface;
-use Psr\SimpleCache\InvalidArgumentException;
 use ReflectionClass;
 use ReflectionException;
 use Throwable;
@@ -246,7 +245,6 @@ abstract class DBD
 	/**
 	 * @return int
 	 * @throws Exception
-	 * @throws InvalidArgumentException
 	 * @throws ReflectionException
 	 */
 	public function do() {
@@ -273,7 +271,6 @@ abstract class DBD
 	 *
 	 * @return int Number of affected tuples will be stored in $result variable
 	 * @throws Exception
-	 * @throws InvalidArgumentException
 	 * @throws ReflectionException
 	 * @deprecated use do
 	 */
@@ -361,7 +358,6 @@ abstract class DBD
 	 * @return bool
 	 * @throws EntityException
 	 * @throws Exception
-	 * @throws InvalidArgumentException
 	 * @throws ReflectionException
 	 */
 	public function entityDelete(Entity $entity) {
@@ -382,7 +378,6 @@ abstract class DBD
 	 * @return Entity
 	 * @throws EntityException
 	 * @throws Exception
-	 * @throws InvalidArgumentException
 	 * @throws ReflectionException
 	 */
 	public function entityInsert(Entity $entity) {
@@ -494,7 +489,6 @@ abstract class DBD
 	 * @return Entity|null
 	 * @throws EntityException
 	 * @throws Exception
-	 * @throws InvalidArgumentException
 	 * @throws ReflectionException
 	 */
 	public function entitySelect(Entity &$entity, bool $exceptionIfNoRecord = true) {
@@ -528,7 +522,6 @@ abstract class DBD
 	 * @return Entity
 	 * @throws EntityException
 	 * @throws Exception
-	 * @throws InvalidArgumentException
 	 * @throws ReflectionException
 	 */
 	public function entityUpdate(Entity &$entity) {
@@ -629,7 +622,6 @@ abstract class DBD
 	 *
 	 * @return mixed
 	 * @throws Exception
-	 * @throws InvalidArgumentException
 	 * @throws ReflectionException
 	 * @throws \Exception
 	 */
@@ -887,7 +879,6 @@ abstract class DBD
 	 *
 	 * @return DBD
 	 * @throws Exception
-	 * @throws InvalidArgumentException
 	 * @throws ReflectionException
 	 */
 	public function insert($table, $args, $return = null) {
@@ -940,7 +931,6 @@ abstract class DBD
 	 *
 	 * @return DBD
 	 * @throws Exception
-	 * @throws InvalidArgumentException
 	 * @throws ReflectionException
 	 */
 	public function query() {
@@ -1004,7 +994,6 @@ abstract class DBD
 	/**
 	 * @return null|mixed
 	 * @throws Exception
-	 * @throws InvalidArgumentException
 	 * @throws ReflectionException
 	 */
 	public function select() {
@@ -1072,7 +1061,6 @@ abstract class DBD
 	 *
 	 * @return DBD
 	 * @throws Exception
-	 * @throws InvalidArgumentException
 	 * @throws ReflectionException
 	 */
 	public function update() {

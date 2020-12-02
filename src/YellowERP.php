@@ -26,7 +26,6 @@
 namespace DBD;
 
 use DBD\Common\DBDException as Exception;
-use Psr\SimpleCache\InvalidArgumentException;
 use ReflectionException;
 
 final class YellowERP extends OData
@@ -65,7 +64,6 @@ final class YellowERP extends OData
 	 *
 	 * @return array|OData|mixed|resource|string|null
 	 * @throws Exception
-	 * @throws InvalidArgumentException
 	 * @throws ReflectionException
 	 */
 	public function execute() {
