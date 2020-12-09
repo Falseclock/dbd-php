@@ -35,13 +35,13 @@
   },
   "require-dev": {
     "ext-pgsql": "*",
+    "ext-memcache": "*",
     "phpunit/phpunit": "^7.5.20",
     "php-coveralls/php-coveralls": "^2.4.2"
   },
   "suggest": {
     "ext-memcache": "Required to support Memcached",
-    "ext-pgsql": "Required to support PostgreSQL database",
-    "ext-sqlsrv": "Required to support MSSQL database"
+    "ext-pgsql": "Required to support PostgreSQL database"
   },
   "autoload": {
     "psr-4": {
@@ -50,7 +50,7 @@
   },
   "autoload-dev": {
     "psr-4": {
-      "DBD\\Test\\": "tests/"
+      "DBD\\Tests\\": "tests/"
     }
   }
 }

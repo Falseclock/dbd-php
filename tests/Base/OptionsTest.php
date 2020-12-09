@@ -8,7 +8,7 @@
  * @link      https://github.com/Falseclock/dbd-php
  */
 
-namespace DBD\Test\Base;
+namespace DBD\Tests\Base;
 
 use DBD\Base\Options;
 use PHPUnit\Framework\TestCase;

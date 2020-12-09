@@ -4,6 +4,22 @@ dist: trusty
 env:
   global:
     - XDEBUG_MODE=coverage
+    - PGPORT=5432
+    - PGHOST=localhost
+    - PGDATABASE=dbd_tests
+    - PGUSER=postgres
+
+addons:
+  apt:
+    packages:
+      - php-pgsql
+      - php-memcache
+      - postgresql-11
+      - postgresql-client-11
+
+services:
+  - postgresql
+  - memcached
 
 php:
   - 7.1
@@ -12,10 +28,12 @@ php:
   - 7.4
 
 before_script:
+  - psql -c 'create database $PGDATABASE;' -U $PGUSER
   - composer install
 
 script:
   - vendor/bin/phpunit --coverage-clover build/logs/clover.xml
 
 after_script:
+  - psql -c 'drop database $PGDATABASE;' -U $PGUSER
   - vendor/bin/php-coveralls --verbose

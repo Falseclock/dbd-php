@@ -9,7 +9,7 @@
  * @noinspection PhpMissingReturnTypeInspection
  */
 
-namespace DBD\Test\Base;
+namespace DBD\Tests\Base;
 
 use Psr\SimpleCache\CacheInterface;
 
