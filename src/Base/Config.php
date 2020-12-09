@@ -1,32 +1,16 @@
 <?php
-/*************************************************************************************
- *   MIT License                                                                     *
- *                                                                                   *
- *   Copyright (C) 2009-2019 by Nurlan Mukhanov <nurike@gmail.com>                   *
- *                                                                                   *
- *   Permission is hereby granted, free of charge, to any person obtaining a copy    *
- *   of this software and associated documentation files (the "Software"), to deal   *
- *   in the Software without restriction, including without limitation the rights    *
- *   to use, copy, modify, merge, publish, distribute, sublicense, and/or sell       *
- *   copies of the Software, and to permit persons to whom the Software is           *
- *   furnished to do so, subject to the following conditions:                        *
- *                                                                                   *
- *   The above copyright notice and this permission notice shall be included in all  *
- *   copies or substantial portions of the Software.                                 *
- *                                                                                   *
- *   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR      *
- *   IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,        *
- *   FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT. IN NO EVENT SHALL THE    *
- *   AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER          *
- *   LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,   *
- *   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE   *
- *   SOFTWARE.                                                                       *
- ************************************************************************************/
+/**
+ * Config
+ *
+ * @author    Nurlan Mukhanov <nurike@gmail.com>
+ * @copyright 2020 Nurlan Mukhanov
+ * @license   https://en.wikipedia.org/wiki/MIT_License MIT License
+ * @link      https://github.com/Falseclock/dbd-php
+ */
 
 namespace DBD\Base;
 
 use DBD\Cache;
-use Exception;
 use Psr\SimpleCache\CacheInterface;
 
 final class Config
@@ -41,9 +25,7 @@ final class Config
     private $username;
     /** @var string $password */
     private $password;
-    /** @var string $identity Connection Name */
-    private $identity = "DBD-PHP";
-    /** @var CacheInterface|Cache $cacheDriver */
+    /** @var CacheInterface $cacheDriver */
     private $cacheDriver = null;
 
     /**
@@ -53,16 +35,14 @@ final class Config
      * @param $database
      * @param $username
      * @param $password
-     * @param null $identity
      */
-    public function __construct($dsn, $port, $database, $username, $password, $identity = null)
+    public function __construct(string $dsn, int $port, string $database, string $username, string $password)
     {
         $this->dsn = $dsn;
         $this->port = $port;
         $this->database = $database;
         $this->username = $username;
         $this->password = $password;
-        $this->identity = isset($identity) ? $identity : $this->identity;
     }
 
     /**
@@ -77,23 +57,18 @@ final class Config
      * @param Cache|CacheInterface $cacheDriver
      *
      * @return Config
-     * @throws Exception
      */
-    public function setCacheDriver($cacheDriver)
+    public function setCacheDriver(CacheInterface $cacheDriver): Config
     {
-        if ($cacheDriver instanceof Cache || $cacheDriver instanceof CacheInterface) {
-            $this->cacheDriver = $cacheDriver;
+        $this->cacheDriver = $cacheDriver;
 
-            return $this;
-        }
-
-        throw new Exception("Unsupported caching interface. Extend DBD\\Cache or use PSR-16 Common Interface for Caching");
+        return $this;
     }
 
     /**
      * @return string
      */
-    public function getDatabase()
+    public function getDatabase(): string
     {
         return $this->database;
     }
@@ -103,7 +78,7 @@ final class Config
      *
      * @return Config
      */
-    public function setDatabase($database)
+    public function setDatabase(string $database): Config
     {
         $this->database = $database;
 
@@ -113,7 +88,7 @@ final class Config
     /**
      * @return string
      */
-    public function getDsn()
+    public function getDsn(): string
     {
         return $this->dsn;
     }
@@ -123,7 +98,7 @@ final class Config
      *
      * @return Config
      */
-    public function setDsn($dsn)
+    public function setDsn(string $dsn): Config
     {
         $this->dsn = $dsn;
 
@@ -133,27 +108,7 @@ final class Config
     /**
      * @return string
      */
-    public function getIdentity()
-    {
-        return $this->identity;
-    }
-
-    /**
-     * @param string $identity
-     *
-     * @return Config
-     */
-    public function setIdentity($identity)
-    {
-        $this->identity = $identity;
-
-        return $this;
-    }
-
-    /**
-     * @return string
-     */
-    public function getPassword()
+    public function getPassword(): string
     {
         return $this->password;
     }
@@ -163,7 +118,7 @@ final class Config
      *
      * @return Config
      */
-    public function setPassword($password)
+    public function setPassword(string $password): Config
     {
         $this->password = $password;
 
@@ -173,7 +128,7 @@ final class Config
     /**
      * @return int
      */
-    public function getPort()
+    public function getPort(): int
     {
         return $this->port;
     }
@@ -183,7 +138,7 @@ final class Config
      *
      * @return Config
      */
-    public function setPort($port)
+    public function setPort(int $port): Config
     {
         $this->port = $port;
 
@@ -193,7 +148,7 @@ final class Config
     /**
      * @return string|null
      */
-    public function getUsername()
+    public function getUsername(): ?string
     {
         return $this->username;
     }
@@ -203,7 +158,7 @@ final class Config
      *
      * @return Config
      */
-    public function setUsername($username)
+    public function setUsername(string $username): Config
     {
         $this->username = $username;
 

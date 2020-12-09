@@ -45,21 +45,21 @@ class Pg extends DBD
 	 */
 	public function connect() {
 
-		$dsn = "host={$this->Config->getDsn()} ";
-		$dsn .= "dbname={$this->Config->getDatabase()} ";
-		$dsn .= $this->Config->getUsername() ? "user={$this->Config->getUsername()} " : "";
-		$dsn .= $this->Config->getPassword() ? "password={$this->Config->getPassword()} " : "";
-		$dsn .= $this->Config->getPort() ? "port={$this->Config->getPort()} " : "";
-		$dsn .= "application_name={$this->Config->getIdentity()} ";
+        $dsn = "host={$this->Config->getDsn()} ";
+        $dsn .= "dbname={$this->Config->getDatabase()} ";
+        $dsn .= $this->Config->getUsername() ? "user={$this->Config->getUsername()} " : "";
+        $dsn .= $this->Config->getPassword() ? "password={$this->Config->getPassword()} " : "";
+        $dsn .= $this->Config->getPort() ? "port={$this->Config->getPort()} " : "";
+        $dsn .= "application_name={$this->Options->getApplicationName()} ";
 
-		$this->Config->setDsn($dsn);
+        $this->Config->setDsn($dsn);
 
-		if($this->Options->isOnDemand() === false) {
-			$this->_connect();
-		}
+        if ($this->Options->isOnDemand() === false) {
+            $this->_connect();
+        }
 
-		return $this;
-	}
+        return $this;
+    }
 
 	/**
 	 * returns the number of tuples (instances/records/rows) affected by INSERT, UPDATE, and DELETE queries.

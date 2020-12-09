@@ -1,50 +1,39 @@
 <?php
-/*************************************************************************************
- *   MIT License                                                                     *
- *                                                                                   *
- *   Copyright (C) 2009-2019 by Nurlan Mukhanov <nurike@gmail.com>                   *
- *                                                                                   *
- *   Permission is hereby granted, free of charge, to any person obtaining a copy    *
- *   of this software and associated documentation files (the "Software"), to deal   *
- *   in the Software without restriction, including without limitation the rights    *
- *   to use, copy, modify, merge, publish, distribute, sublicense, and/or sell       *
- *   copies of the Software, and to permit persons to whom the Software is           *
- *   furnished to do so, subject to the following conditions:                        *
- *                                                                                   *
- *   The above copyright notice and this permission notice shall be included in all  *
- *   copies or substantial portions of the Software.                                 *
- *                                                                                   *
- *   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR      *
- *   IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,        *
- *   FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT. IN NO EVENT SHALL THE    *
- *   AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER          *
- *   LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,   *
- *   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE   *
- *   SOFTWARE.                                                                       *
- ************************************************************************************/
+/**
+ * Options
+ *
+ * @author    Nurlan Mukhanov <nurike@gmail.com>
+ * @copyright 2020 Nurlan Mukhanov
+ * @license   https://en.wikipedia.org/wiki/MIT_License MIT License
+ * @link      https://github.com/Falseclock/dbd-php
+ */
 
 namespace DBD\Base;
 
+/**
+ * Class Options
+ * @package DBD\Base
+ */
 final class Options
 {
-    /** @var bool $ConvertBoolean */
-    private $ConvertBoolean = false;
-    /** @var bool $ConvertNumeric */
-    private $ConvertNumeric = false;
-    /** @var bool $OnDemand */
-    private $OnDemand = true;
-    /** @var bool $PrepareExecute use real prepared and execute towards database */
-    private $PrepareExecute = false;
-    /** @var bool $PrintError */
-    private $PrintError = true;
-    /** @var bool $RaiseError */
-    private $RaiseError = true;
-    /** @var bool $ShowErrorStatement */
-    private $ShowErrorStatement = false;
-    /** @var bool $UseDebug */
-    private $UseDebug = false;
+    /** @var bool $convertBoolean */
+    private $convertBoolean = false;
+    /** @var bool $convertNumeric */
+    private $convertNumeric = false;
+    /** @var bool $onDemand */
+    private $onDemand = true;
+    /** @var bool $prepareExecute use real prepared and execute towards database */
+    private $prepareExecute = false;
+    /** @var bool $printError */
+    private $printError = true;
+    /** @var bool $raiseError */
+    private $raiseError = true;
+    /** @var bool $showErrorStatement */
+    private $showErrorStatement = false;
+    /** @var bool $useDebug */
+    private $useDebug = false;
     /** @var null $applicationName connection identity */
-    private $applicationName = null;
+    private $applicationName = "DBD-PHP";
     /** @var string $placeHolder */
     private $placeHolder = "?";
     /** @var bool $setApplicationOnDelete if true, then before each update driver will execute 'set application_name to my_application;' */
@@ -57,41 +46,41 @@ final class Options
     /**
      * Options constructor.
      *
-     * @param bool|null $OnDemand
-     * @param bool|null $PrintError
-     * @param bool|null $RaiseError
-     * @param bool|null $ShowErrorStatement
-     * @param bool|null $ConvertNumeric
-     * @param bool|null $ConvertBoolean
-     * @param bool|null $UseDebug
-     * @param bool|null $PrepareExecute
+     * @param bool|null $onDemand
+     * @param bool|null $printError
+     * @param bool|null $raiseError
+     * @param bool|null $showErrorStatement
+     * @param bool|null $convertNumeric
+     * @param bool|null $convertBoolean
+     * @param bool|null $useDebug
+     * @param bool|null $prepareExecute
      * @param string|null $placeholder
      */
-    public function __construct(?bool $OnDemand = null, ?bool $PrintError = null, ?bool $RaiseError = null, ?bool $ShowErrorStatement = null, ?bool $ConvertNumeric = null, ?bool $ConvertBoolean = null, ?bool $UseDebug = null, ?bool $PrepareExecute = null, ?string $placeholder = null)
+    public function __construct(?bool $onDemand = null, ?bool $printError = null, ?bool $raiseError = null, ?bool $showErrorStatement = null, ?bool $convertNumeric = null, ?bool $convertBoolean = null, ?bool $useDebug = null, ?bool $prepareExecute = null, ?string $placeholder = null)
     {
-        if (isset($OnDemand))
-            $this->OnDemand = $OnDemand;
+        if (isset($onDemand))
+            $this->onDemand = $onDemand;
 
-        if (isset($PrintError))
-            $this->PrintError = $PrintError;
+        if (isset($printError))
+            $this->printError = $printError;
 
-        if (isset($RaiseError))
-            $this->RaiseError = $RaiseError;
+        if (isset($raiseError))
+            $this->raiseError = $raiseError;
 
-        if (isset($ShowErrorStatement))
-            $this->ShowErrorStatement = $ShowErrorStatement;
+        if (isset($showErrorStatement))
+            $this->showErrorStatement = $showErrorStatement;
 
-        if (isset($ConvertNumeric))
-            $this->ConvertNumeric = $ConvertNumeric;
+        if (isset($convertNumeric))
+            $this->convertNumeric = $convertNumeric;
 
-        if (isset($ConvertBoolean))
-            $this->ConvertBoolean = $ConvertBoolean;
+        if (isset($convertBoolean))
+            $this->convertBoolean = $convertBoolean;
 
-        if (isset($UseDebug))
-            $this->UseDebug = $UseDebug;
+        if (isset($useDebug))
+            $this->useDebug = $useDebug;
 
-        if (isset($PrepareExecute))
-            $this->PrepareExecute = $PrepareExecute;
+        if (isset($prepareExecute))
+            $this->prepareExecute = $prepareExecute;
 
         if (isset($placeholder))
             $this->placeHolder = $placeholder;
@@ -142,17 +131,17 @@ final class Options
      */
     public function isConvertBoolean(): bool
     {
-        return $this->ConvertBoolean;
+        return $this->convertBoolean;
     }
 
     /**
-     * @param bool $ConvertBoolean
+     * @param bool $convertBoolean
      *
      * @return Options
      */
-    public function setConvertBoolean(bool $ConvertBoolean): Options
+    public function setConvertBoolean(bool $convertBoolean): Options
     {
-        $this->ConvertBoolean = $ConvertBoolean;
+        $this->convertBoolean = $convertBoolean;
 
         return $this;
     }
@@ -162,17 +151,17 @@ final class Options
      */
     public function isConvertNumeric(): bool
     {
-        return $this->ConvertNumeric;
+        return $this->convertNumeric;
     }
 
     /**
-     * @param bool $ConvertNumeric
+     * @param bool $convertNumeric
      *
      * @return Options
      */
-    public function setConvertNumeric(bool $ConvertNumeric): Options
+    public function setConvertNumeric(bool $convertNumeric): Options
     {
-        $this->ConvertNumeric = $ConvertNumeric;
+        $this->convertNumeric = $convertNumeric;
 
         return $this;
     }
@@ -182,17 +171,17 @@ final class Options
      */
     public function isOnDemand(): bool
     {
-        return $this->OnDemand;
+        return $this->onDemand;
     }
 
     /**
-     * @param bool $OnDemand
+     * @param bool $onDemand
      *
      * @return Options
      */
-    public function setOnDemand(bool $OnDemand): Options
+    public function setOnDemand(bool $onDemand): Options
     {
-        $this->OnDemand = $OnDemand;
+        $this->onDemand = $onDemand;
 
         return $this;
     }
@@ -202,17 +191,17 @@ final class Options
      */
     public function isPrepareExecute(): bool
     {
-        return $this->PrepareExecute;
+        return $this->prepareExecute;
     }
 
     /**
-     * @param bool $PrepareExecute
+     * @param bool $prepareExecute
      *
      * @return Options
      */
-    public function setPrepareExecute(bool $PrepareExecute): Options
+    public function setPrepareExecute(bool $prepareExecute): Options
     {
-        $this->PrepareExecute = $PrepareExecute;
+        $this->prepareExecute = $prepareExecute;
 
         return $this;
     }
@@ -222,17 +211,17 @@ final class Options
      */
     public function isPrintError(): bool
     {
-        return $this->PrintError;
+        return $this->printError;
     }
 
     /**
-     * @param bool $PrintError
+     * @param bool $printError
      *
      * @return Options
      */
-    public function setPrintError(bool $PrintError): Options
+    public function setPrintError(bool $printError): Options
     {
-        $this->PrintError = $PrintError;
+        $this->printError = $printError;
 
         return $this;
     }
@@ -242,17 +231,17 @@ final class Options
      */
     public function isRaiseError(): bool
     {
-        return $this->RaiseError;
+        return $this->raiseError;
     }
 
     /**
-     * @param bool $RaiseError
+     * @param bool $raiseError
      *
      * @return Options
      */
-    public function setRaiseError(bool $RaiseError): Options
+    public function setRaiseError(bool $raiseError): Options
     {
-        $this->RaiseError = $RaiseError;
+        $this->raiseError = $raiseError;
 
         return $this;
     }
@@ -322,17 +311,17 @@ final class Options
      */
     public function isShowErrorStatement(): bool
     {
-        return $this->ShowErrorStatement;
+        return $this->showErrorStatement;
     }
 
     /**
-     * @param bool $ShowErrorStatement
+     * @param bool $showErrorStatement
      *
      * @return Options
      */
-    public function setShowErrorStatement(bool $ShowErrorStatement): Options
+    public function setShowErrorStatement(bool $showErrorStatement): Options
     {
-        $this->ShowErrorStatement = $ShowErrorStatement;
+        $this->showErrorStatement = $showErrorStatement;
 
         return $this;
     }
@@ -342,17 +331,17 @@ final class Options
      */
     public function isUseDebug(): bool
     {
-        return $this->UseDebug;
+        return $this->useDebug;
     }
 
     /**
-     * @param bool $UseDebug
+     * @param bool $useDebug
      *
      * @return Options
      */
-    public function setUseDebug(bool $UseDebug): Options
+    public function setUseDebug(bool $useDebug): Options
     {
-        $this->UseDebug = $UseDebug;
+        $this->useDebug = $useDebug;
 
         return $this;
     }
