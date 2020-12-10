@@ -321,7 +321,7 @@ class Pg extends DBD
     protected function _execute($uniqueName, $arguments)
     {
         try {
-            $return = pg_execute($this->resourceLink, $uniqueName, $arguments);
+            $return = pg_execute($this->resourceLink, (string)$uniqueName, $arguments);
         } catch (Exception $e) {
             return null;
         }
@@ -379,17 +379,6 @@ class Pg extends DBD
     protected function _rollback(): bool
     {
         return $this->_query("ROLLBACK;") !== null;
-    }
-
-    /**
-     * @return void
-     */
-    protected function _setApplicationName(): void
-    {
-        if (!$this->applicationNameIsSet)
-            $this->_query(sprintf("SET application_name TO '%s'", pg_escape_string($this->Options->getApplicationName())));
-
-        $this->applicationNameIsSet = true;
     }
 
     /**

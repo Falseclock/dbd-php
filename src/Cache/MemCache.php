@@ -97,7 +97,14 @@ class MemCache extends Cache
      */
     public function disconnect(): bool
     {
-        return $this->link->close();
+        $state = true;
+
+        if (is_resource($this->link))
+            $state = $this->link->close();
+
+        $this->link = null;
+
+        return $state;
     }
 
     /**
@@ -108,6 +115,7 @@ class MemCache extends Cache
      *
      * @return mixed The value of the item from the cache, or $default in case of cache miss.
      *
+     * @noinspection PhpMissingParamTypeInspection
      */
     public function get($key, $default = null)
     {

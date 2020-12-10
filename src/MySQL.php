@@ -171,14 +171,6 @@ class MySQL extends DBD
     }
 
     /**
-     * @return void
-     */
-    protected function _setApplicationName(): void
-    {
-        $this->applicationNameIsSet = true;
-    }
-
-    /**
      * @param string|null $binaryString
      *
      * @return string|null

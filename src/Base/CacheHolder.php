@@ -17,7 +17,7 @@ class CacheHolder
     /** @var string */
     public $key = null;
     /** @var mixed */
-    public $result = null;
+    public $result = false;
     /** @var mixed */
     public $expire = null;
 

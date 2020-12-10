@@ -615,7 +615,6 @@ class OData extends DBD
                 if ($this->CacheHolder['result'] && $this->CacheHolder['result'] !== false) {
                     // set to our class var and count rows
                     $this->result = $this->CacheHolder['result'];
-                    $this->rows = count($this->CacheHolder['result']);
                 }
             }
 		}
@@ -761,7 +760,6 @@ class OData extends DBD
 
 	protected function storeResultToCache() {
 		if($this->result) {
-            $this->rows = count($this->result);
             // If we want to store to the cache
             if ($this->CacheHolder['key'] !== null) {
                 // Setting up our cache
@@ -815,14 +813,6 @@ class OData extends DBD
         $string = str_replace($replacements, $entities, $string);
 
         return $string;
-    }
-
-    /**
-     * @return void
-     */
-    protected function _setApplicationName(): void
-    {
-        $this->applicationNameIsSet = true;
     }
 
     /**

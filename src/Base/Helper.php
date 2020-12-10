@@ -267,11 +267,11 @@ final class Helper
     }
 
     /**
-     * @param $ARGS
+     * @param array $ARGS
      *
      * @return array
      */
-    final public static function parseArgs($ARGS)
+    final public static function parseArgs(array $ARGS): array
     {
         $args = [];
 

@@ -17,6 +17,7 @@ use DBD\Cache\MemCache;
 use DBD\Common\DBDException;
 use DBD\Pg;
 use PHPUnit\Framework\TestCase;
+use Psr\SimpleCache\InvalidArgumentException;
 
 class PgTest extends TestCase
 {
@@ -678,5 +679,330 @@ class PgTest extends TestCase
 
         $sth = $this->db->prepare(" \t    \r\n\r\nDELETE FROM TEST WHERE SELECT");
         $sth->cache(__METHOD__);
+    }
+
+    /**
+     * @throws DBDException
+     * @throws InvalidArgumentException
+     * @noinspection SqlResolve
+     */
+    public function testExecuteFetchRowWithCache()
+    {
+        $this->config->setCacheDriver($this->memcache);
+        $this->options->setConvertNumeric(true);
+        $this->options->setConvertBoolean(true);
+        $this->options->setUseDebug(true);
+
+        $this->db->do("DROP TABLE IF EXISTS testExecuteWithCache");
+        $this->config->getCacheDriver()->delete(__METHOD__);
+
+        $sth = $this->db->prepare("CREATE TABLE testExecuteWithCache AS SELECT id, id%2 > 0 AS bool_var from generate_series(1,10) id");
+        $sth->execute();
+
+        $sth = $this->db->prepare("SELECT * FROM testExecuteWithCache ORDER BY id");
+        $sth->cache(__METHOD__);
+        $sth->execute();
+
+        $i = 0;
+        while ($row = $sth->fetchRow()) {
+            $i++;
+            self::assertSame($i, $row['id']);
+        }
+
+        self::assertSame(10, $i);
+
+        // Execute again and data should be taken from cache
+        $sth->execute();
+
+        $i = 0;
+        while ($row = $sth->fetchRow()) {
+            $i++;
+            self::assertSame($i, $row['id']);
+        }
+        self::assertSame(10, $i);
+
+        // drop cache and check again
+        $this->config->getCacheDriver()->delete(__METHOD__);
+        $sth->execute();
+
+        $i = 0;
+        while ($row = $sth->fetchRow()) {
+            $i++;
+            self::assertSame($i, $row['id']);
+        }
+        self::assertSame(10, $i);
+    }
+
+    /**
+     * @throws DBDException
+     * @throws InvalidArgumentException
+     * @noinspection SqlResolve
+     */
+    public function testExecuteFetchRowSetWithCache()
+    {
+        $this->config->setCacheDriver($this->memcache);
+        $this->options->setConvertNumeric(true);
+        $this->options->setConvertBoolean(true);
+        $this->options->setUseDebug(true);
+
+        $this->db->do("DROP TABLE IF EXISTS testExecuteFetchRowSetWithCache");
+        $this->config->getCacheDriver()->delete(__METHOD__);
+
+        $sth = $this->db->prepare("CREATE TABLE testExecuteFetchRowSetWithCache AS SELECT id, id%2 > 0 AS bool_var from generate_series(1,10) id");
+        $sth->execute();
+
+        // taking from DB
+        $sth = $this->db->prepare("SELECT * FROM testExecuteFetchRowSetWithCache ORDER BY id");
+        $sth->cache(__METHOD__);
+        $sth->execute();
+
+        $rows = $sth->fetchRowSet();
+        self::assertCount(10, $rows);
+
+        $i = 0;
+        foreach ($rows as $row) {
+            $i++;
+            self::assertSame($i, $row['id']);
+        }
+
+        self::assertSame(10, $i);
+
+        // Execute again and data should be taken from cache
+        $sth->execute();
+        $rows = $sth->fetchRowSet();
+        self::assertCount(10, $rows);
+
+        $i = 0;
+        foreach ($rows as $row) {
+            $i++;
+            self::assertSame($i, $row['id']);
+        }
+        self::assertSame(10, $i);
+
+        // drop cache and check again
+        $this->config->getCacheDriver()->delete(__METHOD__);
+        $sth->execute();
+
+        $rows = $sth->fetchRowSet();
+        self::assertCount(10, $rows);
+
+        $i = 0;
+        foreach ($rows as $row) {
+            $i++;
+            self::assertSame($i, $row['id']);
+        }
+        self::assertSame(10, $i);
+    }
+
+    /**
+     * @throws DBDException
+     * @throws InvalidArgumentException
+     * @noinspection SqlResolve
+     */
+    public function testExecuteFetchRowSetKeyWithCache()
+    {
+        $this->config->setCacheDriver($this->memcache);
+        $this->options->setConvertNumeric(true);
+        $this->options->setConvertBoolean(true);
+        $this->options->setUseDebug(true);
+
+        $this->db->do("DROP TABLE IF EXISTS testExecuteFetchRowSetKeyWithCache");
+        $this->config->getCacheDriver()->delete(__METHOD__);
+
+        $sth = $this->db->prepare("CREATE TABLE testExecuteFetchRowSetKeyWithCache AS SELECT id, id%2 > 0 AS bool_var from generate_series(1,10) id");
+        $sth->execute();
+
+        // taking from DB
+        $sth = $this->db->prepare("SELECT * FROM testExecuteFetchRowSetKeyWithCache ORDER BY id");
+        $sth->cache(__METHOD__);
+        $sth->execute();
+
+        $rows = $sth->fetchRowSet('id');
+        self::assertCount(10, $rows);
+
+        foreach ($rows as $id => $row) {
+            self::assertSame($id, $row['id']);
+        }
+
+        self::assertSame(10, $id);
+
+        // Execute again and data should be taken from cache
+        $sth->execute();
+        $rows = $sth->fetchRowSet('id');
+        self::assertCount(10, $rows);
+
+
+        foreach ($rows as $id => $row) {
+            self::assertSame($id, $row['id']);
+        }
+        self::assertSame(10, $id);
+
+        // drop cache and check again
+        $this->config->getCacheDriver()->delete(__METHOD__);
+        $sth->execute();
+
+        $rows = $sth->fetchRowSet('id');
+        self::assertCount(10, $rows);
+
+        foreach ($rows as $id => $row) {
+            self::assertSame($id, $row['id']);
+        }
+        self::assertSame(10, $id);
+    }
+
+    /**
+     * @throws DBDException
+     * @throws InvalidArgumentException
+     * @noinspection SqlResolve
+     */
+    public function testExecuteFetchRowSetKeyWithCachePrepare()
+    {
+        $this->config->setCacheDriver($this->memcache);
+        $this->options->setConvertNumeric(true);
+        $this->options->setConvertBoolean(true);
+        $this->options->setUseDebug(true);
+        $this->options->setPrepareExecute(true);
+
+        $this->db->do("DROP TABLE IF EXISTS testExecuteFetchRowSetKeyWithCachePrepare");
+        $this->config->getCacheDriver()->delete(__METHOD__);
+
+        $sth = $this->db->prepare("CREATE TABLE testExecuteFetchRowSetKeyWithCachePrepare AS SELECT id, id%2 > 0 AS bool_var from generate_series(1,10) id");
+        $sth->execute();
+
+        // taking from DB
+        $sth = $this->db->prepare("SELECT * FROM testExecuteFetchRowSetKeyWithCachePrepare ORDER BY id");
+        $sth->cache(__METHOD__);
+        $sth->execute();
+
+        $rows = $sth->fetchRowSet('id');
+        self::assertCount(10, $rows);
+
+        foreach ($rows as $id => $row) {
+            self::assertSame($id, $row['id']);
+        }
+
+        self::assertSame(10, $id);
+
+        // Execute again and data should be taken from cache
+        $sth->execute();
+        $rows = $sth->fetchRowSet('id');
+        self::assertCount(10, $rows);
+
+
+        foreach ($rows as $id => $row) {
+            self::assertSame($id, $row['id']);
+        }
+        self::assertSame(10, $id);
+
+        // drop cache and check again
+        $this->config->getCacheDriver()->delete(__METHOD__);
+        $sth->execute();
+
+        $rows = $sth->fetchRowSet('id');
+        self::assertCount(10, $rows);
+
+        foreach ($rows as $id => $row) {
+            self::assertSame($id, $row['id']);
+        }
+        self::assertSame(10, $id);
+    }
+
+    /**
+     * @throws DBDException
+     * @throws InvalidArgumentException
+     * @noinspection SqlResolve
+     */
+    public function testExecuteFetchWithCache()
+    {
+        $this->config->setCacheDriver($this->memcache);
+        $this->options->setConvertNumeric(true);
+        $this->options->setConvertBoolean(true);
+        $this->options->setUseDebug(true);
+
+        $this->db->do("DROP TABLE IF EXISTS testExecuteWithCache");
+        $this->config->getCacheDriver()->delete(__METHOD__);
+
+        $sth = $this->db->prepare("CREATE TABLE testExecuteWithCache AS SELECT id, id%2 > 0 AS bool_var from generate_series(1,10) id");
+        $sth->execute();
+
+        $sth = $this->db->prepare("SELECT * FROM testExecuteWithCache ORDER BY id LIMIT 1");
+        $sth->cache(__METHOD__);
+        $sth->execute();
+
+        $i = 0;
+        while ($value = $sth->fetch()) {
+            $i++;
+            switch ($i) {
+                case 1:
+                    self::assertSame($i, $value);
+                    break;
+                case 2:
+                    self::assertTrue($value);
+                    break;
+            }
+        }
+
+        self::assertSame(2, $i);
+
+        // Execute again and data should be taken from cache
+        $sth->execute();
+
+        $i = 0;
+        while ($value = $sth->fetch()) {
+            $i++;
+            switch ($i) {
+                case 1:
+                    self::assertSame($i, $value);
+                    break;
+                case 2:
+                    self::assertTrue($value);
+                    break;
+            }
+        }
+
+        // drop cache and check again
+        $this->config->getCacheDriver()->delete(__METHOD__);
+        $sth->execute();
+
+        $i = 0;
+        while ($value = $sth->fetch()) {
+            $i++;
+            switch ($i) {
+                case 1:
+                    self::assertSame($i, $value);
+                    break;
+                case 2:
+                    self::assertTrue($value);
+                    break;
+            }
+        }
+    }
+
+    /**
+     * @throws DBDException
+     */
+    public function testDriverDisconnection()
+    {
+        $this->config->setCacheDriver($this->memcache);
+        $this->options->setConvertNumeric(true);
+        $this->options->setConvertBoolean(true);
+        $this->options->setUseDebug(true);
+
+        $sth = $this->db->prepare("SELECT 1,2,3,4,5");
+        $sth->cache(__METHOD__);
+        $this->memcache->disconnect();
+        self::expectException(DBDException::class);
+        $sth->execute();
+        $this->memcache->connect();
+    }
+
+    public function testPrepareException()
+    {
+        $this->config->setCacheDriver($this->memcache);
+        $this->options->setConvertNumeric(true);
+        $this->options->setConvertBoolean(true);
+        $this->options->setUseDebug(true);
+
+
     }
 }
