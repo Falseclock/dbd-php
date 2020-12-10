@@ -170,7 +170,7 @@ class PgTest extends TestCase
         $this->db->query();
     }
 
-    public function testPrepare()
+    public function ttestPrepare()
     {
 
     }

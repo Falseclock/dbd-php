@@ -26,7 +26,7 @@ class ConfigTest extends TestCase
 
     public function testConstruct()
     {
-        $config = $this->config;
+        $config = new Config("dsn", 1, "db", "user", "pass");
         self::assertEquals("dsn", $config->getDsn());
         self::assertEquals(1, $config->getPort());
         self::assertEquals("db", $config->getDatabase());

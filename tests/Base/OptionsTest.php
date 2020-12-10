@@ -27,9 +27,35 @@ class OptionsTest extends TestCase
         self::assertFalse($options->isUseDebug());
         self::assertEquals("DBD-PHP", $options->getApplicationName());
         self::assertNotNull($options->getPlaceHolder());
+        self::assertSame("?", $options->getPlaceHolder());
         self::assertFalse($options->isSetApplicationOnDelete());
         self::assertFalse($options->isSetApplicationOnInsert());
         self::assertFalse($options->isSetApplicationOnUpdate());
+    }
+
+    public function testConstructOverride()
+    {
+        $options = new Options(
+            false,
+            false,
+            false,
+            true,
+            true,
+            true,
+            true,
+            true,
+            '!'
+        );
+        self::assertTrue($options->isConvertBoolean());
+        self::assertTrue($options->isConvertNumeric());
+        self::assertFalse($options->isOnDemand());
+        self::assertFalse($options->isPrintError());
+        self::assertFalse($options->isRaiseError());
+        self::assertTrue($options->isShowErrorStatement());
+        self::assertTrue($options->isUseDebug());
+        self::assertEquals("DBD-PHP", $options->getApplicationName());
+        self::assertNotNull($options->getPlaceHolder());
+        self::assertSame("!", $options->getPlaceHolder());
     }
 
     public function testApplicationName()
