@@ -14,11 +14,17 @@ namespace DBD\Base;
 
 class CacheHolder
 {
+    /** @var string */
     public $key = null;
+    /** @var mixed */
     public $result = null;
-    public $compress = null;
+    /** @var mixed */
     public $expire = null;
 
+    /**
+     * CacheHolder constructor.
+     * @param string $key
+     */
     public function __construct(string $key)
     {
         $this->key = $key;

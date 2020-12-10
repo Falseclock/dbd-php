@@ -26,7 +26,6 @@
 namespace DBD\Base;
 
 use DBD\Common\Singleton;
-use Exception;
 
 final class Debug extends Singleton
 {
@@ -103,7 +102,6 @@ final class Debug extends Singleton
 
 	/**
 	 * @return Debug
-	 * @throws Exception
 	 */
 	public static function me() {
 		return Singleton::getInstance(__CLASS__);

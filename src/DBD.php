@@ -13,6 +13,7 @@ declare(strict_types=1);
 namespace DBD;
 
 use DateInterval;
+use DBD\Base\CacheHolder;
 use DBD\Base\Config;
 use DBD\Base\Debug;
 use DBD\Base\Helper;
@@ -23,6 +24,7 @@ use DBD\Entity\Common\EntityException;
 use DBD\Entity\Constraint;
 use DBD\Entity\Entity;
 use DBD\Entity\Primitive;
+use Exception;
 use Psr\SimpleCache\InvalidArgumentException;
 use ReflectionClass;
 use ReflectionException;
@@ -47,13 +49,6 @@ abstract class DBD
     protected $Options;
     /** @var bool $applicationNameIsSet just to set it once */
     protected $applicationNameIsSet = false;
-    /** @var array */
-    protected $cache = [
-        'key' => null,
-        'result' => null,
-        'compress' => null,
-        'expire' => null,
-    ];
     /** @var string $query SQL query */
     protected $query;
     /** @var resource $resourceLink Database or curl connection resource */
@@ -62,6 +57,8 @@ abstract class DBD
     protected $result;
     /** @var int */
     protected $rows = 0;
+    /** @var CacheHolder */
+    private $CacheHolder = null;
     /** @var mixed $fetch */
     private $fetch = self::UNDEFINED;
     /** @var bool $inTransaction Stores current transaction state */
@@ -114,10 +111,10 @@ abstract class DBD
 
         if (preg_match("/^[\s\t\r\n]*select/i", $this->query)) {
             // set hash key
-            $this->cache['key'] = $key;
+            $this->CacheHolder = new CacheHolder($key);
 
             if ($ttl !== null)
-                $this->cache['expire'] = $ttl;
+                $this->CacheHolder->expire = $ttl;
         } else {
             throw new DBDException("Caching setup failed, current query is not of SELECT type");
         }
@@ -181,8 +178,6 @@ abstract class DBD
      *
      * @return int
      * @throws DBDException
-     * @throws InvalidArgumentException
-     * @throws ReflectionException
      */
     public function do(): int
     {
@@ -216,8 +211,6 @@ abstract class DBD
      *
      * @return DBD
      * @throws DBDException
-     * @throws InvalidArgumentException
-     * @throws ReflectionException
      */
     public function query(): DBD
     {
@@ -254,6 +247,7 @@ abstract class DBD
         $class->resourceLink = &$this->resourceLink;
         $class->inTransaction = &$this->inTransaction;
         $class->query = $statement;
+        $class->CacheHolder = null;
 
         return $class;
     }
@@ -263,8 +257,6 @@ abstract class DBD
      *
      * @return mixed
      * @throws DBDException
-     * @throws InvalidArgumentException
-     * @throws ReflectionException
      */
     public function execute()
     {
@@ -278,22 +270,25 @@ abstract class DBD
         //--------------------------------------
         // Is query uses cache?
         //--------------------------------------
-        if (isset($this->Config->cacheDriver)) {
-            if ($this->cache['key'] !== null) {
-                // Get data from cache
-                if ($this->Options->isUseDebug()) {
-                    Debug::me()->startTimer();
-                }
-                $this->cache['result'] = $this->Config->cacheDriver->get($this->cache['key']);
+        if (isset($this->Config->cacheDriver) and !is_null($this->CacheHolder)) {
 
-                // Cache not empty?
-                if ($this->cache['result'] !== false) {
-                    $cost = Debug::me()->endTimer();
-                    // To avoid errors as result by default is NULL
-                    $this->result = "cached";
-                    $this->storage = self::STORAGE_CACHE;
-                    $this->rows = count($this->cache['result']);
-                }
+            if ($this->Options->isUseDebug())
+                Debug::me()->startTimer();
+
+            // Get data from cache
+            try {
+                $this->CacheHolder->result = $this->Config->cacheDriver->get($this->CacheHolder->key);
+            } catch (Exception | InvalidArgumentException $e) {
+                throw new DBDException("Failed to get from cache: {$e->getMessage()}", $preparedQuery);
+            }
+
+            // Cache not empty?
+            if ($this->CacheHolder->result !== false) {
+                $cost = Debug::me()->endTimer();
+                // To avoid errors as result by default is NULL
+                $this->result = "cached";
+                $this->storage = self::STORAGE_CACHE;
+                $this->rows = count($this->CacheHolder->result);
             }
         }
 
@@ -301,19 +296,18 @@ abstract class DBD
         if ($this->result != "cached") {
 
             $this->connectionPreCheck();
-            if ($this->Options->isUseDebug()) {
+
+            if ($this->Options->isUseDebug())
                 Debug::me()->startTimer();
-            }
+
             if ($this->Options->isPrepareExecute()) {
                 $uniqueName = crc32($preparedQuery);
 
                 if (!in_array($uniqueName, self::$preparedStatements)) {
                     self::$preparedStatements[] = $uniqueName;
-                    $prepareResult = $this->_prepare((string)$uniqueName, $preparedQuery);
 
-                    if ($prepareResult === false) {
+                    if (!$this->_prepare((string)$uniqueName, $preparedQuery))
                         throw new DBDException ($this->_errorMessage(), $preparedQuery);
-                    }
                 }
 
                 $this->result = $this->_execute($uniqueName, Helper::parseArgs($executeArguments));
@@ -321,44 +315,47 @@ abstract class DBD
                 // Execute query to the database
                 $this->result = $this->_query($preparedQuery);
             }
+
             $cost = Debug::me()->endTimer();
 
-            if (is_null($this->result)) {
+            if (is_null($this->result))
                 throw new DBDException ($this->_errorMessage(), $preparedQuery, $this->Options->isPrepareExecute() ? Helper::parseArgs($executeArguments) : null);
-            } else {
-                $this->rows = $this->_rows();
-                $this->storage = self::STORAGE_DATABASE;
-            }
+
+            $this->rows = $this->_rows();
+            $this->storage = self::STORAGE_DATABASE;
 
             // If query from cache
-            if ($this->cache['key'] !== null) {
+            if (!is_null($this->CacheHolder)) {
                 //  As we already queried database we have to set key to NULL
                 //  because during internal method invoke (fetchRowSet below) this Driver
                 //  will think we have data from cache
 
-                $storedKey = $this->cache['key'];
-                $this->cache['key'] = null;
+                $storedKey = $this->CacheHolder->key;
+                $this->CacheHolder->key = null;
 
                 // If we have data from query
                 if ($this->rows()) {
-                    $this->cache['result'] = $this->fetchRowSet();
+                    $this->CacheHolder->result = $this->fetchRowSet();
                 } else {
                     // select is empty
-                    $this->cache['result'] = [];
+                    $this->CacheHolder->result = [];
                 }
 
                 // reverting all back, cause we stored data to cache
                 $this->result = "cached";
-                $this->cache['key'] = $storedKey;
+                $this->CacheHolder->key = $storedKey;
 
                 // Setting up our cache
-                $this->Config->cacheDriver->set($this->cache['key'], $this->cache['result'], $this->cache['expire']);
+                try {
+                    $this->Config->cacheDriver->set($this->CacheHolder->key, $this->CacheHolder->result, $this->CacheHolder->expire);
+                } catch (Exception | InvalidArgumentException $e) {
+                    throw new DBDException("Failed to store in cache: {$e->getMessage()}", $preparedQuery);
+                }
             }
         }
 
-        if (is_null($this->result)) {
+        if (is_null($this->result))
             throw new DBDException($this->_errorMessage(), $preparedQuery);
-        }
 
         if ($this->Options->isUseDebug()) {
             $cost = isset($cost) ? $cost : 0;
@@ -511,10 +508,10 @@ abstract class DBD
      */
     public function rows(): int
     {
-        if ($this->cache['key'] === null) {
+        if (is_null($this->CacheHolder)) {
             return $this->_rows();
         } else {
-            return count($this->cache['result']);
+            return count($this->CacheHolder->result);
         }
     }
 
@@ -528,7 +525,7 @@ abstract class DBD
     {
         $array = [];
 
-        if ($this->cache['key'] === null) {
+        if (is_null($this->CacheHolder)) {
             while ($row = $this->fetchRow()) {
                 if ($uniqueKey) {
                     if (!isset($array[$row[$uniqueKey]]))
@@ -540,19 +537,18 @@ abstract class DBD
                 }
             }
         } else {
-            $cache = $this->cache['result'];
-            $this->cache['result'] = [];
-
             if ($uniqueKey) {
-                foreach ($cache as $row) {
+                foreach ($this->CacheHolder->result as $row) {
                     if (!isset($array[$row[$uniqueKey]]))
                         $array[$row[$uniqueKey]] = $row;
                     else
                         throw new DBDException("Key '{$row[$uniqueKey]}' not unique");
                 }
             } else {
-                $array = $cache;
+                $array = $this->CacheHolder->result;
             }
+
+            $this->CacheHolder->result = [];
         }
 
         return $array;
@@ -563,7 +559,7 @@ abstract class DBD
      */
     public function fetchRow()
     {
-        if ($this->cache['key'] === null) {
+        if (is_null($this->CacheHolder)) {
             $return = $this->_fetchAssoc();
 
             if ($this->Options->isConvertNumeric() || $this->Options->isConvertBoolean())
@@ -571,7 +567,7 @@ abstract class DBD
 
             return $return;
         } else {
-            return array_shift($this->cache['result']);
+            return array_shift($this->CacheHolder->result);
         }
     }
 
@@ -682,10 +678,7 @@ abstract class DBD
      * @param Entity $entity
      *
      * @return bool
-     * @throws EntityException
      * @throws DBDException
-     * @throws InvalidArgumentException
-     * @throws ReflectionException
      */
     public function entityDelete(Entity $entity)
     {
@@ -870,8 +863,6 @@ abstract class DBD
      *
      * @return DBD
      * @throws DBDException
-     * @throws InvalidArgumentException
-     * @throws ReflectionException
      */
     public function insert(string $table, array $args, $return = null): DBD
     {
@@ -898,13 +889,12 @@ abstract class DBD
     abstract protected function _compileInsert($table, $params, $return = ""): string;
 
     /**
-     * TODO: обновлять поле констрейнта, если оно присутствует в Entity помимо Complex
      *
      * @param Entity $entity
      *
      * @return Entity
-     * @throws EntityException
      * @throws DBDException
+     * @throws EntityException
      * @throws InvalidArgumentException
      * @throws ReflectionException
      */
@@ -1094,8 +1084,6 @@ abstract class DBD
      *
      * @return DBD
      * @throws DBDException
-     * @throws InvalidArgumentException
-     * @throws ReflectionException
      */
     public function update()
     {
@@ -1298,8 +1286,6 @@ abstract class DBD
      *
      * @return null|mixed
      * @throws DBDException
-     * @throws InvalidArgumentException
-     * @throws ReflectionException
      */
     public function select()
     {
@@ -1318,7 +1304,7 @@ abstract class DBD
     {
         if ($this->fetch == self::UNDEFINED) {
 
-            if ($this->cache['key'] === null) {
+            if (is_null($this->CacheHolder)) {
 
                 $return = $this->_fetchArray();
 
@@ -1328,7 +1314,7 @@ abstract class DBD
 
                 $this->fetch = $return;
             } else {
-                $this->fetch = array_shift($this->cache['result']);
+                $this->fetch = array_shift($this->CacheHolder->result);
             }
         }
         if (!count($this->fetch))

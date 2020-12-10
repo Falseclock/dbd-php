@@ -99,7 +99,7 @@ class OData extends DBD
         }
 
         if (isset($this->Config->CacheDriver)) {
-            $this->Config->CacheDriver->set(__CLASS__ . ':metadata', $metadata, $expire ? $expire : $this->cache['expire']);
+            $this->Config->CacheDriver->set(__CLASS__ . ':metadata', $metadata, $expire ? $expire : $this->CacheHolder['expire']);
         }
         $this->metadata = $metadata;
 
@@ -109,18 +109,19 @@ class OData extends DBD
             return $this->metadata;
     }
 
-	protected function dropVars() {
-		$this->cache = [
-			'key'      => null,
-			'result'   => null,
-			'compress' => null,
-			'expire'   => null,
-		];
+	protected function dropVars()
+    {
+        $this->CacheHolder = [
+            'key' => null,
+            'result' => null,
+            'compress' => null,
+            'expire' => null,
+        ];
 
-		$this->query = null;
-		$this->replacements = null;
-		$this->result = null;
-		$this->requestUrl = null;
+        $this->query = null;
+        $this->replacements = null;
+        $this->result = null;
+        $this->requestUrl = null;
 		$this->httpCode = null;
 		$this->header = null;
 		$this->body = null;
@@ -606,15 +607,15 @@ class OData extends DBD
         // If we have cache driver
         if (isset($this->Config->CacheDriver)) {
             // we set cache via $sth->cache('blabla');
-            if ($this->cache['key'] !== null) {
+            if ($this->CacheHolder['key'] !== null) {
                 // getting result
-                $this->cache['result'] = $this->Config->CacheDriver->get($this->cache['key']);
+                $this->CacheHolder['result'] = $this->Config->CacheDriver->get($this->CacheHolder['key']);
 
                 // Cache not empty?
-                if ($this->cache['result'] && $this->cache['result'] !== false) {
+                if ($this->CacheHolder['result'] && $this->CacheHolder['result'] !== false) {
                     // set to our class var and count rows
-                    $this->result = $this->cache['result'];
-                    $this->rows = count($this->cache['result']);
+                    $this->result = $this->CacheHolder['result'];
+                    $this->rows = count($this->CacheHolder['result']);
                 }
             }
 		}
@@ -760,13 +761,13 @@ class OData extends DBD
 
 	protected function storeResultToCache() {
 		if($this->result) {
-			$this->rows = count($this->result);
-			// If we want to store to the cache
-			if($this->cache['key'] !== null) {
+            $this->rows = count($this->result);
+            // If we want to store to the cache
+            if ($this->CacheHolder['key'] !== null) {
                 // Setting up our cache
-                $this->Config->CacheDriver->set($this->cache['key'], $this->result, $this->cache['expire']);
+                $this->Config->CacheDriver->set($this->CacheHolder['key'], $this->result, $this->CacheHolder['expire']);
             }
-		}
+        }
 
 		return $this;
 	}

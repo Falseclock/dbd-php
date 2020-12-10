@@ -16,10 +16,7 @@ use DBD\Base\Options;
 use DBD\Cache\MemCache;
 use DBD\Common\DBDException;
 use DBD\Pg;
-use Exception;
 use PHPUnit\Framework\TestCase;
-use Psr\SimpleCache\InvalidArgumentException;
-use ReflectionException;
 
 class PgTest extends TestCase
 {
@@ -57,6 +54,7 @@ class PgTest extends TestCase
         $this->config->setCacheDriver($this->memcache);
 
         $this->options = new Options();
+        $this->options->setUseDebug(true);
         $this->db = new Pg($this->config, $this->options);
         $this->db->connect();
     }
@@ -69,8 +67,6 @@ class PgTest extends TestCase
 
     /**
      * @throws DBDException
-     * @throws InvalidArgumentException
-     * @throws ReflectionException
      */
     public function testBegin()
     {
@@ -87,8 +83,6 @@ class PgTest extends TestCase
 
     /**
      * @throws DBDException
-     * @throws InvalidArgumentException
-     * @throws ReflectionException
      */
     public function testRollback()
     {
@@ -144,8 +138,6 @@ class PgTest extends TestCase
 
     /**
      * @throws DBDException
-     * @throws InvalidArgumentException
-     * @throws ReflectionException
      * @noinspection SqlResolve
      * @noinspection SqlWithoutWhere
      */
@@ -179,8 +171,6 @@ class PgTest extends TestCase
 
     /**
      * @throws DBDException
-     * @throws InvalidArgumentException
-     * @throws ReflectionException
      * @noinspection SqlResolve
      * @noinspection SqlWithoutWhere
      */
@@ -214,8 +204,6 @@ class PgTest extends TestCase
 
     /**
      * @throws DBDException
-     * @throws InvalidArgumentException
-     * @throws ReflectionException
      */
     public function testPrepare()
     {
@@ -254,8 +242,6 @@ class PgTest extends TestCase
 
     /**
      * @throws DBDException
-     * @throws InvalidArgumentException
-     * @throws ReflectionException
      */
     public function testDisconnect()
     {
@@ -283,8 +269,6 @@ class PgTest extends TestCase
 
     /**
      * @throws DBDException
-     * @throws InvalidArgumentException
-     * @throws ReflectionException
      */
     public function testSelect()
     {
@@ -304,9 +288,6 @@ class PgTest extends TestCase
 
     /**
      * @throws DBDException
-     * @throws InvalidArgumentException
-     * @throws ReflectionException
-     * @throws Exception
      */
     public function testFetch()
     {
@@ -380,7 +361,7 @@ class PgTest extends TestCase
                     break;
                 case 8:
                 case 9:
-                    throw new Exception("impossible situation");
+                throw new DBDException("impossible situation");
             }
             $i++;
         }
@@ -391,8 +372,6 @@ class PgTest extends TestCase
 
     /**
      * @throws DBDException
-     * @throws InvalidArgumentException
-     * @throws ReflectionException
      * @noinspection SqlResolve
      * @noinspection SqlWithoutWhere
      */
@@ -491,8 +470,6 @@ class PgTest extends TestCase
 
     /**
      * @throws DBDException
-     * @throws InvalidArgumentException
-     * @throws ReflectionException
      * @noinspection SqlResolve
      */
     public function testFetchRow()
@@ -542,8 +519,6 @@ class PgTest extends TestCase
 
     /**
      * @throws DBDException
-     * @throws InvalidArgumentException
-     * @throws ReflectionException
      * @noinspection SqlResolve
      */
     public function testFetchRowSet()
@@ -597,8 +572,6 @@ class PgTest extends TestCase
 
     /**
      * @throws DBDException
-     * @throws InvalidArgumentException
-     * @throws ReflectionException
      * @noinspection SqlResolve
      */
     public function testFetchRowSetWithKey()
@@ -662,8 +635,6 @@ class PgTest extends TestCase
 
     /**
      * @throws DBDException
-     * @throws InvalidArgumentException
-     * @throws ReflectionException
      */
     public function testGetPreparedQuery()
     {

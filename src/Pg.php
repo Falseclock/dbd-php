@@ -312,7 +312,7 @@ class Pg extends DBD
      * @param $uniqueName
      * @param $arguments
      *
-     * @return mixed
+     * @return mixed|null
      * @see MSSQL::_execute
      * @see MySQL::_execute
      * @see OData::_execute
@@ -323,10 +323,10 @@ class Pg extends DBD
         try {
             $return = pg_execute($this->resourceLink, $uniqueName, $arguments);
         } catch (Exception $e) {
-            return false;
+            return null;
         }
 
-        return $return;
+        return $return ?: null;
     }
 
     /**
