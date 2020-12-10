@@ -28,7 +28,7 @@ use DBD\Base\Debug;
 use DBD\Base\Helper;
 use DBD\Base\Options;
 use DBD\Base\Query;
-use DBD\Common\DBDException as Exception;
+use DBD\Common\DBDException;
 use DBD\Entity\Common\EntityException;
 use DBD\Entity\Constraint;
 use DBD\Entity\Entity;
@@ -54,11 +54,6 @@ abstract class DBD
     private static $preparedStatements = [];
     /** @var CacheInterface */
     public $CacheDriver;
-    /**
-     * @deprecated make private
-     * @var int
-     */
-    public $rows = 0;
     /** @var Config $Config */
     protected $Config;
     /** @var Options $Options */
@@ -78,6 +73,8 @@ abstract class DBD
     protected $resourceLink;
     /** @var mixed $result Query result data */
     protected $result;
+    /** @var int */
+    protected $rows = 0;
     /** @var mixed $fetch */
     private $fetch = self::UNDEFINED;
     /** @var bool $inTransaction Stores current transaction state */
@@ -119,22 +116,22 @@ abstract class DBD
      * @param string $key
      * @param int|float|DateInterval|string $ttl
      *
-     * @throws Exception
+     * @throws DBDException
      */
     public function cache($key, $ttl = null)
     {
         if (!isset($this->CacheDriver)) {
-            //throw new Exception("CacheDriver not initialized");
+            //throw new DBDException("CacheDriver not initialized");
             return;
         }
         if (!isset($key) or !$key) {
-            throw new Exception("caching failed: key is not set or empty");
+            throw new DBDException("caching failed: key is not set or empty");
         }
         if (!is_string($key)) {
-            throw new Exception("key is not string type");
+            throw new DBDException("key is not string type");
         }
         if (!isset($this->query)) {
-            throw new Exception("SQL statement not prepared");
+            throw new DBDException("SQL statement not prepared");
         }
 
         if (preg_match("/^[\s\t\r\n]*select/i", $this->query)) {
@@ -144,10 +141,9 @@ abstract class DBD
             if ($ttl !== null)
                 $this->cache['expire'] = $ttl;
         } else {
-            throw new Exception("caching failed: current query is not of SELECT type");
+            throw new DBDException("caching failed: current query is not of SELECT type");
         }
 
-        return;
     }
 
     /**
@@ -162,19 +158,19 @@ abstract class DBD
      * @see OData::connect
      * @see Pg::connect
      */
-    abstract public function connect();
+    abstract public function connect(): DBD;
 
     /**
      * Closes a database connection
      *
      * @return $this
-     * @throws Exception
+     * @throws DBDException
      */
-    public function disconnect()
+    public function disconnect(): DBD
     {
         if ($this->isConnected()) {
             if ($this->inTransaction) {
-                throw new Exception("Uncommitted transaction state");
+                throw new DBDException("Uncommitted transaction state");
             }
             $this->_disconnect();
             $this->resourceLink = null;
@@ -188,7 +184,7 @@ abstract class DBD
      *
      * @return bool true if var is a resource, false otherwise
      */
-    protected function isConnected()
+    protected function isConnected(): bool
     {
         return is_resource($this->resourceLink);
     }
@@ -201,24 +197,25 @@ abstract class DBD
      * @see OData::_disconnect
      * @see disconnect
      */
-    abstract protected function _disconnect();
+    abstract protected function _disconnect(): bool;
 
     /**
      * Just executes query and returns affected rows with the query
      *
      * @return int
-     * @throws Exception
+     * @throws DBDException
      * @throws InvalidArgumentException
      * @throws ReflectionException
      */
-    public function do()
+    public function do(): int
     {
         if (!func_num_args())
-            throw new Exception("query failed: statement is not set or empty");
+            throw new DBDException("query failed: statement is not set or empty");
 
         [$statement, $args] = Helper::prepareArgs(func_get_args());
 
         $sth = $this->query($statement, $args);
+        $this->result = $sth->result;
 
         return $sth->rows();
     }
@@ -241,65 +238,45 @@ abstract class DBD
      * ```
      *
      * @return DBD
-     * @throws Exception
+     * @throws DBDException
      * @throws InvalidArgumentException
      * @throws ReflectionException
      */
     public function query(): DBD
     {
         if (!func_num_args())
-            throw new Exception("query failed: statement is not set or empty");
+            throw new DBDException("query failed: statement is not set or empty");
 
         [$statement, $args] = Helper::prepareArgs(func_get_args());
 
         $sth = $this->prepare($statement);
-
-        if (is_array($args))
-            $sth->execute($args);
-        else
-            $sth->execute();
+        $sth->execute($args);
 
         return $sth;
     }
 
     /**
-     * Creates a prepared statement for later execution
+     * Creates a prepared statement for later execution.
+     * Calling this function new instance of driver will be created and all
+     * options and configuration will be passed as reference, as well as resource
+     * link, caching driver and transaction state
      *
      * @param string $statement
      *
      * @return $this
-     * @throws Exception
+     * @throws DBDException
      */
     public function prepare(string $statement): DBD
     {
         if (!isset($statement) or empty($statement))
-            throw new Exception("prepare failed: statement is not set or empty");
+            throw new DBDException("prepare failed: statement is not set or empty");
 
-        return $this->extendMe($this, $statement);
-    }
+        $className = get_class($this);
+        $class = new $className($this->Config, $this->Options);
 
-    /**
-     * Copies object variables after extended class construction
-     * TODO: may be clone?
-     *
-     * @param DBD $context
-     * @param string $statement
-     *
-     * @return DBD
-     */
-    final private function extendMe(DBD $context, string $statement)
-    {
-
-        $className = get_class($context);
-
-        /** @var DBD $class */
-        $class = new $className($context->Config, $context->Options);
-
-        $class->Config = &$context->Config;
-        $class->Options = &$context->Options;
-        $class->resourceLink = &$context->resourceLink;
-        $class->CacheDriver = &$context->CacheDriver;
-        $class->inTransaction = &$context->inTransaction;
+        $class->resourceLink = &$this->resourceLink;
+        $class->CacheDriver = &$this->CacheDriver;
+        $class->inTransaction = &$this->inTransaction;
         $class->query = $statement;
 
         return $class;
@@ -309,7 +286,7 @@ abstract class DBD
      * Sends a request to execute a prepared statement with given parameters, and waits for the result.
      *
      * @return mixed
-     * @throws Exception
+     * @throws DBDException
      * @throws InvalidArgumentException
      * @throws ReflectionException
      * @throws \Exception
@@ -317,7 +294,7 @@ abstract class DBD
     public function execute()
     {
         // Set result to false
-        $this->result = false;
+        $this->result = null;
         $this->fetch = self::UNDEFINED;
         $this->storage = null;
         $executeArguments = func_get_args();
@@ -360,7 +337,7 @@ abstract class DBD
                     $prepareResult = $this->_prepare($uniqueName, $preparedQuery);
 
                     if ($prepareResult === false) {
-                        throw new Exception ($this->_errorMessage(), $preparedQuery);
+                        throw new DBDException ($this->_errorMessage(), $preparedQuery);
                     }
                 }
 
@@ -372,11 +349,11 @@ abstract class DBD
             }
             $cost = Debug::me()->endTimer();
 
-            if ($this->result !== false) {
+            if (is_null($this->result)) {
+                throw new DBDException ($this->_errorMessage(), $preparedQuery, $this->Options->isPrepareExecute() ? Helper::parseArgs($executeArguments) : null);
+            } else {
                 $this->rows = $this->_numRows();
                 $this->storage = self::STORAGE_DATABASE;
-            } else {
-                throw new Exception ($this->_errorMessage(), $preparedQuery, $this->Options->isPrepareExecute() ? Helper::parseArgs($executeArguments) : null);
             }
 
             // If query from cache
@@ -405,8 +382,8 @@ abstract class DBD
             }
         }
 
-        if ($this->result === false) {
-            throw new Exception($this->_errorMessage(), $preparedQuery);
+        if (is_null($this->result)) {
+            throw new DBDException($this->_errorMessage(), $preparedQuery);
         }
 
         if ($this->Options->isUseDebug()) {
@@ -429,7 +406,7 @@ abstract class DBD
      * @param bool $overrideOption
      *
      * @return string
-     * @throws Exception
+     * @throws DBDException
      */
     private function getPreparedQuery($ARGS, $overrideOption = false)
     {
@@ -443,7 +420,7 @@ abstract class DBD
         $numberOfArgs = count($executeArguments);
 
         if ($binds != $numberOfArgs) {
-            throw new Exception("Execute failed: called with $numberOfArgs bind variables when $binds are needed", $this->query, $executeArguments);
+            throw new DBDException("Execute failed: called with $numberOfArgs bind variables when $binds are needed", $this->query, $executeArguments);
         }
 
         if ($numberOfArgs) {
@@ -473,32 +450,31 @@ abstract class DBD
      * @see MSSQL::_escape
      * @see MySQL::_escape
      * @see OData::_escape
-     * @see getPreparedQuery
      * @see Pg::_escape
+     * @see getPreparedQuery
      */
-    abstract protected function _escape($value);
+    abstract protected function _escape(string $value): string;
 
     /**
-     * Check connection existence and do connection if not
+     * Check connection existence and does connection if not
      *
      * @return void
      */
     private function connectionPreCheck()
     {
-        if (!$this->isConnected()) {
+        if (!$this->isConnected())
             $this->_connect();
-        }
     }
 
     /**
-     * @return DBD
+     * @return void
      * @see Pg::_connect
      * @see MSSQL::_connect
      * @see MySQL::_connect
      * @see OData::_connect
      * @see connectionPreCheck
      */
-    abstract protected function _connect();
+    abstract protected function _connect(): void;
 
     /**
      * @param string $uniqueName
@@ -510,7 +486,7 @@ abstract class DBD
      * @see OData::_prepare
      * @see Pg::_prepare
      */
-    abstract protected function _prepare($uniqueName, $statement);
+    abstract protected function _prepare(string $uniqueName, string $statement);
 
     /**
      * @return string
@@ -608,21 +584,17 @@ abstract class DBD
      * @see OData::_numRows
      * @see execute
      */
-    abstract protected function _numRows();
+    abstract protected function _numRows(): int;
 
     /**
-     * Returns the number of rows in a database result resource.
+     * Returns the number of rows in the result
      *
      * @return int
      */
-    public function rows()
+    public function rows(): int
     {
         if ($this->cache['key'] === null) {
-            if (preg_match("/^(\s*?)(with.*?)?(\s*?)select\s*?.*?\s*?from/is", $this->query)) {
-                return $this->_numRows();
-            }
-
-            return $this->_affectedRows();
+            return $this->_rows();
         } else {
             return count($this->cache['result']);
         }
@@ -631,13 +603,12 @@ abstract class DBD
     /**
      * @return int number of updated or deleted rows
      * @see rows
-     * @see Pg::_affectedRows
-     * @see MSSQL::_affectedRows
-     * @see MySQL::_affectedRows
-     * @see OData::_affectedRows
-     * @see affectedRows
+     * @see Pg::_rows
+     * @see MSSQL::_rows
+     * @see MySQL::_rows
+     * @see OData::_rows
      */
-    abstract protected function _affectedRows();
+    abstract protected function _rows(): int;
 
     /**
      * @param null $key
@@ -713,35 +684,6 @@ abstract class DBD
     abstract protected function _convertTypes(&$data): void;
 
     /**
-     * For simple SQL query, mostly delete or update, when you do not need to get results and only want to know affected rows
-     * Example 1:
-     * ```
-     * $affectedRows = $db->doit("UPDATE table SET column1 = ? WHERE column2 = ?", NULL, 'must be null');
-     * ```
-     * Example 2:
-     * ```
-     * $db->doit("DELETE FROM main_table);
-     * ```
-     *
-     * @return int Number of affected tuples will be stored in $result variable
-     * @throws Exception
-     * @throws InvalidArgumentException
-     * @throws ReflectionException
-     * @deprecated use do
-     */
-    public function doIt()
-    {
-        if (!func_num_args())
-            throw new Exception("query failed: statement is not set or empty");
-
-        [$statement, $args] = Helper::prepareArgs(func_get_args());
-
-        $sth = $this->query($statement, $args);
-
-        return $sth->rows;
-    }
-
-    /**
      * Dumping result as CSV file
      *
      * @param array $executeArguments
@@ -754,7 +696,7 @@ abstract class DBD
      * @param bool $utf8
      *
      * @return mixed
-     * @throws Exception
+     * @throws DBDException
      */
     public function dump(?array $executeArguments = [], $fileName = "dump", $delimiter = "\\t", $nullString = "", $header = true, $tmpPath = "/tmp", $type = "csv", $utf8 = true)
     {
@@ -830,7 +772,7 @@ abstract class DBD
      *
      * @return bool
      * @throws EntityException
-     * @throws Exception
+     * @throws DBDException
      * @throws InvalidArgumentException
      * @throws ReflectionException
      */
@@ -841,7 +783,7 @@ abstract class DBD
         $sth = $this->prepare(sprintf("DELETE FROM %s.%s WHERE %s", $entity::SCHEME, $entity::TABLE, implode(" AND ", $columns)));
         $sth->execute($execute);
 
-        if ($sth->isAffected())
+        if ($sth->rows() > 0)
             return true;
 
         return false;
@@ -852,14 +794,14 @@ abstract class DBD
      *
      * @return array
      * @throws EntityException
-     * @throws Exception
+     * @throws DBDException
      */
     private function getPrimaryKeysForEntity(Entity $entity)
     {
         $keys = $entity::map()->getPrimaryKey();
 
         if (!count($keys))
-            throw new Exception(sprintf("Entity %s does not have any defined primary key", get_class($entity)));
+            throw new DBDException(sprintf("Entity %s does not have any defined primary key", get_class($entity)));
 
         $columns = [];
         $execute = [];
@@ -868,7 +810,7 @@ abstract class DBD
 
         foreach ($keys as $keyName => $column) {
             if (!isset($entity->$keyName))
-                throw new Exception(sprintf("Value of %s->%s, which is primary key column, is null", get_class($entity), $keyName));
+                throw new DBDException(sprintf("Value of %s->%s, which is primary key column, is null", get_class($entity), $keyName));
 
             $execute[] = $entity->$keyName;
             $columns[] = "{$column->name} = {$placeHolder}";
@@ -878,38 +820,11 @@ abstract class DBD
     }
 
     /**
-     * Same as affectedRows but returns boolean
-     *
-     * @return bool
-     */
-    public function isAffected()
-    {
-        return $this->affectedRows() > 0;
-    }
-
-    /**
-     * Returns number of affected rows during update or delete
-     * ```
-     * $sth = $db->prepare("DELETE FROM foo WHERE bar = ?");
-     * $sth->execute($someVar);
-     * if ($sth->affectedRows()) {
-     *      // Do something
-     * }
-     * ```
-     *
-     * @return int
-     */
-    public function affectedRows()
-    {
-        return $this->_affectedRows();
-    }
-
-    /**
      * @param Entity $entity
      *
      * @return Entity
      * @throws EntityException
-     * @throws Exception
+     * @throws DBDException
      * @throws InvalidArgumentException
      * @throws ReflectionException
      */
@@ -930,7 +845,7 @@ abstract class DBD
                 // Mostly we always define properties for any columns
                 if (property_exists($entity, $propertyName)) {
                     if (!isset($entity->$propertyName) and ($column->isAuto === false and !isset($column->defaultValue)))
-                        throw new Exception(sprintf("Property '%s' of %s can't be null according to Mapper annotation", $propertyName, get_class($entity)));
+                        throw new DBDException(sprintf("Property '%s' of %s can't be null according to Mapper annotation", $propertyName, get_class($entity)));
 
                     // Finally add column to record if it is set
                     if (isset($entity->$propertyName))
@@ -952,20 +867,20 @@ abstract class DBD
                                         $record[$originName] = $entity->$constraintName->$foreignProperty;
                                     } else {
                                         if ($column->nullable !== false) {
-                                            throw new Exception(sprintf("Property '%s->%s' of %s can't be null", $constraintName, $foreignProperty, get_class($entity)));
+                                            throw new DBDException(sprintf("Property '%s->%s' of %s can't be null", $constraintName, $foreignProperty, get_class($entity)));
                                         } else {
                                             if (isset($column->defaultValue))
                                                 $record[$originName] = $column->defaultValue;
                                         }
                                     }
                                 } else {
-                                    throw new Exception(sprintf("Property '%s' of %s not set.", $constraintName, get_class($entity)));
+                                    throw new DBDException(sprintf("Property '%s' of %s not set.", $constraintName, get_class($entity)));
                                 }
                             }
                         }
                     }
                     if ($columnFound == false) {
-                        throw new Exception(sprintf("Can't understand how to get value of %s(%s) in %s", $propertyName, $column->name, get_class($entity)));
+                        throw new DBDException(sprintf("Can't understand how to get value of %s(%s) in %s", $propertyName, $column->name, get_class($entity)));
                     }
                 }
             } else {
@@ -1046,7 +961,7 @@ abstract class DBD
      * @param null $return
      *
      * @return DBD
-     * @throws Exception
+     * @throws DBDException
      * @throws InvalidArgumentException
      * @throws ReflectionException
      */
@@ -1083,7 +998,7 @@ abstract class DBD
      *
      * @return Entity
      * @throws EntityException
-     * @throws Exception
+     * @throws DBDException
      * @throws InvalidArgumentException
      * @throws ReflectionException
      */
@@ -1108,9 +1023,9 @@ abstract class DBD
                     if (isset($entity->$propertyName))
                         $record[$column->name] = $entity->$propertyName;
                     else
-                        throw new Exception(sprintf("Property '%s' of %s can't be null", $propertyName, get_class($entity)));
+                        throw new DBDException(sprintf("Property '%s' of %s can't be null", $propertyName, get_class($entity)));
                 } else {
-                    throw new Exception(sprintf("Property '%s' of %s not set", $propertyName, get_class($entity)));
+                    throw new DBDException(sprintf("Property '%s' of %s not set", $propertyName, get_class($entity)));
                 }
             } else {
                 if (property_exists($entity, $propertyName)) {
@@ -1136,19 +1051,19 @@ abstract class DBD
         try {
             $this->beginIntermediate();
             $sth = $this->update($entity::table(), $record, implode(" AND ", $primaryColumns), $execute, "*");
-            $affected = $sth->affectedRows();
+            $affected = $this->rows() > 0;
             if ($affected > 1) {
                 $this->rollbackIntermediate();
-                throw new Exception(sprintf("More then one records updated with query. Transaction rolled back!"));
+                throw new DBDException(sprintf("More then one records updated with query. Transaction rolled back!"));
             } else if ($affected == 0) {
                 $this->rollbackIntermediate();
-                throw new Exception(sprintf("No any records updated."));
+                throw new DBDException(sprintf("No any records updated."));
             }
 
             $this->commitIntermediate();
         } catch (Throwable $throwable) {
             $this->rollbackIntermediate();
-            throw new Exception($throwable->getMessage());
+            throw new DBDException($throwable->getMessage());
         }
 
         /** @var Entity $class */
@@ -1176,7 +1091,7 @@ abstract class DBD
      * Begin transaction internally of we don't know was transaction started somewhere else or not
      *
      * @return bool
-     * @throws Exception
+     * @throws DBDException
      */
     private function beginIntermediate()
     {
@@ -1193,17 +1108,17 @@ abstract class DBD
      * Starts database transaction
      *
      * @return bool
-     * @throws Exception
+     * @throws DBDException
      */
     public function begin(): bool
     {
         if ($this->inTransaction == true)
-            throw new Exception("Already in transaction");
+            throw new DBDException("Already in transaction");
 
         $this->connectionPreCheck();
         $this->result = $this->_begin();
         if ($this->result === false)
-            throw new Exception("Can't start transaction: " . $this->_errorMessage());
+            throw new DBDException("Can't start transaction: " . $this->_errorMessage());
 
         $this->inTransaction = true;
 
@@ -1273,7 +1188,7 @@ abstract class DBD
      * ```
      *
      * @return DBD
-     * @throws Exception
+     * @throws DBDException
      * @throws InvalidArgumentException
      * @throws ReflectionException
      */
@@ -1323,7 +1238,7 @@ abstract class DBD
 
     /**
      * @return bool
-     * @throws Exception
+     * @throws DBDException
      */
     private function rollbackIntermediate()
     {
@@ -1334,7 +1249,7 @@ abstract class DBD
                 return $this->rollback();
             }
         } else {
-            throw new Exception("No transaction to rollback");
+            throw new DBDException("No transaction to rollback");
         }
 
         return true;
@@ -1344,7 +1259,7 @@ abstract class DBD
      * Rolls back a transaction that was begun
      *
      * @return bool
-     * @throws Exception
+     * @throws DBDException
      */
     public function rollback()
     {
@@ -1352,10 +1267,10 @@ abstract class DBD
             $this->connectionPreCheck();
             $this->result = $this->_rollback();
             if ($this->result === false) {
-                throw new Exception("Can not end transaction: " . $this->_errorMessage());
+                throw new DBDException("Can not end transaction: " . $this->_errorMessage());
             }
         } else {
-            throw new Exception("No transaction to rollback");
+            throw new DBDException("No transaction to rollback");
         }
         $this->inTransaction = false;
 
@@ -1376,7 +1291,7 @@ abstract class DBD
      *  Commit transaction internally of we don't know was transaction started somewhere else or not
      *
      * @return bool
-     * @throws Exception
+     * @throws DBDException
      */
     private function commitIntermediate()
     {
@@ -1394,19 +1309,19 @@ abstract class DBD
      * Commits a transaction that was begun
      *
      * @return bool
-     * @throws Exception
+     * @throws DBDException
      */
     public function commit()
     {
         if (!$this->isConnected()) {
-            throw new Exception("No connection established yet");
+            throw new DBDException("No connection established yet");
         }
         if ($this->inTransaction) {
             $this->result = $this->_commit();
             if ($this->result === false)
-                throw new Exception("Can not commit transaction: " . $this->_errorMessage());
+                throw new DBDException("Can not commit transaction: " . $this->_errorMessage());
         } else {
-            throw new Exception("No transaction to commit");
+            throw new DBDException("No transaction to commit");
         }
         $this->inTransaction = false;
 
@@ -1431,13 +1346,12 @@ abstract class DBD
      *
      * @return Entity|null
      * @throws EntityException
-     * @throws Exception
+     * @throws DBDException
      * @throws InvalidArgumentException
      * @throws ReflectionException
      */
     public function entitySelect(Entity &$entity, bool $exceptionIfNoRecord = true)
     {
-
         [$execute, $columns] = $this->getPrimaryKeysForEntity($entity);
 
         $sth = $this->prepare(sprintf("SELECT * FROM %s.%s WHERE %s", $entity::SCHEME, $entity::TABLE, implode(" AND ", $columns)));
@@ -1445,7 +1359,7 @@ abstract class DBD
 
         if (!$sth->rows()) {
             if ($exceptionIfNoRecord)
-                throw new Exception(sprintf("No data found for entity %s with ", get_class($entity)));
+                throw new DBDException(sprintf("No data found for entity %s with ", get_class($entity)));
             else
                 return null;
         }
@@ -1457,7 +1371,11 @@ abstract class DBD
         return $entity;
     }
 
-    public function escape($string)
+    /**
+     * @param $string
+     * @return string
+     */
+    public function escape(string $string): string
     {
         return $this->_escape($string);
     }
@@ -1502,43 +1420,26 @@ abstract class DBD
     }
 
     /**
-     * @return array|resource|string
-     * @deprecated
-     */
-    public function getResult()
-    {
-        return $this->result;
-    }
-
-    /**
-     * @return string
-     * @deprecated
-     */
-    public function getStorage()
-    {
-        return $this->storage;
-    }
-
-    /**
+     * Simply query and get first column.
+     * Usefully when need quickly fetch count(*)
+     *
      * @return null|mixed
-     * @throws Exception
+     * @throws DBDException
      * @throws InvalidArgumentException
      * @throws ReflectionException
      */
     public function select()
     {
-
         $sth = $this->query(func_get_args());
 
-        if ($sth->rows()) {
+        if ($sth->rows())
             return $sth->fetch();
-        }
 
-        return null;
+        throw new DBDException("Possibly non SELECT query");
     }
 
     /**
-     * @return bool|mixed
+     * @return null|mixed
      */
     public function fetch()
     {

@@ -15,30 +15,32 @@ use Psr\SimpleCache\CacheInterface;
 
 final class Config
 {
-    /** @var string $dsn */
-    private $dsn;
-    /** @var int $port */
+    /** @var string */
+    private $host;
+    /** @var int */
     private $port;
-    /** @var string $database */
+    /** @var string */
     private $database;
-    /** @var string $username */
+    /** @var string */
     private $username;
-    /** @var string $password */
+    /** @var string */
     private $password;
-    /** @var CacheInterface $cacheDriver */
+    /** @var CacheInterface */
     private $cacheDriver = null;
+    /** @var string */
+    private $dsn;
 
     /**
      * Config constructor.
-     * @param $dsn
+     * @param $host
      * @param $port
      * @param $database
      * @param $username
      * @param $password
      */
-    public function __construct(string $dsn, int $port, string $database, string $username, string $password)
+    public function __construct(string $host, int $port, string $database, string $username, string $password)
     {
-        $this->dsn = $dsn;
+        $this->host = $host;
         $this->port = $port;
         $this->database = $database;
         $this->username = $username;
@@ -88,19 +90,19 @@ final class Config
     /**
      * @return string
      */
-    public function getDsn(): string
+    public function getHost(): string
     {
-        return $this->dsn;
+        return $this->host;
     }
 
     /**
-     * @param string $dsn
+     * @param string $host
      *
      * @return Config
      */
-    public function setDsn(string $dsn): Config
+    public function setHost(string $host): Config
     {
-        $this->dsn = $dsn;
+        $this->host = $host;
 
         return $this;
     }
@@ -161,6 +163,25 @@ final class Config
     public function setUsername(string $username): Config
     {
         $this->username = $username;
+
+        return $this;
+    }
+
+    /**
+     * @return string
+     */
+    public function getDsn(): string
+    {
+        return $this->dsn;
+    }
+
+    /**
+     * @param string $dsn
+     * @return $this
+     */
+    public function setDsn(string $dsn): Config
+    {
+        $this->dsn = $dsn;
 
         return $this;
     }

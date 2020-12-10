@@ -55,26 +55,26 @@ class OData extends DBD
 		// Let's get from cache
 		if(isset($this->CacheDriver)) {
 			$metadata = $this->CacheDriver->get(__CLASS__ . ':metadata');
-			if($metadata && $metadata !== false) {
-				$this->metadata = $metadata;
-				if($key)
-					return $this->metadata[$key];
-				else
-					return $this->metadata;
-			}
-		}
-		$this->dropVars();
+            if ($metadata && $metadata !== false) {
+                $this->metadata = $metadata;
+                if ($key)
+                    return $this->metadata[$key];
+                else
+                    return $this->metadata;
+            }
+        }
+        $this->dropVars();
 
-		$this->setupRequest($this->Config->getDsn() . '$metadata');
-		$this->_connect();
+        $this->setupRequest($this->Config->getHost() . '$metadata');
+        $this->_connect();
 
-		$array = XML2Array::createArray($this->body);
+        $array = XML2Array::createArray($this->body);
 
-		$metadata = [];
+        $metadata = [];
 
-		foreach($array['edmx:Edmx']['edmx:DataServices']['Schema']['EntityType'] as $EntityType) {
+        foreach ($array['edmx:Edmx']['edmx:DataServices']['Schema']['EntityType'] as $EntityType) {
 
-			$object = [];
+            $object = [];
 
 			foreach($EntityType['Property'] as $Property) {
 				if(preg_match('/Collection\(StandardODATA\.(.+)\)/', $Property['@attributes']['Type'], $matches)) {
@@ -200,27 +200,31 @@ class OData extends DBD
 		return $string;
 	}
 
-	/*--------------------------------------------------------------*/
+    /*--------------------------------------------------------------*/
 
-	public function setDataKey($dataKey) {
-		$this->dataKey = $dataKey;
+    public function setDataKey($dataKey)
+    {
+        $this->dataKey = $dataKey;
 
-		return $this;
-	}
+        return $this;
+    }
 
-	/*--------------------------------------------------------------*/
+    /*--------------------------------------------------------------*/
 
-	protected function _affectedRows() {
-		// TODO: Implement _affectedRows() method.
-	}
+    protected function _rows(): int
+    {
+        // TODO: Implement _affectedRows() method.
+    }
 
-	protected function _begin() {
-		// TODO: Implement _begin() method.
-	}
+    protected function _begin()
+    {
+        // TODO: Implement _begin() method.
+    }
 
-	/*--------------------------------------------------------------*/
+    /*--------------------------------------------------------------*/
 
-	protected function _commit() {
+    protected function _commit()
+    {
 		// TODO: Implement _commit() method.
 	}
 
@@ -228,72 +232,75 @@ class OData extends DBD
 
 	protected function _compileInsert($table, $params, $return = "") {
 		// TODO: Implement _compileInsert() method.
-	}
+    }
 
-	/*--------------------------------------------------------------*/
+    /*--------------------------------------------------------------*/
 
-	protected function _compileUpdate($table, $params, $where, $return = "") {
-		// TODO: Implement _compileUpdate() method.
-	}
+    protected function _compileUpdate($table, $params, $where, $return = "")
+    {
+        // TODO: Implement _compileUpdate() method.
+    }
 
-	/*--------------------------------------------------------------*/
+    /*--------------------------------------------------------------*/
 
-	protected function _connect() {
-		// if we never invoke connect and did not setup it, just call setup with DSN url
-		if(!is_resource($this->resourceLink)) {
-			$this->setupRequest($this->Config->getDsn());
-		}
-		// TODO: read keep-alive header and reset handler if not exist
-		$response = curl_exec($this->resourceLink);
-		$header_size = curl_getinfo($this->resourceLink, CURLINFO_HEADER_SIZE);
-		$this->header = trim(substr($response, 0, $header_size));
-		$this->body = preg_replace("/\xEF\xBB\xBF/", "", substr($response, $header_size));
-		$this->httpCode = curl_getinfo($this->resourceLink, CURLINFO_HTTP_CODE);
+    protected function _connect(): void
+    {
+        // if we never invoke connect and did not setup it, just call setup with DSN url
+        if (!is_resource($this->resourceLink)) {
+            $this->setupRequest($this->Config->getHost());
+        }
+        // TODO: read keep-alive header and reset handler if not exist
+        $response = curl_exec($this->resourceLink);
+        $header_size = curl_getinfo($this->resourceLink, CURLINFO_HEADER_SIZE);
+        $this->header = trim(substr($response, 0, $header_size));
+        $this->body = preg_replace("/\xEF\xBB\xBF/", "", substr($response, $header_size));
+        $this->httpCode = curl_getinfo($this->resourceLink, CURLINFO_HTTP_CODE);
 
-		if($this->httpCode >= 200 && $this->httpCode < 300) {
-			// do nothing
-		}
-		else {
-			$this->parseError();
-		}
+        if ($this->httpCode >= 200 && $this->httpCode < 300) {
+            // do nothing
+        } else {
+            $this->parseError();
+        }
+    }
 
-		return $this;
-	}
+    /*--------------------------------------------------------------*/
 
-	/*--------------------------------------------------------------*/
+    protected function _disconnect(): bool
+    {
+        // TODO: Implement _disconnect() method.
+    }
 
-	protected function _disconnect() {
-		// TODO: Implement _disconnect() method.
-	}
+    /*--------------------------------------------------------------*/
 
-	/*--------------------------------------------------------------*/
+    /**
+     * @inheritDoc
+     */
+    protected function _dump(string $preparedQuery, string $fileName, string $delimiter, string $nullString, bool $showHeader, string $tmpPath)
+    {
+        // TODO: Implement _dump() method.
+    }
 
-	/**
-	 * @inheritDoc
-	 */
-	protected function _dump(string $preparedQuery, string $fileName, string $delimiter, string $nullString, bool $showHeader, string $tmpPath) {
-		// TODO: Implement _dump() method.
-	}
+    /*--------------------------------------------------------------*/
 
-	/*--------------------------------------------------------------*/
+    protected function _errorMessage()
+    {
+        // TODO: Implement _errorMessage() method.
+    }
 
-	protected function _errorMessage() {
-		// TODO: Implement _errorMessage() method.
-	}
+    /*--------------------------------------------------------------*/
 
-	/*--------------------------------------------------------------*/
+    protected function _escape(string $value): string
+    {
+        // TODO: Implement _escape() method.
+    }
 
-	protected function _escape($value) {
-		// TODO: Implement _escape() method.
-	}
+    /*--------------------------------------------------------------*/
 
-	/*--------------------------------------------------------------*/
-
-	/**
-	 * @param $uniqueName
-	 * @param $arguments
-	 *
-	 * @return mixed
+    /**
+     * @param $uniqueName
+     * @param $arguments
+     *
+     * @return mixed
 	 * @see MSSQL::_execute
 	 * @see MySQL::_execute
 	 * @see OData::_execute
@@ -307,103 +314,113 @@ class OData extends DBD
 
 	protected function _fetchArray() {
 		// TODO: Implement _fetchArray() method.
-	}
+    }
 
-	/*--------------------------------------------------------------*/
+    /*--------------------------------------------------------------*/
 
-	protected function _fetchAssoc() {
-		// TODO: Implement _fetchAssoc() method.
-	}
+    protected function _fetchAssoc()
+    {
+        // TODO: Implement _fetchAssoc() method.
+    }
 
-	/*--------------------------------------------------------------*/
+    /*--------------------------------------------------------------*/
 
-	protected function _numRows() {
-		// TODO: Implement _numRows() method.
-	}
+    protected function _numRows(): int
+    {
+        // TODO: Implement _numRows() method.
+    }
 
-	/*--------------------------------------------------------------*/
+    /*--------------------------------------------------------------*/
 
-	/**
-	 * @param $uniqueName
-	 *
-	 * @param $statement
-	 *
-	 * @return mixed
-	 * @see MSSQL::_prepare
-	 * @see MySQL::_prepare
-	 * @see OData::_prepare
-	 * @see Pg::_prepare
-	 */
-	protected function _prepare($uniqueName, $statement) {
-		// TODO: Implement _prepare() method.
-	}
+    /**
+     * @param $uniqueName
+     *
+     * @param $statement
+     *
+     * @return mixed
+     * @see MSSQL::_prepare
+     * @see MySQL::_prepare
+     * @see OData::_prepare
+     * @see Pg::_prepare
+     */
+    protected function _prepare(string $uniqueName, string $statement)
+    {
+        // TODO: Implement _prepare() method.
+    }
 
-	/*--------------------------------------------------------------*/
+    /*--------------------------------------------------------------*/
 
-	protected function _query($statement) {
-		// TODO: Implement _query() method.
-	}
+    protected function _query($statement)
+    {
+        // TODO: Implement _query() method.
+    }
 
-	/*--------------------------------------------------------------*/
+    /*--------------------------------------------------------------*/
 
-	protected function _rollback() {
-		// TODO: Implement _rollback() method.
-	}
+    protected function _rollback()
+    {
+        // TODO: Implement _rollback() method.
+    }
 
-	/*--------------------------------------------------------------*/
+    /*--------------------------------------------------------------*/
 
-	public function begin() {
-		throw new Exception("BEGIN not supported by OData");
-	}
+    public function begin(): bool
+    {
+        throw new Exception("BEGIN not supported by OData");
+    }
 
-	/*--------------------------------------------------------------*/
+    /*--------------------------------------------------------------*/
 
-	public function commit() {
-		throw new Exception("COMMIT not supported by OData");
-	}
+    public function commit()
+    {
+        throw new Exception("COMMIT not supported by OData");
+    }
 
-	/**
-	 * We do not need to connect anywhere until something real should be get via HTTP request, otherwise we will
-	 * consume resources for nothing
-	 *
-	 * @return $this|DBD
-	 */
-	public function connect() {
-		return $this;
-	}
+    /**
+     * We do not need to connect anywhere until something real should be get via HTTP request, otherwise we will
+     * consume resources for nothing
+     *
+     * @return $this|DBD
+     */
+    public function connect(): DBD
+    {
+        return $this;
+    }
 
-	/**
-	 * @return $this
-	 */
-	public function disconnect() {
-		if($this->isConnected()) {
-			curl_close($this->resourceLink);
-		}
+    /**
+     * @return $this
+     */
+    public function disconnect(): DBD
+    {
+        if ($this->isConnected()) {
+            curl_close($this->resourceLink);
+        }
 
-		return $this;
-	}
+        return $this;
+    }
 
-	public function execute() {
+    public function execute()
+    {
 
-		$this->tryGetFromCache();
+        $this->tryGetFromCache();
 
 		// If not found in cache or we dont use it, then let's get via HTTP request
 		if($this->result === null) {
 
-			$this->prepareUrl(func_get_args());
+            $this->prepareUrl(func_get_args());
 
-			// just initicate connect with prepared URL and HEADERS
-			$this->setupRequest($this->Config->getDsn() . $this->requestUrl);
-			// and make request
-			$this->_connect();
+            // just initicate connect with prepared URL and HEADERS
+            $this->setupRequest($this->Config->getHost() . $this->requestUrl);
+            // and make request
+            $this->_connect();
 
-			// Will return NULL in case of failure
-			$json = json_decode($this->body, true);
+            // Will return NULL in case of failure
+            $json = json_decode($this->body, true);
 
-			if($this->dataKey) {
-				if($json[$this->dataKey]) {
-					$this->result = $this->doReplacements($json[$this->dataKey]);
-				}
+            if ($this->dataKey) {
+                if ($json[$this->dataKey]) {
+                    $this->result = $this->doReplacements($json[$this->dataKey]);
+                }
 				else {
 					$this->result = $json;
 				}
@@ -503,47 +520,52 @@ class OData extends DBD
 		}
 		*/
 
-		$this->setupRequest($this->Config->getDsn() . $table . '?$format=application/json;odata=nometadata&', "POST", json_encode($content, JSON_UNESCAPED_UNICODE));
-		$this->_connect();
+        $this->setupRequest($this->Config->getHost() . $table . '?$format=application/json;odata=nometadata&', "POST", json_encode($content, JSON_UNESCAPED_UNICODE));
+        $this->_connect();
 
-		return json_decode($this->body, true);
-	}
+        return json_decode($this->body, true);
+    }
 
-	public function prepare($statement) {
+    public function prepare($statement): DBD
+    {
 
-		// This is not SQL driver, so we can't make several instances with prepare
-		// and let's allow only one by one requests per driver
-		if($this->query) {
-			throw new Exception("You have an unexecuted query", $this->query);
-		}
-		// Drop current protected vars to do not mix up
-		$this->dropVars();
+        // This is not SQL driver, so we can't make several instances with prepare
+        // and let's allow only one by one requests per driver
+        if ($this->query) {
+            throw new Exception("You have an unexecuted query", $this->query);
+        }
+        // Drop current protected vars to do not mix up
+        $this->dropVars();
 
-		// Just storing query. Parse will be done later during buildQuery
-		$this->query = $statement;
+        // Just storing query. Parse will be done later during buildQuery
+        $this->query = $statement;
 
-		return $this;
-	}
+        return $this;
+    }
 
-	public function query() {
-		return $this;
-	}
+    public function query(): DBD
+    {
+        return $this;
+    }
 
-	public function rollback() {
-		throw new Exception("ROLLBACK not supported by OData");
-	}
+    public function rollback()
+    {
+        throw new Exception("ROLLBACK not supported by OData");
+    }
 
-	public function rows() {
-		//if(is_iterable($this->result) and count($this->result) == 1 and !isset($this->result['value'])) // FIXME: исправить в выборке
-		if(is_iterable($this->result))
-			return count($this->result);
+    public function rows(): int
+    {
+        //if(is_iterable($this->result) and count($this->result) == 1 and !isset($this->result['value'])) // FIXME: исправить в выборке
+        if (is_iterable($this->result))
+            return count($this->result);
 
-		return 0;
-	}
+        return 0;
+    }
 
-	public function update() {
-		$binds = 0;
-		$where = null;
+    public function update()
+    {
+        $binds = 0;
+        $where = null;
 		$return = null;
 		$ARGS = func_get_args();
 		$table = $ARGS[0];
@@ -568,21 +590,21 @@ class OData extends DBD
 		$url = $table . ($where ? $where : "");
 
 		if(count($args)) {
-			$request = str_split($url);
+            $request = str_split($url);
 
-			foreach($request as $ind => $str) {
-				if($str == $this->Options->getPlaceHolder()) {
-					$request[$ind] = "'" . array_shift($args) . "'";
-				}
-			}
-			$url = implode("", $request);
-		}
+            foreach ($request as $ind => $str) {
+                if ($str == $this->Options->getPlaceHolder()) {
+                    $request[$ind] = "'" . array_shift($args) . "'";
+                }
+            }
+            $url = implode("", $request);
+        }
 
-		$this->setupRequest($this->Config->getDsn() . $url . '?$format=application/json;odata=nometadata&', "PATCH", json_encode($values, JSON_UNESCAPED_UNICODE));
-		$this->_connect();
+        $this->setupRequest($this->Config->getHost() . $url . '?$format=application/json;odata=nometadata&', "PATCH", json_encode($values, JSON_UNESCAPED_UNICODE));
+        $this->_connect();
 
-		return json_decode($this->body, true);
-	}
+        return json_decode($this->body, true);
+    }
 
 	protected function tryGetFromCache() {
 		// If we have cache driver

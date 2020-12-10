@@ -102,11 +102,11 @@ final class YellowERP extends OData
 	 */
 	public function finish() {
 		if($this->resourceLink && self::$ibsession) {
-			curl_setopt($this->resourceLink, CURLOPT_URL, $this->Config->getDsn());
-			curl_setopt($this->resourceLink, CURLOPT_COOKIE, "ibsession=" . self::$ibsession);
-			curl_setopt($this->resourceLink, CURLOPT_HTTPHEADER, [ 'IBSession: finish' ]);
-			curl_exec($this->resourceLink);
-		}
+            curl_setopt($this->resourceLink, CURLOPT_URL, $this->Config->getHost());
+            curl_setopt($this->resourceLink, CURLOPT_COOKIE, "ibsession=" . self::$ibsession);
+            curl_setopt($this->resourceLink, CURLOPT_HTTPHEADER, ['IBSession: finish']);
+            curl_exec($this->resourceLink);
+        }
 		// Возможно мы не раз еще будем пользоваться файлом, поэтому чтобы его не создавать постоянно, просто запишем в него пустоту
 		file_put_contents($this->sessionFile, null);
 		self::$ibsession = null;
@@ -186,8 +186,8 @@ final class YellowERP extends OData
 	protected function _connect() {
 
 		if(!is_resource($this->resourceLink)) {
-			$this->setupRequest($this->Config->getDsn());
-		}
+            $this->setupRequest($this->Config->getHost());
+        }
 
 		if($this->reuseSessions && !self::$sessionExist) {
 			self::$retry++;

@@ -27,7 +27,7 @@ class ConfigTest extends TestCase
     public function testConstruct()
     {
         $config = new Config("dsn", 1, "db", "user", "pass");
-        self::assertEquals("dsn", $config->getDsn());
+        self::assertEquals("dsn", $config->getHost());
         self::assertEquals(1, $config->getPort());
         self::assertEquals("db", $config->getDatabase());
         self::assertEquals("user", $config->getUsername());
@@ -55,9 +55,9 @@ class ConfigTest extends TestCase
     public function testDsn()
     {
         $config = $this->config;
-        self::assertNotNull($config->getDsn());
-        self::assertInstanceOf(Config::class, $config->setDsn(__METHOD__));
-        self::assertEquals(__METHOD__, $config->getDsn());
+        self::assertNotNull($config->getHost());
+        self::assertInstanceOf(Config::class, $config->setHost(__METHOD__));
+        self::assertEquals(__METHOD__, $config->getHost());
     }
 
     public function testPassword()
