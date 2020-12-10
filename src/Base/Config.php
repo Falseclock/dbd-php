@@ -15,6 +15,8 @@ use Psr\SimpleCache\CacheInterface;
 
 final class Config
 {
+    /** @var CacheInterface */
+    public $cacheDriver = null;
     /** @var string */
     private $host;
     /** @var int */
@@ -25,8 +27,6 @@ final class Config
     private $username;
     /** @var string */
     private $password;
-    /** @var CacheInterface */
-    private $cacheDriver = null;
     /** @var string */
     private $dsn;
 
@@ -56,11 +56,11 @@ final class Config
     }
 
     /**
-     * @param Cache|CacheInterface $cacheDriver
+     * @param CacheInterface|null $cacheDriver
      *
      * @return Config
      */
-    public function setCacheDriver(CacheInterface $cacheDriver): Config
+    public function setCacheDriver(?CacheInterface $cacheDriver): Config
     {
         $this->cacheDriver = $cacheDriver;
 

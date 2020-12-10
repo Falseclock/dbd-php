@@ -44,17 +44,17 @@ class OData extends DBD
 	}
 
 	public function metadata($key = null, $expire = null) {
-		// If we already got metadata
-		if($this->metadata) {
-			if($key)
-				return $this->metadata[$key];
-			else
-				return $this->metadata;
-		}
+        // If we already got metadata
+        if ($this->metadata) {
+            if ($key)
+                return $this->metadata[$key];
+            else
+                return $this->metadata;
+        }
 
-		// Let's get from cache
-		if(isset($this->CacheDriver)) {
-			$metadata = $this->CacheDriver->get(__CLASS__ . ':metadata');
+        // Let's get from cache
+        if (isset($this->Config->CacheDriver)) {
+            $metadata = $this->Config->CacheDriver->get(__CLASS__ . ':metadata');
             if ($metadata && $metadata !== false) {
                 $this->metadata = $metadata;
                 if ($key)
@@ -88,27 +88,26 @@ class OData extends DBD
 							'Nullable' => $prop['@attributes']['Nullable'],
 						];
 					}
-				}
-				else {
-					$object[$Property['@attributes']['Name']] = [
-						'Type'     => $Property['@attributes']['Type'],
-						'Nullable' => $Property['@attributes']['Nullable'],
-					];
-				}
-			}
-			$metadata[$EntityType['@attributes']['Name']] = $object;
-		}
+				} else {
+                    $object[$Property['@attributes']['Name']] = [
+                        'Type' => $Property['@attributes']['Type'],
+                        'Nullable' => $Property['@attributes']['Nullable'],
+                    ];
+                }
+            }
+            $metadata[$EntityType['@attributes']['Name']] = $object;
+        }
 
-		if(isset($this->CacheDriver)) {
-			$this->CacheDriver->set(__CLASS__ . ':metadata', $metadata, $expire ? $expire : $this->cache['expire']);
-		}
-		$this->metadata = $metadata;
+        if (isset($this->Config->CacheDriver)) {
+            $this->Config->CacheDriver->set(__CLASS__ . ':metadata', $metadata, $expire ? $expire : $this->cache['expire']);
+        }
+        $this->metadata = $metadata;
 
-		if($key)
-			return $this->metadata[$key];
-		else
-			return $this->metadata;
-	}
+        if ($key)
+            return $this->metadata[$key];
+        else
+            return $this->metadata;
+    }
 
 	protected function dropVars() {
 		$this->cache = [
@@ -223,15 +222,16 @@ class OData extends DBD
 
     /*--------------------------------------------------------------*/
 
-    protected function _commit()
+    protected function _commit(): bool
     {
-		// TODO: Implement _commit() method.
-	}
+        // TODO: Implement _commit() method.
+    }
 
-	/*--------------------------------------------------------------*/
+    /*--------------------------------------------------------------*/
 
-	protected function _compileInsert($table, $params, $return = "") {
-		// TODO: Implement _compileInsert() method.
+    protected function _compileInsert($table, $params, $return = ""): string
+    {
+        // TODO: Implement _compileInsert() method.
     }
 
     /*--------------------------------------------------------------*/
@@ -282,14 +282,14 @@ class OData extends DBD
 
     /*--------------------------------------------------------------*/
 
-    protected function _errorMessage()
+    protected function _errorMessage(): string
     {
         // TODO: Implement _errorMessage() method.
     }
 
     /*--------------------------------------------------------------*/
 
-    protected function _escape(string $value): string
+    protected function _escape($value): string
     {
         // TODO: Implement _escape() method.
     }
@@ -325,13 +325,6 @@ class OData extends DBD
 
     /*--------------------------------------------------------------*/
 
-    protected function _numRows(): int
-    {
-        // TODO: Implement _numRows() method.
-    }
-
-    /*--------------------------------------------------------------*/
-
     /**
      * @param $uniqueName
      *
@@ -343,7 +336,7 @@ class OData extends DBD
      * @see OData::_prepare
      * @see Pg::_prepare
      */
-    protected function _prepare(string $uniqueName, string $statement)
+    protected function _prepare(string $uniqueName, string $statement): bool
     {
         // TODO: Implement _prepare() method.
     }
@@ -357,7 +350,7 @@ class OData extends DBD
 
     /*--------------------------------------------------------------*/
 
-    protected function _rollback()
+    protected function _rollback(): bool
     {
         // TODO: Implement _rollback() method.
     }
@@ -452,75 +445,77 @@ class OData extends DBD
 			throw new Exception("Do not know how to fetch results if number of rows more then 1");
 		}
 		else {
-			return null;
-			// FIXME поставить как исправится баг
-			//throw new Exception("Nothing to fetch");
-		}
-	}
+            return null;
+            // FIXME поставить как исправится баг
+            //throw new Exception("Nothing to fetch");
+        }
+    }
 
-	public function fetchRow() {
-		return array_shift($this->result);
-	}
+    public function fetchRow()
+    {
+        return array_shift($this->result);
+    }
 
-	public function fetchRowSet($key = null) {
+    public function fetchRowSet($uniqueKey = null)
+    {
 
-		$array = [];
-		while($row = $this->fetchRow()) {
-			if($key) {
-				$array[$row[$key]] = $row;
-			}
-			else {
-				$array[] = $row;
-			}
-		}
+        $array = [];
+        while ($row = $this->fetchRow()) {
+            if ($uniqueKey) {
+                $array[$row[$uniqueKey]] = $row;
+            } else {
+                $array[] = $row;
+            }
+        }
 
-		return $array;
-	}
+        return $array;
+    }
 
-	/**
-	 * @param string $table
-	 * @param array  $content
-	 * @param null   $return
-	 *
-	 * @return DBD|mixed
-	 */
-	public function insert($table, $content, $return = null) {
-		$this->dropVars();
+    /**
+     * @param string $table
+     * @param array $args
+     * @param null $return
+     *
+     * @return DBD|mixed
+     */
+    public function insert(string $table, array $args, $return = null)
+    {
+        $this->dropVars();
 
-		/*
-		$insert = $this->metadata($table);
+        /*
+        $insert = $this->metadata($table);
 
-		foreach ($insert as $key => &$option) {
-			// if we have defined such field
-			if (isset($data[$key])) {
-				// check options
-				if (array_keys($option) !== range(0, count($option) - 1)) { // associative
-					// TODO: check value type
-					$option = $data[$key];
-				} else {
-					$option = array();
-					$i = 1;
-					foreach ($data[$key] as $row) {
-						// TODO: check value type
-						$option[] = $row;
-						$i++;
-					}
-				}
-			} else {
-				if (array_keys($option) !== range(0, count($option) - 1)) { // associative
-					if ($option['Nullable']) {
-						$option = null;
-					} else {
-						throw new Exception("$key can't be null");
-					}
-				} else {
-					$option = array();
-				}
-			}
-		}
-		*/
+        foreach ($insert as $key => &$option) {
+            // if we have defined such field
+            if (isset($data[$key])) {
+                // check options
+                if (array_keys($option) !== range(0, count($option) - 1)) { // associative
+                    // TODO: check value type
+                    $option = $data[$key];
+                } else {
+                    $option = array();
+                    $i = 1;
+                    foreach ($data[$key] as $row) {
+                        // TODO: check value type
+                        $option[] = $row;
+                        $i++;
+                    }
+                }
+            } else {
+                if (array_keys($option) !== range(0, count($option) - 1)) { // associative
+                    if ($option['Nullable']) {
+                        $option = null;
+                    } else {
+                        throw new Exception("$key can't be null");
+                    }
+                } else {
+                    $option = array();
+                }
+            }
+        }
+        */
 
-        $this->setupRequest($this->Config->getHost() . $table . '?$format=application/json;odata=nometadata&', "POST", json_encode($content, JSON_UNESCAPED_UNICODE));
+        $this->setupRequest($this->Config->getHost() . $table . '?$format=application/json;odata=nometadata&', "POST", json_encode($args, JSON_UNESCAPED_UNICODE));
         $this->_connect();
 
         return json_decode($this->body, true);
@@ -606,21 +601,22 @@ class OData extends DBD
         return json_decode($this->body, true);
     }
 
-	protected function tryGetFromCache() {
-		// If we have cache driver
-		if(isset($this->CacheDriver)) {
-			// we set cache via $sth->cache('blabla');
-			if($this->cache['key'] !== null) {
-				// getting result
-				$this->cache['result'] = $this->CacheDriver->get($this->cache['key']);
+	protected function tryGetFromCache()
+    {
+        // If we have cache driver
+        if (isset($this->Config->CacheDriver)) {
+            // we set cache via $sth->cache('blabla');
+            if ($this->cache['key'] !== null) {
+                // getting result
+                $this->cache['result'] = $this->Config->CacheDriver->get($this->cache['key']);
 
-				// Cache not empty?
-				if($this->cache['result'] && $this->cache['result'] !== false) {
-					// set to our class var and count rows
-					$this->result = $this->cache['result'];
-					$this->rows = count($this->cache['result']);
-				}
-			}
+                // Cache not empty?
+                if ($this->cache['result'] && $this->cache['result'] !== false) {
+                    // set to our class var and count rows
+                    $this->result = $this->cache['result'];
+                    $this->rows = count($this->cache['result']);
+                }
+            }
 		}
 
 		return $this;
@@ -767,9 +763,9 @@ class OData extends DBD
 			$this->rows = count($this->result);
 			// If we want to store to the cache
 			if($this->cache['key'] !== null) {
-				// Setting up our cache
-				$this->CacheDriver->set($this->cache['key'], $this->result, $this->cache['expire']);
-			}
+                // Setting up our cache
+                $this->Config->CacheDriver->set($this->cache['key'], $this->result, $this->cache['expire']);
+            }
 		}
 
 		return $this;
@@ -813,26 +809,28 @@ class OData extends DBD
 		];
 		$entities = [
 			' ',
-			"'",
-		];
-		$string = str_replace($replacements, $entities, $string);
+            "'",
+        ];
+        $string = str_replace($replacements, $entities, $string);
 
-		return $string;
-	}
+        return $string;
+    }
 
-	/**
-	 * @return void
-	 */
-	protected function _setApplicationName() {
-		$this->applicationNameIsSet = true;
-	}
+    /**
+     * @return void
+     */
+    protected function _setApplicationName(): void
+    {
+        $this->applicationNameIsSet = true;
+    }
 
-	/**
-	 * @param string|null $binaryString
-	 *
-	 * @return string|null
-	 */
-	protected function _binaryEscape(?string $binaryString): ?string {
-		// TODO: Implement _binaryEscape() method.
+    /**
+     * @param string|null $binaryString
+     *
+     * @return string|null
+     */
+    protected function _binaryEscape(?string $binaryString): ?string
+    {
+        // TODO: Implement _binaryEscape() method.
 	}
 }

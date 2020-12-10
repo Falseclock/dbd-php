@@ -36,12 +36,6 @@ final class Options
     private $applicationName = "DBD-PHP";
     /** @var string $placeHolder */
     private $placeHolder = "?";
-    /** @var bool $setApplicationOnDelete if true, then before each update driver will execute 'set application_name to my_application;' */
-    private $setApplicationOnDelete = false;
-    /** @var bool $setApplicationOnInsert if true, then before each update driver will execute 'set application_name to my_application;' */
-    private $setApplicationOnInsert = false;
-    /** @var bool $setApplicationOnUpdate if true, then before each update driver will execute 'set application_name to my_application;' */
-    private $setApplicationOnUpdate = false;
 
     /**
      * Options constructor.
@@ -242,66 +236,6 @@ final class Options
     public function setRaiseError(bool $raiseError): Options
     {
         $this->raiseError = $raiseError;
-
-        return $this;
-    }
-
-    /**
-     * @return bool
-     */
-    public function isSetApplicationOnDelete(): bool
-    {
-        return $this->setApplicationOnDelete;
-    }
-
-    /**
-     * @param bool $onDelete
-     *
-     * @return Options
-     */
-    public function setSetApplicationOnDelete(bool $onDelete): Options
-    {
-        $this->setApplicationOnDelete = $onDelete;
-
-        return $this;
-    }
-
-    /**
-     * @return bool
-     */
-    public function isSetApplicationOnInsert(): bool
-    {
-        return $this->setApplicationOnInsert;
-    }
-
-    /**
-     * @param bool $onInsert
-     *
-     * @return Options
-     */
-    public function setSetApplicationOnInsert(bool $onInsert): Options
-    {
-        $this->setApplicationOnInsert = $onInsert;
-
-        return $this;
-    }
-
-    /**
-     * @return bool
-     */
-    public function isSetApplicationOnUpdate(): bool
-    {
-        return $this->setApplicationOnUpdate;
-    }
-
-    /**
-     * @param bool $onUpdate
-     *
-     * @return Options
-     */
-    public function setSetApplicationOnUpdate(bool $onUpdate): Options
-    {
-        $this->setApplicationOnUpdate = $onUpdate;
 
         return $this;
     }

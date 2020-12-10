@@ -7,6 +7,7 @@
  * @license   https://en.wikipedia.org/wiki/MIT_License MIT License
  * @link      https://github.com/Falseclock/dbd-php
  */
+declare(strict_types=1);
 
 namespace DBD\Tests;
 
@@ -15,6 +16,7 @@ use DBD\Base\Options;
 use DBD\Cache\MemCache;
 use DBD\Common\DBDException;
 use DBD\Pg;
+use Exception;
 use PHPUnit\Framework\TestCase;
 use Psr\SimpleCache\InvalidArgumentException;
 use ReflectionException;
@@ -27,6 +29,8 @@ class PgTest extends TestCase
     private $options;
     /** @var Config */
     private $config;
+    /**  @var MemCache */
+    private $memcache;
 
     /**
      * PgTest constructor.
@@ -46,11 +50,11 @@ class PgTest extends TestCase
         $password = getenv('PGPASSWORD') ?: '';
 
         // @todo make connection to cache on demand
-        $memcache = new MemCache([[MemCache::HOST => '127.0.0.1', MemCache::PORT => 11211]]);
-        $memcache->connect();
+        $this->memcache = new MemCache([[MemCache::HOST => '127.0.0.1', MemCache::PORT => 11211]]);
+        $this->memcache->connect();
 
         $this->config = new Config($host, $port, $database, $user, $password);
-        $this->config->setCacheDriver($memcache);
+        $this->config->setCacheDriver($this->memcache);
 
         $this->options = new Options();
         $this->db = new Pg($this->config, $this->options);
@@ -110,6 +114,36 @@ class PgTest extends TestCase
 
     /**
      * @throws DBDException
+     */
+    public function testRollbackWithoutBegin()
+    {
+        self::expectException(DBDException::class);
+        $this->db->rollback();
+    }
+
+    /**
+     * @throws DBDException
+     */
+    public function testCommitWithoutConnection()
+    {
+        $this->db->disconnect();
+        self::expectException(DBDException::class);
+        $this->db->commit();
+    }
+
+    /**
+     * @throws DBDException
+     */
+    public function testCommitWithoutTransaction()
+    {
+        $this->options->setOnDemand(false);
+        $this->db->connect();
+        self::expectException(DBDException::class);
+        $this->db->commit();
+    }
+
+    /**
+     * @throws DBDException
      * @throws InvalidArgumentException
      * @throws ReflectionException
      * @noinspection SqlResolve
@@ -117,6 +151,7 @@ class PgTest extends TestCase
      */
     public function testDo()
     {
+        $this->db->do("DROP TABLE IF EXISTS test_do");
         // Test regular
         self::assertSame(0, $this->db->do("CREATE TABLE test_do (id serial, test int)"));
         self::assertSame(1, $this->db->do("INSERT INTO test_do (test) VALUES (1)"));
@@ -151,6 +186,7 @@ class PgTest extends TestCase
      */
     public function testQuery()
     {
+        $this->db->do("DROP TABLE IF EXISTS test_query");
         // Test regular
         self::assertInstanceOf(Pg::class, $this->db->query("CREATE TABLE test_query (id serial, test int)"));
         self::assertInstanceOf(Pg::class, $this->db->query("INSERT INTO test_query (test) VALUES (1)"));
@@ -270,6 +306,7 @@ class PgTest extends TestCase
      * @throws DBDException
      * @throws InvalidArgumentException
      * @throws ReflectionException
+     * @throws Exception
      */
     public function testFetch()
     {
@@ -307,6 +344,7 @@ class PgTest extends TestCase
             }
             $i++;
         }
+        self::assertSame(10, $i);
 
         $this->options->setConvertNumeric(true);
         $this->options->setConvertBoolean(true);
@@ -341,15 +379,14 @@ class PgTest extends TestCase
                     self::assertSame("true", $value);
                     break;
                 case 8:
-                    self::assertIsBool($value);
-                    self::assertFalse($value);
-                    break;
                 case 9:
-                    self::assertSame("false", $value);
-                    break;
+                    throw new Exception("impossible situation");
             }
             $i++;
         }
+        // Last two columns are false while ($value = $sth->fetch()) exits
+        self::assertSame(8, $i);
+
     }
 
     /**
@@ -450,5 +487,225 @@ class PgTest extends TestCase
     public function testGetOptions()
     {
         self::assertInstanceOf(Options::class, $this->db->getOptions());
+    }
+
+    /**
+     * @throws DBDException
+     * @throws InvalidArgumentException
+     * @throws ReflectionException
+     * @noinspection SqlResolve
+     */
+    public function testFetchRow()
+    {
+        $sth = $this->db->prepare("CREATE TABLE test_fetch_row AS SELECT id, id%2 > 0 AS bool_var from generate_series(1,10) id");
+        $sth->execute();
+
+        $this->options->setConvertNumeric(false);
+        $this->options->setConvertBoolean(false);
+
+        $sth = $this->db->prepare("SELECT * FROM test_fetch_row ORDER BY id");
+        $sth->execute();
+
+        $i = 0;
+        while ($row = $sth->fetchRow()) {
+            $i++;
+            self::assertSame((string)$i, $row['id']);
+
+            if ($i % 2)
+                self::assertSame("t", $row['bool_var']);
+            else
+                self::assertSame("f", $row['bool_var']);
+        }
+        self::assertSame(10, $i);
+
+        $this->options->setConvertNumeric(true);
+        $this->options->setConvertBoolean(true);
+
+        $sth = $this->db->prepare("SELECT * FROM test_fetch_row ORDER BY id");
+        $sth->execute();
+
+        $i = 0;
+        while ($row = $sth->fetchRow()) {
+            $i++;
+            self::assertSame($i, $row['id']);
+
+            if ($i % 2)
+                self::assertTrue($row['bool_var']);
+            else
+                self::assertFalse($row['bool_var']);
+        }
+        self::assertSame(10, $i);
+
+        $this->db->do("DROP TABLE test_fetch_row");
+
+    }
+
+    /**
+     * @throws DBDException
+     * @throws InvalidArgumentException
+     * @throws ReflectionException
+     * @noinspection SqlResolve
+     */
+    public function testFetchRowSet()
+    {
+        $this->db->do("DROP TABLE IF EXISTS test_fetch_row_set");
+
+        $sth = $this->db->prepare("CREATE TABLE test_fetch_row_set AS SELECT id, id%2 > 0 AS bool_var from generate_series(1,10) id");
+        $sth->execute();
+
+        $this->options->setConvertNumeric(false);
+        $this->options->setConvertBoolean(false);
+        $sth = $this->db->prepare("SELECT * FROM test_fetch_row_set ORDER BY id");
+        $sth->execute();
+
+        $set = $sth->fetchRowSet();
+
+        self::assertCount(10, $set);
+
+        $i = 0;
+        foreach ($set as $row) {
+            $i++;
+            self::assertSame((string)$i, $row['id']);
+
+            if ($i % 2)
+                self::assertSame("t", $row['bool_var']);
+            else
+                self::assertSame("f", $row['bool_var']);
+        }
+
+        $this->options->setConvertNumeric(true);
+        $this->options->setConvertBoolean(true);
+
+        $sth = $this->db->prepare("SELECT * FROM test_fetch_row_set ORDER BY id");
+        $sth->execute();
+
+        $set = $sth->fetchRowSet();
+
+        self::assertCount(10, $set);
+
+        $i = 0;
+        foreach ($set as $row) {
+            $i++;
+            self::assertSame($i, $row['id']);
+
+            if ($i % 2)
+                self::assertTrue($row['bool_var']);
+            else
+                self::assertFalse($row['bool_var']);
+        }
+    }
+
+    /**
+     * @throws DBDException
+     * @throws InvalidArgumentException
+     * @throws ReflectionException
+     * @noinspection SqlResolve
+     */
+    public function testFetchRowSetWithKey()
+    {
+        $this->db->do("DROP TABLE IF EXISTS test_fetch_row_set");
+
+        $sth = $this->db->prepare("CREATE TABLE test_fetch_row_set AS SELECT id, id%2 > 0 AS bool_var from generate_series(1,10) id");
+        $sth->execute();
+
+        $this->options->setConvertNumeric(false);
+        $this->options->setConvertBoolean(false);
+        $sth = $this->db->prepare("SELECT * FROM test_fetch_row_set ORDER BY id");
+        $sth->execute();
+
+        $set = $sth->fetchRowSet('id');
+
+        self::assertCount(10, $set);
+
+        $i = 0;
+        foreach ($set as $id => $row) {
+            $i++;
+            self::assertSame($i, $id);
+            self::assertSame((string)$i, $row['id']);
+
+            if ($i % 2)
+                self::assertSame("t", $row['bool_var']);
+            else
+                self::assertSame("f", $row['bool_var']);
+        }
+
+        $this->options->setConvertNumeric(true);
+        $this->options->setConvertBoolean(true);
+
+        $sth = $this->db->prepare("SELECT * FROM test_fetch_row_set ORDER BY id");
+        $sth->execute();
+
+        $set = $sth->fetchRowSet('id');
+
+        self::assertCount(10, $set);
+
+        $i = 0;
+        foreach ($set as $id => $row) {
+            $i++;
+            self::assertSame($i, $id);
+            self::assertSame($i, $row['id']);
+
+            if ($i % 2)
+                self::assertTrue($row['bool_var']);
+            else
+                self::assertFalse($row['bool_var']);
+        }
+
+        $this->db->do("INSERT INTO test_fetch_row_set(id) VALUES (?)", 1);
+        $sth = $this->db->prepare("SELECT * FROM test_fetch_row_set ORDER BY id");
+        $sth->execute();
+
+        self::expectException(DBDException::class);
+        $sth->fetchRowSet('id');
+
+    }
+
+    /**
+     * @throws DBDException
+     * @throws InvalidArgumentException
+     * @throws ReflectionException
+     */
+    public function testGetPreparedQuery()
+    {
+        $sth = $this->db->prepare("SELECT 1, ?");
+        self::expectException(DBDException::class);
+        $sth->execute();
+    }
+
+    /**
+     * @throws DBDException
+     */
+    public function testCacheNoDriver()
+    {
+        $this->config->setCacheDriver(null);
+        $this->db->prepare("SELECT 1");
+        $this->db->cache(__METHOD__);
+
+        self::expectNotToPerformAssertions();
+    }
+
+    /**
+     * @throws DBDException
+     */
+    public function testCacheNoQuery()
+    {
+        $this->config->setCacheDriver($this->memcache);
+        self::expectException(DBDException::class);
+        self::expectExceptionMessage("SQL statement not prepared");
+        $this->db->cache(__METHOD__);
+    }
+
+    /**
+     * @throws DBDException
+     */
+    public function testCacheNoSelect()
+    {
+        $this->config->setCacheDriver($this->memcache);
+
+        self::expectException(DBDException::class);
+        self::expectExceptionMessage("Caching setup failed, current query is not of SELECT type");
+
+        $sth = $this->db->prepare(" \t    \r\n\r\nDELETE FROM TEST WHERE SELECT");
+        $sth->cache(__METHOD__);
     }
 }

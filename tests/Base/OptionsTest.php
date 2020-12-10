@@ -7,6 +7,7 @@
  * @license   https://en.wikipedia.org/wiki/MIT_License MIT License
  * @link      https://github.com/Falseclock/dbd-php
  */
+declare(strict_types=1);
 
 namespace DBD\Tests\Base;
 
@@ -28,9 +29,6 @@ class OptionsTest extends TestCase
         self::assertEquals("DBD-PHP", $options->getApplicationName());
         self::assertNotNull($options->getPlaceHolder());
         self::assertSame("?", $options->getPlaceHolder());
-        self::assertFalse($options->isSetApplicationOnDelete());
-        self::assertFalse($options->isSetApplicationOnInsert());
-        self::assertFalse($options->isSetApplicationOnUpdate());
     }
 
     public function testConstructOverride()
@@ -131,36 +129,6 @@ class OptionsTest extends TestCase
 
         $options->setRaiseError(false);
         self::assertFalse($options->isRaiseError());
-    }
-
-    public function testSetApplicationOnDelete()
-    {
-        $options = new Options();
-        $options->setSetApplicationOnDelete(true);
-        self::assertTrue($options->isSetApplicationOnDelete());
-
-        $options->setSetApplicationOnDelete(false);
-        self::assertFalse($options->isSetApplicationOnDelete());
-    }
-
-    public function testSetApplicationOnInsert()
-    {
-        $options = new Options();
-        $options->setSetApplicationOnInsert(true);
-        self::assertTrue($options->isSetApplicationOnInsert());
-
-        $options->setSetApplicationOnInsert(false);
-        self::assertFalse($options->isSetApplicationOnInsert());
-    }
-
-    public function testSetApplicationOnUpdate()
-    {
-        $options = new Options();
-        $options->setSetApplicationOnUpdate(true);
-        self::assertTrue($options->isSetApplicationOnUpdate());
-
-        $options->setSetApplicationOnUpdate(false);
-        self::assertFalse($options->isSetApplicationOnUpdate());
     }
 
     public function testShowErrorStatement()

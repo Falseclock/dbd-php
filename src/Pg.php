@@ -6,8 +6,9 @@
  * @copyright 2020 Nurlan Mukhanov
  * @license   https://en.wikipedia.org/wiki/MIT_License MIT License
  * @link      https://github.com/Falseclock/dbd-php
- * @noinspection PhpComposerExtensionStubsInspection
  */
+
+declare(strict_types=1);
 
 namespace DBD;
 
@@ -121,7 +122,7 @@ class Pg extends DBD
      *
      * @return string
      */
-    protected function _compileInsert($table, $params, $return = "")
+    protected function _compileInsert($table, $params, $return = ""): string
     {
         return "INSERT INTO $table ({$params['COLUMNS']}) VALUES ({$params['VALUES']})" . ($return ? " RETURNING {$return}" : "");
     }
@@ -276,7 +277,7 @@ class Pg extends DBD
      *
      * @return string
      */
-    protected function _errorMessage()
+    protected function _errorMessage(): string
     {
         if ($this->resourceLink)
             return pg_last_error($this->resourceLink);
@@ -287,11 +288,11 @@ class Pg extends DBD
     /**
      * Escapes a string for querying the database.
      *
-     * @param $value
+     * @param mixed $value
      *
      * @return string
      */
-    protected function _escape(string $value): string
+    protected function _escape($value): string
     {
         if (!isset($value)) {
             return "NULL";
@@ -302,7 +303,7 @@ class Pg extends DBD
         if (is_bool($value)) {
             return ($value) ? "TRUE" : "FALSE";
         }
-        $str = pg_escape_string($value);
+        $str = pg_escape_string((string)$value);
 
         return "'$str'";
     }
@@ -349,26 +350,17 @@ class Pg extends DBD
     }
 
     /**
-     * Will return the number of rows in a PostgreSQL result resource.
-     *
-     * @return int
-     */
-    protected function _numRows(): int
-    {
-        return pg_affected_rows($this->result);
-    }
-
-    /**
      * @param $uniqueName
      * @param $statement
      *
-     * @return mixed
+     * @return bool|null
      * @see MSSQL::_prepare
      * @see MySQL::_prepare
      * @see OData::_prepare
      * @see Pg::_prepare
+     * @inheritDoc
      */
-    protected function _prepare($uniqueName, $statement)
+    protected function _prepare(string $uniqueName, string $statement): bool
     {
         try {
             $return = pg_prepare($this->resourceLink, $uniqueName, $statement);
@@ -376,23 +368,23 @@ class Pg extends DBD
             return false;
         }
 
-        return $return;
+        return $return !== false;
     }
 
     /**
      * Sends ROLLBACK; command
      *
-     * @return resource
+     * @return bool
      */
-    protected function _rollback()
+    protected function _rollback(): bool
     {
-        return $this->_query("ROLLBACK;");
+        return $this->_query("ROLLBACK;") !== null;
     }
 
     /**
      * @return void
      */
-    protected function _setApplicationName()
+    protected function _setApplicationName(): void
     {
         if (!$this->applicationNameIsSet)
             $this->_query(sprintf("SET application_name TO '%s'", pg_escape_string($this->Options->getApplicationName())));

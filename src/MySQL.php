@@ -57,12 +57,12 @@ class MySQL extends DBD
         return mysqli_begin_transaction($this->resourceLink);
     }
 
-    protected function _commit()
+    protected function _commit(): bool
     {
         return mysqli_commit($this->resourceLink);
     }
 
-    protected function _compileInsert($table, $params, $return = "")
+    protected function _compileInsert($table, $params, $return = ""): string
     {
         return "INSERT INTO $table ({$params['COLUMNS']}) VALUES ({$params['VALUES']})";
     }
@@ -97,12 +97,12 @@ class MySQL extends DBD
         return mysqli_close($this->resourceLink);
     }
 
-    protected function _errorMessage()
+    protected function _errorMessage(): string
     {
         return mysqli_error($this->resourceLink);
     }
 
-    protected function _escape(string $value): string
+    protected function _escape($value): string
     {
         if (!isset($value) or $value === null) {
             return "NULL";
@@ -136,58 +136,55 @@ class MySQL extends DBD
         return mysqli_fetch_assoc($this->resourceLink);
     }
 
-    protected function _numRows(): int
+    /**
+     * @param $uniqueName
+     *
+     * @param $statement
+     *
+     * @return mixed
+     * @see MSSQL::_prepare
+     * @see MySQL::_prepare
+     * @see OData::_prepare
+     * @see Pg::_prepare
+     */
+    protected function _prepare($uniqueName, $statement): bool
     {
-        if (preg_match('/\s*(SELECT|UPDATE|DELETE|INSERT)\s+/', $this->query)) {
-            return mysqli_num_rows($this->result);
-        } else {
-            return 0;
-        }
+        // TODO: Implement _prepare() method.
+    }
+
+    protected function _query($statement)
+    {
+        return mysqli_query($this->resourceLink, $statement);
+    }
+
+    protected function _rollback(): bool
+    {
+        return mysqli_rollback($this->resourceLink);
     }
 
     /**
-     * @param $uniqueName
-	 *
-	 * @param $statement
-	 *
-	 * @return mixed
-	 * @see MSSQL::_prepare
-	 * @see MySQL::_prepare
-	 * @see OData::_prepare
-	 * @see Pg::_prepare
-	 */
-	protected function _prepare($uniqueName, $statement) {
-		// TODO: Implement _prepare() method.
-	}
+     * @inheritDoc
+     */
+    protected function _dump(string $preparedQuery, string $fileName, string $delimiter, string $nullString, bool $showHeader, string $tmpPath)
+    {
+        // TODO: Implement _dump() method.
+    }
 
-	protected function _query($statement) {
-		return mysqli_query($this->resourceLink, $statement);
-	}
+    /**
+     * @return void
+     */
+    protected function _setApplicationName(): void
+    {
+        $this->applicationNameIsSet = true;
+    }
 
-	protected function _rollback() {
-		return mysqli_rollback($this->resourceLink);
-	}
-
-	/**
-	 * @inheritDoc
-	 */
-	protected function _dump(string $preparedQuery, string $fileName, string $delimiter, string $nullString, bool $showHeader, string $tmpPath) {
-		// TODO: Implement _dump() method.
-	}
-
-	/**
-	 * @return void
-	 */
-	protected function _setApplicationName() {
-		$this->applicationNameIsSet = true;
-	}
-
-	/**
-	 * @param string|null $binaryString
-	 *
-	 * @return string|null
-	 */
-	protected function _binaryEscape(?string $binaryString): ?string {
-		// TODO: Implement _binaryEscape() method.
+    /**
+     * @param string|null $binaryString
+     *
+     * @return string|null
+     */
+    protected function _binaryEscape(?string $binaryString): ?string
+    {
+        // TODO: Implement _binaryEscape() method.
 	}
 }

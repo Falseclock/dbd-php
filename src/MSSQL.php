@@ -81,19 +81,22 @@ class MSSQL extends DBD
         }
 
         return $return;
-	}
+    }
 
-	protected function _begin() {
-		return sqlsrv_begin_transaction($this->resourceLink);
-	}
+    protected function _begin()
+    {
+        return sqlsrv_begin_transaction($this->resourceLink);
+    }
 
-	protected function _commit() {
-		return sqlsrv_commit($this->resourceLink);
-	}
+    protected function _commit(): bool
+    {
+        return sqlsrv_commit($this->resourceLink);
+    }
 
-	protected function _compileInsert($table, $params, $return = "") {
-		return "INSERT INTO $table ({$params['COLUMNS']}) VALUES ({$params['VALUES']})";
-	}
+    protected function _compileInsert($table, $params, $return = ""): string
+    {
+        return "INSERT INTO $table ({$params['COLUMNS']}) VALUES ({$params['VALUES']})";
+    }
 
     protected function _compileUpdate($table, $params, $where, $return = "")
     {
@@ -124,14 +127,14 @@ class MSSQL extends DBD
         return sqlsrv_close($this->resourceLink);
     }
 
-    protected function _errorMessage()
+    protected function _errorMessage(): string
     {
         $errors = sqlsrv_errors();
 
         return preg_replace('/^(\[.*\])+?/', '', $errors[0]['message']) . " SQL State: " . $errors[0]['SQLSTATE'] . ". Code: " . $errors[0]['code'];
     }
 
-    protected function _escape(string $str): string
+    protected function _escape($str): string
     {
         if (!isset($str) or $str === null) {
             return "NULL";
@@ -198,69 +201,65 @@ class MSSQL extends DBD
         return sqlsrv_num_fields($this->result);
     }
 
-    protected function _numRows(): int
+    /**
+     * @param $uniqueName
+     *
+     * @param $statement
+     *
+     * @return mixed
+     * @see MSSQL::_prepare
+     * @see MySQL::_prepare
+     * @see OData::_prepare
+     * @see Pg::_prepare
+     */
+    protected function _prepare($uniqueName, $statement): bool
     {
-        if (preg_match('/^(\s*?)(SELECT)\s*?.*?/i', $this->query)) {
-            return sqlsrv_num_rows($this->result);
+        // TODO: Implement _prepare() method.
+    }
+
+    protected function _query($statement)
+    {
+
+        if ($this->cursorType !== null) {
+            return @sqlsrv_query($this->resourceLink, $statement, [], ["Scrollable" => $this->cursorType]);
         } else {
-            return $this->_rows();
+            if (preg_match('/^(\s*?)select\s*?.*?\s*?from/is', $this->query)) {
+                // TODO: make as selectable option
+                return @sqlsrv_query($this->resourceLink, $statement, [], ["Scrollable" => MSSQL::SQLSRV_CURSOR_STATIC]);
+            }
         }
+
+        return @sqlsrv_query($this->resourceLink, $statement);
+    }
+
+    protected function _rollback(): bool
+    {
+        return sqlsrv_rollback($this->resourceLink);
     }
 
     /**
-     * @param $uniqueName
-	 *
-	 * @param $statement
-	 *
-	 * @return mixed
-	 * @see MSSQL::_prepare
-	 * @see MySQL::_prepare
-	 * @see OData::_prepare
-	 * @see Pg::_prepare
-	 */
-	protected function _prepare($uniqueName, $statement) {
-		// TODO: Implement _prepare() method.
-	}
+     * @inheritDoc
+     */
+    protected function _dump(string $preparedQuery, string $fileName, string $delimiter, string $nullString, bool $showHeader, string $tmpPath)
+    {
+        // TODO: Implement _dump() method.
+    }
 
-	protected function _query($statement) {
+    /**
+     * @return void
+     */
+    protected function _setApplicationName(): void
+    {
+        $this->applicationNameIsSet = true;
+    }
 
-		if($this->cursorType !== null) {
-			return @sqlsrv_query($this->resourceLink, $statement, [], [ "Scrollable" => $this->cursorType ]);
-		}
-		else {
-			if(preg_match('/^(\s*?)select\s*?.*?\s*?from/is', $this->query)) {
-				// TODO: make as selectable option
-				return @sqlsrv_query($this->resourceLink, $statement, [], [ "Scrollable" => MSSQL::SQLSRV_CURSOR_STATIC ]);
-			}
-		}
-
-		return @sqlsrv_query($this->resourceLink, $statement);
-	}
-
-	protected function _rollback() {
-		return sqlsrv_rollback($this->resourceLink);
-	}
-
-	/**
-	 * @inheritDoc
-	 */
-	protected function _dump(string $preparedQuery, string $fileName, string $delimiter, string $nullString, bool $showHeader, string $tmpPath) {
-		// TODO: Implement _dump() method.
-	}
-
-	/**
-	 * @return void
-	 */
-	protected function _setApplicationName() {
-		$this->applicationNameIsSet = true;
-	}
-
-	/**
-	 * @param string|null $binaryString
-	 *
-	 * @return string|null
-	 */
-	protected function _binaryEscape(?string $binaryString): ?string {
-		// TODO: Implement _binaryEscape() method.
+    /**
+     * @param string|null $binaryString
+     *
+     * @return string|null
+     */
+    protected function _binaryEscape(?string $binaryString): ?string
+    {
+        // TODO: Implement _binaryEscape() method.
 	}
 }

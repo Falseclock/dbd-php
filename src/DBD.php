@@ -1,24 +1,14 @@
 <?php
 /**
- * DBD package
- * MIT License
- * Copyright (C) 2009-2019 by Nurlan Mukhanov <nurike@gmail.com>
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- * The above copyright notice and this permission notice shall be included in all
- * copies or substantial portions of the Software.
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
+ * DBD
+ *
+ * @author    Nurlan Mukhanov <nurike@gmail.com>
+ * @copyright 2020 Nurlan Mukhanov
+ * @license   https://en.wikipedia.org/wiki/MIT_License MIT License
+ * @link      https://github.com/Falseclock/dbd-php
  */
+
+declare(strict_types=1);
 
 namespace DBD;
 
@@ -33,7 +23,6 @@ use DBD\Entity\Common\EntityException;
 use DBD\Entity\Constraint;
 use DBD\Entity\Entity;
 use DBD\Entity\Primitive;
-use Psr\SimpleCache\CacheInterface;
 use Psr\SimpleCache\InvalidArgumentException;
 use ReflectionClass;
 use ReflectionException;
@@ -52,8 +41,6 @@ abstract class DBD
     const UNDEFINED = "UNDEF";
     /** @var array $preparedStatements */
     private static $preparedStatements = [];
-    /** @var CacheInterface */
-    public $CacheDriver;
     /** @var Config $Config */
     protected $Config;
     /** @var Options $Options */
@@ -97,7 +84,6 @@ abstract class DBD
     final public function __construct(Config $config, Options $options = null)
     {
         $this->Config = $config;
-        $this->CacheDriver = $config->getCacheDriver();
 
         if (!is_null($options))
             $this->Options = $options;
@@ -118,21 +104,13 @@ abstract class DBD
      *
      * @throws DBDException
      */
-    public function cache($key, $ttl = null)
+    public function cache(string $key, $ttl = null)
     {
-        if (!isset($this->CacheDriver)) {
-            //throw new DBDException("CacheDriver not initialized");
+        if (!isset($this->Config->cacheDriver))
             return;
-        }
-        if (!isset($key) or !$key) {
-            throw new DBDException("caching failed: key is not set or empty");
-        }
-        if (!is_string($key)) {
-            throw new DBDException("key is not string type");
-        }
-        if (!isset($this->query)) {
+
+        if (!isset($this->query))
             throw new DBDException("SQL statement not prepared");
-        }
 
         if (preg_match("/^[\s\t\r\n]*select/i", $this->query)) {
             // set hash key
@@ -141,9 +119,8 @@ abstract class DBD
             if ($ttl !== null)
                 $this->cache['expire'] = $ttl;
         } else {
-            throw new DBDException("caching failed: current query is not of SELECT type");
+            throw new DBDException("Caching setup failed, current query is not of SELECT type");
         }
-
     }
 
     /**
@@ -226,7 +203,7 @@ abstract class DBD
      * Example 1:
      * ```
      * $sth = $db->query("SELECT * FROM invoices");
-     * while ($row = $sth->fetchrow()) {
+     * while ($row = $sth->fetchRow()) {
      *      //do something
      * }
      * ```
@@ -275,7 +252,6 @@ abstract class DBD
         $class = new $className($this->Config, $this->Options);
 
         $class->resourceLink = &$this->resourceLink;
-        $class->CacheDriver = &$this->CacheDriver;
         $class->inTransaction = &$this->inTransaction;
         $class->query = $statement;
 
@@ -289,7 +265,6 @@ abstract class DBD
      * @throws DBDException
      * @throws InvalidArgumentException
      * @throws ReflectionException
-     * @throws \Exception
      */
     public function execute()
     {
@@ -303,13 +278,13 @@ abstract class DBD
         //--------------------------------------
         // Is query uses cache?
         //--------------------------------------
-        if (isset($this->CacheDriver)) {
+        if (isset($this->Config->cacheDriver)) {
             if ($this->cache['key'] !== null) {
                 // Get data from cache
                 if ($this->Options->isUseDebug()) {
                     Debug::me()->startTimer();
                 }
-                $this->cache['result'] = $this->CacheDriver->get($this->cache['key']);
+                $this->cache['result'] = $this->Config->cacheDriver->get($this->cache['key']);
 
                 // Cache not empty?
                 if ($this->cache['result'] !== false) {
@@ -334,7 +309,7 @@ abstract class DBD
 
                 if (!in_array($uniqueName, self::$preparedStatements)) {
                     self::$preparedStatements[] = $uniqueName;
-                    $prepareResult = $this->_prepare($uniqueName, $preparedQuery);
+                    $prepareResult = $this->_prepare((string)$uniqueName, $preparedQuery);
 
                     if ($prepareResult === false) {
                         throw new DBDException ($this->_errorMessage(), $preparedQuery);
@@ -343,7 +318,6 @@ abstract class DBD
 
                 $this->result = $this->_execute($uniqueName, Helper::parseArgs($executeArguments));
             } else {
-                $this->checkStatement($preparedQuery);
                 // Execute query to the database
                 $this->result = $this->_query($preparedQuery);
             }
@@ -352,7 +326,7 @@ abstract class DBD
             if (is_null($this->result)) {
                 throw new DBDException ($this->_errorMessage(), $preparedQuery, $this->Options->isPrepareExecute() ? Helper::parseArgs($executeArguments) : null);
             } else {
-                $this->rows = $this->_numRows();
+                $this->rows = $this->_rows();
                 $this->storage = self::STORAGE_DATABASE;
             }
 
@@ -378,7 +352,7 @@ abstract class DBD
                 $this->cache['key'] = $storedKey;
 
                 // Setting up our cache
-                $this->CacheDriver->set($this->cache['key'], $this->cache['result'], $this->cache['expire']);
+                $this->Config->cacheDriver->set($this->cache['key'], $this->cache['result'], $this->cache['expire']);
             }
         }
 
@@ -408,7 +382,7 @@ abstract class DBD
      * @return string
      * @throws DBDException
      */
-    private function getPreparedQuery($ARGS, $overrideOption = false)
+    private function getPreparedQuery($ARGS, $overrideOption = false): string
     {
         $placeHolder = $this->Options->getPlaceHolder();
         $isPrepareExecute = $this->Options->isPrepareExecute();
@@ -419,9 +393,8 @@ abstract class DBD
 
         $numberOfArgs = count($executeArguments);
 
-        if ($binds != $numberOfArgs) {
+        if ($binds != $numberOfArgs)
             throw new DBDException("Execute failed: called with $numberOfArgs bind variables when $binds are needed", $this->query, $executeArguments);
-        }
 
         if ($numberOfArgs) {
             $query = str_split($this->query);
@@ -444,7 +417,7 @@ abstract class DBD
     }
 
     /**
-     * @param $value
+     * @param mixed $value
      *
      * @return mixed
      * @see MSSQL::_escape
@@ -453,7 +426,7 @@ abstract class DBD
      * @see Pg::_escape
      * @see getPreparedQuery
      */
-    abstract protected function _escape(string $value): string;
+    abstract protected function _escape($value): string;
 
     /**
      * Check connection existence and does connection if not
@@ -480,13 +453,13 @@ abstract class DBD
      * @param string $uniqueName
      * @param string $statement
      *
-     * @return mixed
+     * @return bool|null
      * @see MSSQL::_prepare
      * @see MySQL::_prepare
      * @see OData::_prepare
      * @see Pg::_prepare
      */
-    abstract protected function _prepare(string $uniqueName, string $statement);
+    abstract protected function _prepare(string $uniqueName, string $statement): ?bool;
 
     /**
      * @return string
@@ -495,7 +468,7 @@ abstract class DBD
      * @see OData::_errorMessage
      * @see Pg::_errorMessage
      */
-    abstract protected function _errorMessage();
+    abstract protected function _errorMessage(): string;
 
     /**
      * @param $uniqueName
@@ -510,63 +483,9 @@ abstract class DBD
     abstract protected function _execute($uniqueName, $arguments);
 
     /**
-     * @param string $statement
-     */
-    private function checkStatement(string $statement)
-    {
-        if ($this->applicationNameIsSet)
-            return;
-
-        if ($this->Options->isSetApplicationOnDelete() or $this->Options->isSetApplicationOnInsert() or $this->Options->isSetApplicationOnUpdate()) {
-            switch ($this->getQueryType($statement)) {
-                case 'INSERT':
-                    if ($this->Options->isSetApplicationOnInsert())
-                        $this->_setApplicationName();
-                    break;
-                case 'UPDATE':
-                    if ($this->Options->isSetApplicationOnUpdate())
-                        $this->_setApplicationName();
-                    break;
-                case 'DELETE':
-                    if ($this->Options->isSetApplicationOnDelete())
-                        $this->_setApplicationName();
-                    break;
-            }
-        }
-    }
-
-    /**
      * @param $statement
      *
-     * @return string|null
-     */
-    private function getQueryType($statement)
-    {
-        if (is_array($statement))
-            $statement = key($statement);
-
-        $matches = null;
-        if (!preg_match('/^\s*(SELECT|INSERT|REPLACE|UPDATE|DELETE)\b/si', $statement, $matches))
-            return null;
-
-        return strtoupper(trim($matches[1]));
-    }
-
-    /**
-     * @return void
-     * @see rows
-     * @see Pg::_setApplicationName
-     * @see MSSQL::_setApplicationName
-     * @see MySQL::_setApplicationName
-     * @see OData::_setApplicationName
-     * @see execute
-     */
-    abstract protected function _setApplicationName();
-
-    /**
-     * @param $statement
-     *
-     * @return mixed
+     * @return resource|null
      * @see MSSQL::_query
      * @see MySQL::_query
      * @see OData::_query
@@ -576,15 +495,14 @@ abstract class DBD
     abstract protected function _query($statement);
 
     /**
-     * @return mixed
+     * @return int number of updated or deleted rows
      * @see rows
-     * @see Pg::_numRows
-     * @see MSSQL::_numRows
-     * @see MySQL::_numRows
-     * @see OData::_numRows
-     * @see execute
+     * @see Pg::_rows
+     * @see MSSQL::_rows
+     * @see MySQL::_rows
+     * @see OData::_rows
      */
-    abstract protected function _numRows(): int;
+    abstract protected function _rows(): int;
 
     /**
      * Returns the number of rows in the result
@@ -601,28 +519,22 @@ abstract class DBD
     }
 
     /**
-     * @return int number of updated or deleted rows
-     * @see rows
-     * @see Pg::_rows
-     * @see MSSQL::_rows
-     * @see MySQL::_rows
-     * @see OData::_rows
-     */
-    abstract protected function _rows(): int;
-
-    /**
-     * @param null $key
+     * @param null $uniqueKey
      *
      * @return array|mixed
+     * @throws DBDException
      */
-    public function fetchRowSet($key = null)
+    public function fetchRowSet($uniqueKey = null): array
     {
         $array = [];
 
         if ($this->cache['key'] === null) {
             while ($row = $this->fetchRow()) {
-                if ($key) {
-                    $array[$row[$key]] = $row;
+                if ($uniqueKey) {
+                    if (!isset($array[$row[$uniqueKey]]))
+                        $array[$row[$uniqueKey]] = $row;
+                    else
+                        throw new DBDException("Key '{$row[$uniqueKey]}' not unique");
                 } else {
                     $array[] = $row;
                 }
@@ -631,9 +543,12 @@ abstract class DBD
             $cache = $this->cache['result'];
             $this->cache['result'] = [];
 
-            if ($key) {
+            if ($uniqueKey) {
                 foreach ($cache as $row) {
-                    $array[$row[$key]] = $row;
+                    if (!isset($array[$row[$uniqueKey]]))
+                        $array[$row[$uniqueKey]] = $row;
+                    else
+                        throw new DBDException("Key '{$row[$uniqueKey]}' not unique");
                 }
             } else {
                 $array = $cache;
@@ -644,16 +559,15 @@ abstract class DBD
     }
 
     /**
-     * @return mixed
+     * @return mixed|null
      */
     public function fetchRow()
     {
         if ($this->cache['key'] === null) {
             $return = $this->_fetchAssoc();
 
-            if ($this->Options->isConvertNumeric() || $this->Options->isConvertBoolean()) {
+            if ($this->Options->isConvertNumeric() || $this->Options->isConvertBoolean())
                 $this->_convertTypes($return);
-            }
 
             return $return;
         } else {
@@ -673,7 +587,6 @@ abstract class DBD
 
     /**
      * @param $data
-     * @param $type
      *
      * @return void
      * @see Pg::_convertTypes
@@ -686,7 +599,7 @@ abstract class DBD
     /**
      * Dumping result as CSV file
      *
-     * @param array $executeArguments
+     * @param array|null $executeArguments
      * @param string $fileName
      * @param string $delimiter
      * @param string $nullString
@@ -700,7 +613,6 @@ abstract class DBD
      */
     public function dump(?array $executeArguments = [], $fileName = "dump", $delimiter = "\\t", $nullString = "", $header = true, $tmpPath = "/tmp", $type = "csv", $utf8 = true)
     {
-
         $BOM = b"\xEF\xBB\xBF";
         $preparedQuery = $this->getPreparedQuery($executeArguments);
 
@@ -766,7 +678,6 @@ abstract class DBD
     abstract protected function _dump(string $preparedQuery, string $fileName, string $delimiter, string $nullString, bool $showHeader, string $tmpPath);
 
     /**
-     * @noinspection PhpUnused
      *
      * @param Entity $entity
      *
@@ -793,8 +704,6 @@ abstract class DBD
      * @param Entity $entity
      *
      * @return array
-     * @throws EntityException
-     * @throws DBDException
      */
     private function getPrimaryKeysForEntity(Entity $entity)
     {
@@ -828,9 +737,8 @@ abstract class DBD
      * @throws InvalidArgumentException
      * @throws ReflectionException
      */
-    public function entityInsert(Entity $entity)
+    public function entityInsert(Entity $entity): Entity
     {
-
         $record = [];
         $columns = $entity::map()->getColumns();
         $constraints = $entity::map()->getConstraints();
@@ -965,7 +873,7 @@ abstract class DBD
      * @throws InvalidArgumentException
      * @throws ReflectionException
      */
-    public function insert($table, $args, $return = null)
+    public function insert(string $table, array $args, $return = null): DBD
     {
         $params = Helper::compileInsertArgs($args, $this, $this->Options);
 
@@ -982,17 +890,15 @@ abstract class DBD
      *
      * @return mixed
      * @see OData::_compileInsert
-     * @see insert
      * @see Pg::_compileInsert
      * @see MSSQL::_compileInsert
      * @see MySQL::_compileInsert
+     * @see insert
      */
-    abstract protected function _compileInsert($table, $params, $return = "");
+    abstract protected function _compileInsert($table, $params, $return = ""): string;
 
     /**
      * TODO: обновлять поле констрейнта, если оно присутствует в Entity помимо Complex
-     *
-     * @noinspection PhpUnused
      *
      * @param Entity $entity
      *
@@ -1095,7 +1001,6 @@ abstract class DBD
      */
     private function beginIntermediate()
     {
-
         $this->transactionsIntermediate++;
 
         if ($this->inTransaction == false)
@@ -1261,7 +1166,7 @@ abstract class DBD
      * @return bool
      * @throws DBDException
      */
-    public function rollback()
+    public function rollback(): bool
     {
         if ($this->inTransaction) {
             $this->connectionPreCheck();
@@ -1285,7 +1190,7 @@ abstract class DBD
      * @see OData::_rollback
      * @see rollback
      */
-    abstract protected function _rollback();
+    abstract protected function _rollback(): bool;
 
     /**
      *  Commit transaction internally of we don't know was transaction started somewhere else or not
@@ -1295,7 +1200,6 @@ abstract class DBD
      */
     private function commitIntermediate()
     {
-
         $this->transactionsIntermediate--;
 
         if ($this->transactionsIntermediate == 0) {
@@ -1311,7 +1215,7 @@ abstract class DBD
      * @return bool
      * @throws DBDException
      */
-    public function commit()
+    public function commit(): bool
     {
         if (!$this->isConnected()) {
             throw new DBDException("No connection established yet");
@@ -1336,7 +1240,7 @@ abstract class DBD
      * @see OData::_commit
      * @see commit
      */
-    abstract protected function _commit();
+    abstract protected function _commit(): bool;
 
     /**
      * Common usage when you have an Entity object with filled primary key only and want to fetch all available data
@@ -1378,37 +1282,6 @@ abstract class DBD
     public function escape(string $string): string
     {
         return $this->_escape($string);
-    }
-
-    /**
-     * @noinspection PhpUnused
-     * @return array
-     */
-    public function fetchArraySet()
-    {
-        $array = [];
-
-        if ($this->cache['key'] === null) {
-            while ($row = $this->fetchRow()) {
-                $entry = [];
-                foreach ($row as $key => $value) {
-                    $entry[] = $value;
-                }
-                $array[] = $entry;
-            }
-        } else {
-            $cache = $this->cache['result'];
-            $this->cache['result'] = [];
-            foreach ($cache as $row) {
-                $entry = [];
-                foreach ($row as $key => $value) {
-                    $entry[] = $value;
-                }
-                $array[] = $entry;
-            }
-        }
-
-        return $array;
     }
 
     /**
@@ -1473,4 +1346,15 @@ abstract class DBD
      * @see fetch
      */
     abstract protected function _fetchArray();
+
+    /**
+     * @return void
+     * @see rows
+     * @see Pg::_setApplicationName
+     * @see MSSQL::_setApplicationName
+     * @see MySQL::_setApplicationName
+     * @see OData::_setApplicationName
+     * @see execute
+     */
+    abstract protected function _setApplicationName(): void;
 }
