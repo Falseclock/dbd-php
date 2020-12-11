@@ -15,9 +15,14 @@ use DBD\Base\Config;
 use DBD\Base\Options;
 use DBD\Cache\MemCache;
 use DBD\Common\DBDException;
+use DBD\Entity\Common\EntityException;
 use DBD\Pg;
+use DBD\Tests\Entities\TestBase;
+use DBD\Tests\Entities\TestBaseMap;
+use DBD\Tests\Entities\TestBaseNoAuto;
 use PHPUnit\Framework\TestCase;
 use Psr\SimpleCache\InvalidArgumentException;
+use ReflectionException;
 
 class PgTest extends TestCase
 {
@@ -820,6 +825,7 @@ class PgTest extends TestCase
         $rows = $sth->fetchRowSet('id');
         self::assertCount(10, $rows);
 
+        $id = 0;
         foreach ($rows as $id => $row) {
             self::assertSame($id, $row['id']);
         }
@@ -877,6 +883,7 @@ class PgTest extends TestCase
         $rows = $sth->fetchRowSet('id');
         self::assertCount(10, $rows);
 
+        $id = 0;
         foreach ($rows as $id => $row) {
             self::assertSame($id, $row['id']);
         }
@@ -996,13 +1003,126 @@ class PgTest extends TestCase
         $this->memcache->connect();
     }
 
-    public function testPrepareException()
+    /**
+     * @throws DBDException
+     * @throws InvalidArgumentException
+     * @noinspection SqlResolve
+     */
+    public function testNoRows()
     {
         $this->config->setCacheDriver($this->memcache);
         $this->options->setConvertNumeric(true);
         $this->options->setConvertBoolean(true);
         $this->options->setUseDebug(true);
 
+        $this->db->do("DROP TABLE IF EXISTS testNoRows");
+        $this->config->getCacheDriver()->delete(__METHOD__);
+
+        $sth = $this->db->prepare("CREATE TABLE testNoRows AS SELECT id, id%2 > 0 AS bool_var from generate_series(1,10) id");
+        $sth->execute();
+
+        $sth = $this->db->prepare("SELECT * FROM testNoRows  WHERE id > ?");
+        $sth->cache(__METHOD__);
+        $sth->execute(1000);
+
+        $i = 0;
+        while ($row = $sth->fetchRow()) {
+            $i++;
+        }
+
+        self::assertSame(0, $i);
+
+        // Execute again and data should be taken from cache
+        $sth->execute(1000);
+
+        $i = 0;
+        while ($row = $sth->fetchRow()) {
+            $i++;
+        }
+        self::assertSame(0, $i);
+
+        // drop cache and check again
+        $this->config->getCacheDriver()->delete(__METHOD__);
+        $sth->execute(1000);
+
+        $i = 0;
+        while ($row = $sth->fetchRow()) {
+            $i++;
+        }
+        self::assertSame(0, $i);
+    }
+
+    /**
+     * @throws DBDException
+     * @throws EntityException
+     * @throws ReflectionException
+     */
+    public function testEntityBaseInsert()
+    {
+        $this->options->setConvertNumeric(true);
+        $this->options->setConvertBoolean(true);
+
+        /** @var TestBaseMap $map */
+        $map = TestBase::map();
+
+        $this->db->do("DROP TABLE IF EXISTS " . TestBase::TABLE);
+        $this->db->do("CREATE TABLE " . TestBase::TABLE . " (" . $map->id->name . " serial, " . $map->name->name . " text)");
+
+        $i = 1;
+        while ($i < 11) {
+            $entity = new TestBase();
+            $entity->name = substr(str_shuffle(str_repeat($x = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ', intval(ceil(10 / strlen($x))))), 1, 10);
+
+            $this->db->entityInsert($entity);
+            self::assertSame($i, $entity->id);
+
+            $i++;
+        }
+        self::assertSame(10, $this->db->select("SELECT count(*) FROM " . TestBase::TABLE));
+        $sth = $this->db->prepare("SELECT * FROM " . TestBase::TABLE);
+        $sth->execute();
+        while ($row = $sth->fetchRow()) {
+            $entity = new TestBase($row);
+            self::assertNotNull($entity->name);
+        }
+    }
+
+    /**
+     * @throws DBDException
+     */
+    public function testEntityBaseNoAutoInsert()
+    {
+        $this->options->setConvertNumeric(true);
+        $this->options->setConvertBoolean(true);
+
+        $entity = new TestBaseNoAuto();
+
+        $this->db->entityInsert($entity);
 
     }
+
+
+    /**
+     * This should be last as transaction may be in fail state
+     * @throws DBDException
+     * @noinspection SqlResolve
+     */
+    public function tAAAAAAAAAAAAAAAAestErrorQueryDirect()
+    {
+        $this->options->setPrepareExecute(true);
+        $this->expectException(DBDException::class);
+        $this->db->query("SELECT * FROM unknown_TABLE");
+    }
+
+    /**
+     * @throws DBDException
+     * @noinspection SqlResolve
+     */
+    public function tAAAAAAAAAAAAAAestErrorQueryPrepare()
+    {
+        $this->options->setPrepareExecute(false);
+        $this->expectException(DBDException::class);
+        $this->db->query("SELECT * FROM unknown_TABLE");
+    }
+
 }

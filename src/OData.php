@@ -216,7 +216,7 @@ class OData extends DBD
         // TODO: Implement _affectedRows() method.
     }
 
-    protected function _begin()
+    protected function _begin(): bool
     {
         // TODO: Implement _begin() method.
     }
@@ -276,7 +276,7 @@ class OData extends DBD
     /**
      * @inheritDoc
      */
-    protected function _dump(string $preparedQuery, string $fileName, string $delimiter, string $nullString, bool $showHeader, string $tmpPath)
+    protected function _dump(string $preparedQuery, string $fileName, string $delimiter, string $nullString, bool $showHeader, string $tmpPath): string
     {
         // TODO: Implement _dump() method.
     }

@@ -52,7 +52,7 @@ class MySQL extends DBD
         return mysqli_affected_rows($this->result);
     }
 
-    protected function _begin()
+    protected function _begin(): bool
     {
         return mysqli_begin_transaction($this->resourceLink);
     }
@@ -165,7 +165,7 @@ class MySQL extends DBD
     /**
      * @inheritDoc
      */
-    protected function _dump(string $preparedQuery, string $fileName, string $delimiter, string $nullString, bool $showHeader, string $tmpPath)
+    protected function _dump(string $preparedQuery, string $fileName, string $delimiter, string $nullString, bool $showHeader, string $tmpPath): string
     {
         // TODO: Implement _dump() method.
     }

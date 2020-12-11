@@ -1,33 +1,24 @@
 <?php
-/*************************************************************************************
- *   MIT License                                                                     *
- *                                                                                   *
- *   Copyright (C) 2009-2019 by Nurlan Mukhanov <nurike@gmail.com>                   *
- *                                                                                   *
- *   Permission is hereby granted, free of charge, to any person obtaining a copy    *
- *   of this software and associated documentation files (the "Software"), to deal   *
- *   in the Software without restriction, including without limitation the rights    *
- *   to use, copy, modify, merge, publish, distribute, sublicense, and/or sell       *
- *   copies of the Software, and to permit persons to whom the Software is           *
- *   furnished to do so, subject to the following conditions:                        *
- *                                                                                   *
- *   The above copyright notice and this permission notice shall be included in all  *
- *   copies or substantial portions of the Software.                                 *
- *                                                                                   *
- *   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR      *
- *   IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,        *
- *   FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT. IN NO EVENT SHALL THE    *
- *   AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER          *
- *   LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,   *
- *   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE   *
- *   SOFTWARE.                                                                       *
- ************************************************************************************/
+/**
+ * Cache
+ *
+ * @author    Nurlan Mukhanov <nurike@gmail.com>
+ * @copyright 2020 Nurlan Mukhanov
+ * @license   https://en.wikipedia.org/wiki/MIT_License MIT License
+ * @link      https://github.com/Falseclock/dbd-php
+ */
+
+declare(strict_types=1);
 
 namespace DBD;
 
 use DateInterval;
 use Psr\SimpleCache\CacheInterface;
 
+/**
+ * Class Cache
+ * @package DBD
+ */
 abstract class Cache implements CacheInterface
 {
     const DEFAULT_TTL = 10;
@@ -83,75 +74,64 @@ abstract class Cache implements CacheInterface
      */
     public function getTtl($ttl)
     {
-        if (!isset($ttl)) {
+        if (!isset($ttl))
             return $this->defaultTtl;
-        }
 
-        if ($ttl instanceof DateInterval) {
+        if ($ttl instanceof DateInterval)
             return $ttl->format("%s");
-        }
 
-        if (is_int($ttl)) {
+        if (is_int($ttl))
             return $ttl;
-        }
 
-        if (is_float($ttl)) {
+        if (is_float($ttl))
             return intval($ttl);
-        }
 
-        if (is_string($ttl)) {
-            if (preg_match("/\s*(\d+)\s*(.*)?/", $ttl, $matches)) {
-                $value = intval($matches[1]);
-                $multiplier = strtolower(trim($matches[2]));
+        if (is_string($ttl) && preg_match("/\s*(\d+)\s*(.*)?/", $ttl, $matches)) {
 
-                if ($multiplier) {
-                    switch ($multiplier) {
-                        case 'm':
-                        case 'min':
-                        case 'mins':
-                        case 'minute':
-                        case 'minutes':
-                            return $value * 60;
-                            break;
+            $value = intval($matches[1]);
+            $multiplier = strtolower(trim($matches[2]));
 
-                        case 'h':
-                        case 'hr':
-                        case 'hour':
-                        case 'hours':
-                            return $value * 60 * 60;
-                            break;
+            if ($multiplier) {
+                switch ($multiplier) {
+                    case 'm':
+                    case 'min':
+                    case 'mins':
+                    case 'minute':
+                    case 'minutes':
+                        return $value * 60;
 
-                        case 'd':
-                        case 'day':
-                        case 'days':
-                            return $value * 60 * 60 * 24;
-                            break;
+                    case 'h':
+                    case 'hr':
+                    case 'hour':
+                    case 'hours':
+                        return $value * 60 * 60;
 
-                        case 'w':
-                        case 'week':
-                        case 'weeks':
-                            return $value * 60 * 60 * 24 * 7;
-                            break;
+                    case 'd':
+                    case 'day':
+                    case 'days':
+                        return $value * 60 * 60 * 24;
 
-                        case 'mon':
-                        case 'month':
-                        case 'months':
-                            return $value * 60 * 60 * 24 * 30;
-                            break;
+                    case 'w':
+                    case 'week':
+                    case 'weeks':
+                        return $value * 60 * 60 * 24 * 7;
 
-                        case 'y':
-                        case 'year':
-                        case 'years':
-                            return $value * 60 * 60 * 24 * 365;
-                            break;
+                    case 'mon':
+                    case 'month':
+                    case 'months':
+                        return $value * 60 * 60 * 24 * 30;
 
-                        default:
-                        case 's':
-                        case 'sec':
-                        case 'second':
-                        case 'seconds':
-                            return $value;
-                    }
+                    case 'y':
+                    case 'year':
+                    case 'years':
+                        return $value * 60 * 60 * 24 * 365;
+
+                    default:
+                    case 's':
+                    case 'sec':
+                    case 'second':
+                    case 'seconds':
+                        return $value;
                 }
             }
         }

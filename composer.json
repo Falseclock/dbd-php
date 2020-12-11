@@ -28,8 +28,8 @@
   ],
   "require": {
     "php": "^7.1",
-    "psr/simple-cache": "*",
-    "openlss/lib-array2xml": "^1",
+    "psr/simple-cache": "^1.0.1",
+    "openlss/lib-array2xml": "^1.0.0",
     "falseclock/dbd-php-common": "dev-master",
     "falseclock/dbd-php-entity": "dev-master",
     "ext-json": "*"

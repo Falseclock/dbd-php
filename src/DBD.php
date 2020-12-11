@@ -27,7 +27,6 @@ use DBD\Entity\Primitive;
 use Exception;
 use Psr\SimpleCache\InvalidArgumentException;
 use ReflectionClass;
-use ReflectionException;
 use Throwable;
 
 /**
@@ -43,18 +42,16 @@ abstract class DBD
     const UNDEFINED = "UNDEF";
     const GOT_FROM_CACHE = "GOT_FROM_CACHE";
     /** @var array $preparedStatements */
-    private static $preparedStatements = [];
+    public static $preparedStatements = [];
     /** @var Config $Config */
     protected $Config;
     /** @var Options $Options */
     protected $Options;
-    /** @var bool $applicationNameIsSet just to set it once */
-    protected $applicationNameIsSet = false;
     /** @var string $query SQL query */
     protected $query;
     /** @var resource $resourceLink Database or curl connection resource */
     protected $resourceLink;
-    /** @var mixed $result Query result data */
+    /** @var resource|string $result Query result data */
     protected $result;
     /** @var CacheHolder */
     protected $CacheHolder = null;
@@ -102,20 +99,20 @@ abstract class DBD
      */
     public function cache(string $key, $ttl = null)
     {
-        if (!isset($this->Config->cacheDriver))
-            return;
+        if (isset($this->Config->cacheDriver)) {
 
-        if (!isset($this->query))
-            throw new DBDException("SQL statement not prepared");
+            if (!isset($this->query))
+                throw new DBDException("SQL statement not prepared");
 
-        if (preg_match("/^[\s\t\r\n]*select/i", $this->query)) {
-            // set hash key
-            $this->CacheHolder = new CacheHolder($key);
+            if (preg_match("/^[\s\t\r\n]*select/i", $this->query)) {
+                // set hash key
+                $this->CacheHolder = new CacheHolder($key);
 
-            if ($ttl !== null)
-                $this->CacheHolder->expire = $ttl;
-        } else {
-            throw new DBDException("Caching setup failed, current query is not of SELECT type");
+                if ($ttl !== null)
+                    $this->CacheHolder->expire = $ttl;
+            } else {
+                throw new DBDException("Caching setup failed, current query is not of SELECT type");
+            }
         }
     }
 
@@ -253,8 +250,9 @@ abstract class DBD
     /**
      * Sends a request to execute a prepared statement with given parameters, and waits for the result.
      *
-     * @return mixed
+     * @return resource|string
      * @throws DBDException
+     * @noinspection PhpMissingReturnTypeInspection
      */
     public function execute()
     {
@@ -301,14 +299,15 @@ abstract class DBD
             if ($this->Options->isPrepareExecute()) {
                 $uniqueName = crc32($preparedQuery);
 
-                if (!in_array($uniqueName, self::$preparedStatements)) {
-                    self::$preparedStatements[] = $uniqueName;
+                // We can call same query several times, that is why we should store
+                // it statically, cause database will raise error if we will try
+                // to store same query again
+                if (!isset(self::$preparedStatements[$uniqueName])) {
+                    self::$preparedStatements[$uniqueName] = $preparedQuery;
 
                     if (!$this->_prepare((string)$uniqueName, $preparedQuery))
                         throw new DBDException ($this->_errorMessage(), $preparedQuery);
                 }
-                // TODO: протестировать оба варианта с ошибочным запросом и убедиться, что возвращается
-                // TODO: NULL значение в обоих случаях так как в одном execute а в другом query
                 $this->result = $this->_execute($uniqueName, Helper::parseArgs($executeArguments));
             } else {
                 // Execute query to the database
@@ -322,42 +321,21 @@ abstract class DBD
 
             $this->storage = self::STORAGE_DATABASE;
 
-            // If query from cache
+            // Now we have to store result in the cache
             if (!is_null($this->CacheHolder)) {
-                //  As we already queried database we have to set key to NULL
-                //  because during internal method invoke (fetchRowSet below) this Driver
-                //  will think we have data from cache
 
-                $storedKey = $this->CacheHolder->key;
-                $this->CacheHolder->key = null;
-
-                // If we have data from query
-                if ($this->_rows()) {
-                    $this->CacheHolder->result = $this->fetchRowSet();
-                } else {
-                    // select is empty
-                    $this->CacheHolder->result = [];
-                }
-
-                // reverting all back, cause we stored data to cache
-                $this->result = self::GOT_FROM_CACHE;
-                $this->CacheHolder->key = $storedKey;
+                // Emulating we got it from cache
+                $this->CacheHolder->result = $this->fetchRowSet();
+                $this->storage = self::STORAGE_CACHE;
 
                 // Setting up our cache
                 try {
-                    if ($this->CacheHolder->result == null)
-                        throw new DBDException("null should not be stored");
-
                     $this->Config->cacheDriver->set($this->CacheHolder->key, $this->CacheHolder->result, $this->CacheHolder->expire);
-                } catch (Exception | InvalidArgumentException $e) {
+                } catch (Exception | InvalidArgumentException | Throwable $e) {
                     throw new DBDException("Failed to store in cache: {$e->getMessage()}", $preparedQuery);
                 }
             }
         }
-
-
-        if (is_null($this->result))
-            throw new DBDException($this->_errorMessage(), $preparedQuery);
 
         if ($this->Options->isUseDebug()) {
             $cost = isset($cost) ? $cost : 0;
@@ -365,8 +343,16 @@ abstract class DBD
             $driver = $this->storage == self::STORAGE_CACHE ? self::STORAGE_CACHE : (new ReflectionClass($this))->getShortName();
             $caller = Helper::caller($this);
 
-            Debug::addQueries(new Query(Helper::cleanSql($this->getPreparedQuery($executeArguments, true)), $cost, $caller[0], Helper::debugMark($cost), $driver)
+            Debug::addQueries(
+                new Query(
+                    Helper::cleanSql($this->getPreparedQuery($executeArguments, true)),
+                    $cost,
+                    $caller[0],
+                    Helper::debugMark($cost),
+                    $driver
+                )
             );
+
             Debug::addTotalQueries(1);
             Debug::addTotalCost($cost);
         }
@@ -494,16 +480,6 @@ abstract class DBD
     abstract protected function _query($statement);
 
     /**
-     * @return int number of updated or deleted rows
-     * @see rows
-     * @see Pg::_rows
-     * @see MSSQL::_rows
-     * @see MySQL::_rows
-     * @see OData::_rows
-     */
-    abstract protected function _rows(): int;
-
-    /**
      * @param null $uniqueKey
      *
      * @return array|mixed
@@ -513,7 +489,7 @@ abstract class DBD
     {
         $array = [];
 
-        if ($this->result != self::GOT_FROM_CACHE) {
+        if ($this->storage == self::STORAGE_DATABASE) {
             while ($row = $this->fetchRow()) {
                 if ($uniqueKey) {
                     if (!isset($array[$row[$uniqueKey]]))
@@ -547,7 +523,7 @@ abstract class DBD
      */
     public function fetchRow()
     {
-        if ($this->result != self::GOT_FROM_CACHE) {
+        if ($this->storage == self::STORAGE_DATABASE) {
             $return = $this->_fetchAssoc();
 
             if ($this->Options->isConvertNumeric() || $this->Options->isConvertBoolean())
@@ -587,12 +563,22 @@ abstract class DBD
      */
     public function rows(): int
     {
-        if (is_null($this->CacheHolder)) {
+        if ($this->storage == self::STORAGE_DATABASE) {
             return $this->_rows();
         } else {
             return count($this->CacheHolder->result);
         }
     }
+
+    /**
+     * @return int number of updated or deleted rows
+     * @see rows
+     * @see Pg::_rows
+     * @see MSSQL::_rows
+     * @see MySQL::_rows
+     * @see OData::_rows
+     */
+    abstract protected function _rows(): int;
 
     /**
      * Dumping result as CSV file
@@ -673,7 +659,7 @@ abstract class DBD
      * @see OData::_dump
      * @see DBD::dump()
      */
-    abstract protected function _dump(string $preparedQuery, string $fileName, string $delimiter, string $nullString, bool $showHeader, string $tmpPath);
+    abstract protected function _dump(string $preparedQuery, string $fileName, string $delimiter, string $nullString, bool $showHeader, string $tmpPath): string;
 
     /**
      *
@@ -682,7 +668,7 @@ abstract class DBD
      * @return bool
      * @throws DBDException
      */
-    public function entityDelete(Entity $entity)
+    public function entityDelete(Entity $entity): bool
     {
         [$execute, $columns] = $this->getPrimaryKeysForEntity($entity);
 
@@ -699,148 +685,167 @@ abstract class DBD
      * @param Entity $entity
      *
      * @return array
+     * @throws DBDException
      */
-    private function getPrimaryKeysForEntity(Entity $entity)
+    private function getPrimaryKeysForEntity(Entity $entity): array
     {
-        $keys = $entity::map()->getPrimaryKey();
+        try {
+            $keys = $entity::map()->getPrimaryKey();
 
-        if (!count($keys))
-            throw new DBDException(sprintf("Entity %s does not have any defined primary key", get_class($entity)));
+            if (!count($keys))
+                throw new DBDException(sprintf("Entity %s does not have any defined primary key", get_class($entity)));
 
-        $columns = [];
-        $execute = [];
+            $columns = [];
+            $execute = [];
 
-        $placeHolder = $this->Options->getPlaceHolder();
+            $placeHolder = $this->Options->getPlaceHolder();
 
-        foreach ($keys as $keyName => $column) {
-            if (!isset($entity->$keyName))
-                throw new DBDException(sprintf("Value of %s->%s, which is primary key column, is null", get_class($entity), $keyName));
+            foreach ($keys as $keyName => $column) {
+                if (!isset($entity->$keyName))
+                    throw new DBDException(sprintf("Value of %s->%s, which is primary key column, is null", get_class($entity), $keyName));
 
-            $execute[] = $entity->$keyName;
-            $columns[] = "{$column->name} = {$placeHolder}";
+                $execute[] = $entity->$keyName;
+                $columns[] = "{$column->name} = {$placeHolder}";
+            }
+
+            return [$execute, $columns];
+        } catch (Exception $e) {
+            throw new DBDException($e->getMessage(), null, null, $e);
         }
-
-        return [$execute, $columns];
     }
 
     /**
      * @param Entity $entity
      *
      * @return Entity
-     * @throws EntityException
      * @throws DBDException
-     * @throws InvalidArgumentException
-     * @throws ReflectionException
      */
-    public function entityInsert(Entity $entity): Entity
+    public function entityInsert(Entity &$entity): Entity
     {
-        $record = [];
-        $columns = $entity::map()->getColumns();
-        $constraints = $entity::map()->getConstraints();
+        try {
+            $record = [];
 
-        // Cycle through all available columns according to Mapper definition
-        foreach ($columns as $propertyName => $column) {
+            $columns = $entity::map()->getColumns();
+            $constraints = $entity::map()->getConstraints();
 
-            $originName = $column->name;
+            // Cycle through all available columns according to Mapper definition
+            foreach ($columns as $propertyName => $column) {
 
-            if ($column->nullable == false) {
+                $originName = $column->name;
 
-                // Mostly we always define properties for any columns
-                if (property_exists($entity, $propertyName)) {
-                    if (!isset($entity->$propertyName) and ($column->isAuto === false and !isset($column->defaultValue)))
-                        throw new DBDException(sprintf("Property '%s' of %s can't be null according to Mapper annotation", $propertyName, get_class($entity)));
+                if ($column->nullable == false) {
 
-                    // Finally add column to record if it is set
-                    if (isset($entity->$propertyName))
-                        $record[$originName] = $entity->$propertyName;
-                } else {
-                    // But sometimes we do not use reference fields in Entity directly, but use them as constraint
+                    // Mostly we always define properties for any columns
+                    if (property_exists($entity, $propertyName)) {
+                        if (!isset($entity->$propertyName) and ($column->isAuto === false and !isset($column->defaultValue)))
+                            throw new DBDException(sprintf("Property '%s' of %s can't be null according to Mapper annotation", $propertyName, get_class($entity)));
 
-                    $columnFound = false;
-                    foreach ($constraints as $constraintName => $constraint) {
-                        // We have definition of Constraint which is public variable
-                        if (property_exists($entity, $constraintName)) {
-                            if ($constraint->localColumn->name == $column->name) {
-                                $columnFound = true;
+                        // Finally add column to record if it is set
+                        if (isset($entity->$propertyName))
+                            $record[$originName] = $entity->$propertyName;
+                    } else {
+                        // But sometimes we do not use reference fields in Entity directly, but use them as constraint
 
-                                if (isset($entity->$constraintName)) {
-                                    $foreignProperty = $this->findForeignProperty($constraint);
+                        $columnFound = false;
+                        foreach ($constraints as $constraintName => $constraint) {
+                            // We have definition of Constraint which is public variable
+                            if (property_exists($entity, $constraintName)) {
+                                if ($constraint->localColumn->name == $column->name) {
+                                    $columnFound = true;
 
-                                    if (isset($entity->$constraintName->$foreignProperty)) {
-                                        $record[$originName] = $entity->$constraintName->$foreignProperty;
-                                    } else {
-                                        if ($column->nullable !== false) {
-                                            throw new DBDException(sprintf("Property '%s->%s' of %s can't be null", $constraintName, $foreignProperty, get_class($entity)));
+                                    if (isset($entity->$constraintName)) {
+                                        $foreignProperty = $this->findForeignProperty($constraint);
+
+                                        if (isset($entity->$constraintName->$foreignProperty)) {
+                                            $record[$originName] = $entity->$constraintName->$foreignProperty;
                                         } else {
-                                            if (isset($column->defaultValue))
-                                                $record[$originName] = $column->defaultValue;
+                                            if ($column->nullable !== false) {
+                                                throw new DBDException(sprintf("Property '%s->%s' of %s can't be null", $constraintName, $foreignProperty, get_class($entity)));
+                                            } else {
+                                                if (isset($column->defaultValue))
+                                                    $record[$originName] = $column->defaultValue;
+                                            }
                                         }
+                                    } else {
+                                        throw new DBDException(sprintf("Property '%s' of %s not set.", $constraintName, get_class($entity)));
                                     }
-                                } else {
-                                    throw new DBDException(sprintf("Property '%s' of %s not set.", $constraintName, get_class($entity)));
                                 }
                             }
                         }
+                        if ($columnFound == false) {
+                            throw new DBDException(sprintf("Can't understand how to get value of %s(%s) in %s", $propertyName, $column->name, get_class($entity)));
+                        }
                     }
-                    if ($columnFound == false) {
-                        throw new DBDException(sprintf("Can't understand how to get value of %s(%s) in %s", $propertyName, $column->name, get_class($entity)));
-                    }
-                }
-            } else {
-                // Finally add column to record if it is set
-                if (isset($entity->$propertyName)) {
-                    if ($column->type->getValue() == Primitive::Binary)
-                        $record[$originName] = $this->_binaryEscape($entity->$propertyName);
-                    else
-                        $record[$originName] = $entity->$propertyName;
                 } else {
-                    // If value not set and we have some default value, let's define also
-                    if ($column->isAuto === false and isset($column->defaultValue)) {
-                        $record[$originName] = $column->defaultValue;
+                    // Finally add column to record if it is set
+                    if (isset($entity->$propertyName)) {
+                        if ($column->type->getValue() == Primitive::Binary)
+                            $record[$originName] = $this->_binaryEscape($entity->$propertyName);
+                        else
+                            $record[$originName] = $entity->$propertyName;
                     } else {
-                        // В некоторых случаях, мы объявляем констрейнт в маппере, но поле остается protected.
-                        // в этом случае у нас отсутствует поле как таковое в объекте, так как мы не можем его вызвать или засэтить,
-                        // но в Entity может быть объектное поле, в котором создан инстанс и определен primary key
-                        // Типичный пример: таблица ссылается на саму себя, но поле может быть null
-                        foreach ($constraints as $constraintName => $constraint) {
-                            if ($originName == $constraint->localColumn->name and isset($entity->$constraintName)) {
-                                /** @var Entity $constraintClass */
-                                $constraintClass = $constraint->class;
-                                $constraintPKs = $constraintClass::map()->getPrimaryKey();
-                                foreach ($constraintPKs as $keyName => $key) {
-                                    $record[$originName] = $entity->$constraintName->$keyName;
+                        // If value not set and we have some default value, let's define also
+                        if ($column->isAuto === false and isset($column->defaultValue)) {
+                            $record[$originName] = $column->defaultValue;
+                        } else {
+                            // В некоторых случаях, мы объявляем констрейнт в маппере, но поле остается protected.
+                            // в этом случае у нас отсутствует поле как таковое в объекте, так как мы не можем его вызвать или засэтить,
+                            // но в Entity может быть объектное поле, в котором создан инстанс и определен primary key
+                            // Типичный пример: таблица ссылается на саму себя, но поле может быть null
+                            foreach ($constraints as $constraintName => $constraint) {
+                                if ($originName == $constraint->localColumn->name and isset($entity->$constraintName)) {
+                                    /** @var Entity $constraintClass */
+                                    $constraintClass = $constraint->class;
+
+                                    $constraintPKs = $constraintClass::map()->getPrimaryKey();
+
+                                    foreach ($constraintPKs as $keyName => $key) {
+                                        $record[$originName] = $entity->$constraintName->$keyName;
+                                    }
                                 }
                             }
                         }
                     }
                 }
             }
+
+            $sth = $this->insert($entity::table(), $record, "*");
+
+            /** @var Entity $class */
+            $class = get_class($entity);
+
+            $entity = new $class($sth->fetchRow());
+
+            return $entity;
+
+        } catch (DBDException | EntityException $e) {
+            if ($e instanceof DBDException)
+                throw $e;
+            else
+                throw new DBDException($e->getMessage(), null, null, $e);
         }
-
-        $sth = $this->insert($entity::table(), $record, "*");
-
-        /** @var Entity $class */
-        $class = get_class($entity);
-
-        return new $class($sth->fetchRow());
     }
 
     /**
      * @param Constraint $constraint
      *
      * @return mixed
-     * @throws EntityException
+     * @throws DBDException
      */
     private function findForeignProperty(Constraint $constraint)
     {
-        /** @var Entity $constraintEntity */
-        $constraintEntity = new $constraint->class;
-        $fields = array_flip($constraintEntity::map()->getOriginFieldNames());
+        try {
+            /** @var Entity $constraintEntity */
+            $constraintEntity = new $constraint->class;
+            $fields = array_flip($constraintEntity::map()->getOriginFieldNames());
 
-        /** @var string $foreignColumn name of origin column */
-        $foreignColumn = $constraint instanceof Constraint ? $constraint->foreignColumn : $constraint->foreignColumn->name;
+            /** @var string $foreignColumn name of origin column */
+            $foreignColumn = $constraint instanceof Constraint ? $constraint->foreignColumn : $constraint->foreignColumn->name;
 
-        return $fields[$foreignColumn];
+            return $fields[$foreignColumn];
+        } catch (EntityException $e) {
+            throw new DBDException($e->getMessage(), null, null, $e);
+        }
     }
 
     /**
@@ -896,17 +901,19 @@ abstract class DBD
      *
      * @return Entity
      * @throws DBDException
-     * @throws EntityException
-     * @throws InvalidArgumentException
-     * @throws ReflectionException
      */
-    public function entityUpdate(Entity &$entity)
+    public function entityUpdate(Entity &$entity): Entity
     {
         [$execute, $primaryColumns] = $this->getPrimaryKeysForEntity($entity);
 
         $record = [];
-        $columns = $entity::map()->getColumns();
-        $constraints = $entity::map()->getConstraints();
+
+        try {
+            $columns = $entity::map()->getColumns();
+            $constraints = $entity::map()->getConstraints();
+        } catch (EntityException $e) {
+            throw new DBDException($e->getMessage(), null, null, $e);
+        }
 
         foreach ($columns as $propertyName => $column) {
 
@@ -967,20 +974,7 @@ abstract class DBD
         /** @var Entity $class */
         $class = get_class($entity);
 
-        $newEntity = new $class($sth->fetchRow());
-
-        // Nobody knows what we updated with this query, so lets' cycle trough all constraints and recheck new values
-        foreach ($constraints as $constraintName => $constraint) {
-            if (property_exists($entity, $constraintName)) {
-                $foreignProperty = $this->findForeignProperty($constraint);
-                if ($entity->$constraintName->$foreignProperty != $newEntity->$constraintName->$foreignProperty) {
-                    // Reselect data for this constraint if it is references to new record
-                    $newEntity->$constraintName = $this->entitySelect($newEntity->$constraintName);
-                }
-            }
-        }
-
-        $entity = $newEntity;
+        $entity = new $class($sth->fetchRow());
 
         return $entity;
     }
@@ -991,7 +985,7 @@ abstract class DBD
      * @return bool
      * @throws DBDException
      */
-    private function beginIntermediate()
+    private function beginIntermediate(): bool
     {
         $this->transactionsIntermediate++;
 
@@ -1030,7 +1024,7 @@ abstract class DBD
      * @see OData::_begin
      * @see begin
      */
-    abstract protected function _begin();
+    abstract protected function _begin(): bool;
 
     /**
      * Simplifies update procedures. Method makes updates of the rows by giving parameters and prepared values. Returns self instance.
@@ -1087,7 +1081,7 @@ abstract class DBD
      * @return DBD
      * @throws DBDException
      */
-    public function update()
+    public function update(): DBD
     {
         $binds = 0;
         $where = null;
@@ -1135,7 +1129,7 @@ abstract class DBD
      * @return bool
      * @throws DBDException
      */
-    private function rollbackIntermediate()
+    private function rollbackIntermediate(): bool
     {
         if ($this->inTransaction) {
             $this->transactionsIntermediate--;
@@ -1188,7 +1182,7 @@ abstract class DBD
      * @return bool
      * @throws DBDException
      */
-    private function commitIntermediate()
+    private function commitIntermediate(): bool
     {
         $this->transactionsIntermediate--;
 
@@ -1239,12 +1233,9 @@ abstract class DBD
      * @param bool $exceptionIfNoRecord
      *
      * @return Entity|null
-     * @throws EntityException
      * @throws DBDException
-     * @throws InvalidArgumentException
-     * @throws ReflectionException
      */
-    public function entitySelect(Entity &$entity, bool $exceptionIfNoRecord = true)
+    public function entitySelect(Entity &$entity, bool $exceptionIfNoRecord = true): ?Entity
     {
         [$execute, $columns] = $this->getPrimaryKeysForEntity($entity);
 

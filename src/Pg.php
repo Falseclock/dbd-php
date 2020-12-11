@@ -77,11 +77,11 @@ class Pg extends DBD
     /**
      * Sends BEGIN; command
      *
-     * @return resource
+     * @return bool
      */
-    protected function _begin()
+    protected function _begin(): bool
     {
-        return $this->_query("BEGIN;");
+        return $this->_query("BEGIN") != null;
     }
 
     /**
@@ -257,7 +257,7 @@ class Pg extends DBD
     /**
      * @inheritDoc
      */
-    protected function _dump(string $preparedQuery, string $fileName, string $delimiter, string $nullString, bool $showHeader, string $tmpPath)
+    protected function _dump(string $preparedQuery, string $fileName, string $delimiter, string $nullString, bool $showHeader, string $tmpPath): string
     {
         $file = realpath($tmpPath) . DIRECTORY_SEPARATOR . $fileName . "." . DBD::CSV_EXTENSION;
 
@@ -362,10 +362,10 @@ class Pg extends DBD
      */
     protected function _prepare(string $uniqueName, string $statement): bool
     {
+        $return = false;
         try {
             $return = pg_prepare($this->resourceLink, $uniqueName, $statement);
         } catch (Exception $e) {
-            return false;
         }
 
         return $return !== false;
