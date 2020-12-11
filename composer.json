@@ -37,7 +37,7 @@
   "require-dev": {
     "ext-pgsql": "*",
     "ext-memcache": "*",
-    "phpunit/phpunit": "^7.5.20",
+    "phpunit/phpunit": "^9.5",
     "php-coveralls/php-coveralls": "^2.4.2"
   },
   "suggest": {

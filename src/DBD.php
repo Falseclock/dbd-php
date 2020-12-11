@@ -61,8 +61,6 @@ abstract class DBD
     private $inTransaction = false;
     /** @var string $storage This param is used for identifying where data taken from */
     private $storage;
-    /** @var int $transactionsIntermediate */
-    private $transactionsIntermediate = 0;
 
     /**
      * DBD constructor.
@@ -710,7 +708,10 @@ abstract class DBD
 
             return [$execute, $columns];
         } catch (Exception $e) {
-            throw new DBDException($e->getMessage(), null, null, $e);
+            if ($e instanceof DBDException)
+                throw $e;
+            else
+                throw new DBDException($e->getMessage(), null, null, $e);
         }
     }
 
@@ -726,7 +727,6 @@ abstract class DBD
             $record = [];
 
             $columns = $entity::map()->getColumns();
-            $constraints = $entity::map()->getConstraints();
 
             // Cycle through all available columns according to Mapper definition
             foreach ($columns as $propertyName => $column) {
@@ -734,77 +734,29 @@ abstract class DBD
                 $originName = $column->name;
 
                 if ($column->nullable == false) {
-
                     // Mostly we always define properties for any columns
                     if (property_exists($entity, $propertyName)) {
                         if (!isset($entity->$propertyName) and ($column->isAuto === false and !isset($column->defaultValue)))
                             throw new DBDException(sprintf("Property '%s' of %s can't be null according to Mapper annotation", $propertyName, get_class($entity)));
 
-                        // Finally add column to record if it is set
-                        if (isset($entity->$propertyName))
-                            $record[$originName] = $entity->$propertyName;
-                    } else {
-                        // But sometimes we do not use reference fields in Entity directly, but use them as constraint
+                        if ($column->isAuto === false) {
+                            // Finally add column to record if it is set
+                            if (isset($entity->$propertyName))
+                                $finalValue = $entity->$propertyName;
+                            else
+                                $finalValue = $column->defaultValue;
 
-                        $columnFound = false;
-                        foreach ($constraints as $constraintName => $constraint) {
-                            // We have definition of Constraint which is public variable
-                            if (property_exists($entity, $constraintName)) {
-                                if ($constraint->localColumn->name == $column->name) {
-                                    $columnFound = true;
-
-                                    if (isset($entity->$constraintName)) {
-                                        $foreignProperty = $this->findForeignProperty($constraint);
-
-                                        if (isset($entity->$constraintName->$foreignProperty)) {
-                                            $record[$originName] = $entity->$constraintName->$foreignProperty;
-                                        } else {
-                                            if ($column->nullable !== false) {
-                                                throw new DBDException(sprintf("Property '%s->%s' of %s can't be null", $constraintName, $foreignProperty, get_class($entity)));
-                                            } else {
-                                                if (isset($column->defaultValue))
-                                                    $record[$originName] = $column->defaultValue;
-                                            }
-                                        }
-                                    } else {
-                                        throw new DBDException(sprintf("Property '%s' of %s not set.", $constraintName, get_class($entity)));
-                                    }
-                                }
-                            }
-                        }
-                        if ($columnFound == false) {
-                            throw new DBDException(sprintf("Can't understand how to get value of %s(%s) in %s", $propertyName, $column->name, get_class($entity)));
+                            $record[$originName] = $column->type->getValue() == Primitive::Binary ? $this->_binaryEscape($finalValue) : $finalValue;
                         }
                     }
                 } else {
                     // Finally add column to record if it is set
                     if (isset($entity->$propertyName)) {
-                        if ($column->type->getValue() == Primitive::Binary)
-                            $record[$originName] = $this->_binaryEscape($entity->$propertyName);
-                        else
-                            $record[$originName] = $entity->$propertyName;
+                        $record[$originName] = ($column->type->getValue() == Primitive::Binary) ? $this->_binaryEscape($entity->$propertyName) : $entity->$propertyName;
                     } else {
                         // If value not set and we have some default value, let's define also
-                        if ($column->isAuto === false and isset($column->defaultValue)) {
+                        if ($column->isAuto === false and isset($column->defaultValue))
                             $record[$originName] = $column->defaultValue;
-                        } else {
-                            // В некоторых случаях, мы объявляем констрейнт в маппере, но поле остается protected.
-                            // в этом случае у нас отсутствует поле как таковое в объекте, так как мы не можем его вызвать или засэтить,
-                            // но в Entity может быть объектное поле, в котором создан инстанс и определен primary key
-                            // Типичный пример: таблица ссылается на саму себя, но поле может быть null
-                            foreach ($constraints as $constraintName => $constraint) {
-                                if ($originName == $constraint->localColumn->name and isset($entity->$constraintName)) {
-                                    /** @var Entity $constraintClass */
-                                    $constraintClass = $constraint->class;
-
-                                    $constraintPKs = $constraintClass::map()->getPrimaryKey();
-
-                                    foreach ($constraintPKs as $keyName => $key) {
-                                        $record[$originName] = $entity->$constraintName->$keyName;
-                                    }
-                                }
-                            }
-                        }
                     }
                 }
             }
@@ -827,28 +779,6 @@ abstract class DBD
     }
 
     /**
-     * @param Constraint $constraint
-     *
-     * @return mixed
-     * @throws DBDException
-     */
-    private function findForeignProperty(Constraint $constraint)
-    {
-        try {
-            /** @var Entity $constraintEntity */
-            $constraintEntity = new $constraint->class;
-            $fields = array_flip($constraintEntity::map()->getOriginFieldNames());
-
-            /** @var string $foreignColumn name of origin column */
-            $foreignColumn = $constraint instanceof Constraint ? $constraint->foreignColumn : $constraint->foreignColumn->name;
-
-            return $fields[$foreignColumn];
-        } catch (EntityException $e) {
-            throw new DBDException($e->getMessage(), null, null, $e);
-        }
-    }
-
-    /**
      * @param string|null $binaryString
      *
      * @return string|null
@@ -866,12 +796,12 @@ abstract class DBD
      *
      * @param string $table
      * @param array $args
-     * @param null $return
+     * @param string|null $return
      *
      * @return DBD
      * @throws DBDException
      */
-    public function insert(string $table, array $args, $return = null): DBD
+    public function insert(string $table, array $args, string $return = null): DBD
     {
         $params = Helper::compileInsertArgs($args, $this, $this->Options);
 
@@ -893,7 +823,7 @@ abstract class DBD
      * @see MySQL::_compileInsert
      * @see insert
      */
-    abstract protected function _compileInsert($table, $params, $return = ""): string;
+    abstract protected function _compileInsert(string $table, array $params, string $return = ""): string;
 
     /**
      *
@@ -953,23 +883,14 @@ abstract class DBD
                 }
             }
         }
-        try {
-            $this->beginIntermediate();
-            $sth = $this->update($entity::table(), $record, implode(" AND ", $primaryColumns), $execute, "*");
-            $affected = $this->rows() > 0;
-            if ($affected > 1) {
-                $this->rollbackIntermediate();
-                throw new DBDException(sprintf("More then one records updated with query. Transaction rolled back!"));
-            } else if ($affected == 0) {
-                $this->rollbackIntermediate();
-                throw new DBDException(sprintf("No any records updated."));
-            }
 
-            $this->commitIntermediate();
-        } catch (Throwable $throwable) {
-            $this->rollbackIntermediate();
-            throw new DBDException($throwable->getMessage());
-        }
+        $sth = $this->update($entity::table(), $record, implode(" AND ", $primaryColumns), $execute, "*");
+        $affected = $sth->rows();
+
+        if ($affected > 1)
+            throw new DBDException(sprintf("More then one records updated with query. Transaction rolled back!"));
+        else if ($affected == 0)
+            throw new DBDException(sprintf("No any records updated."));
 
         /** @var Entity $class */
         $class = get_class($entity);
@@ -980,51 +901,26 @@ abstract class DBD
     }
 
     /**
-     * Begin transaction internally of we don't know was transaction started somewhere else or not
+     * @param Constraint $constraint
      *
-     * @return bool
+     * @return mixed
      * @throws DBDException
      */
-    private function beginIntermediate(): bool
+    private function findForeignProperty(Constraint $constraint)
     {
-        $this->transactionsIntermediate++;
+        try {
+            /** @var Entity $constraintEntity */
+            $constraintEntity = new $constraint->class;
+            $fields = array_flip($constraintEntity::map()->getOriginFieldNames());
 
-        if ($this->inTransaction == false)
-            return $this->begin();
-        else
-            return true;
+            /** @var string $foreignColumn name of origin column */
+            $foreignColumn = $constraint instanceof Constraint ? $constraint->foreignColumn : $constraint->foreignColumn->name;
+
+            return $fields[$foreignColumn];
+        } catch (EntityException $e) {
+            throw new DBDException($e->getMessage(), null, null, $e);
+        }
     }
-
-    /**
-     * Starts database transaction
-     *
-     * @return bool
-     * @throws DBDException
-     */
-    public function begin(): bool
-    {
-        if ($this->inTransaction == true)
-            throw new DBDException("Already in transaction");
-
-        $this->connectionPreCheck();
-        $this->result = $this->_begin();
-        if ($this->result === false)
-            throw new DBDException("Can't start transaction: " . $this->_errorMessage());
-
-        $this->inTransaction = true;
-
-        return true;
-    }
-
-    /**
-     * @return bool true on success begin
-     * @see Pg::_begin
-     * @see MSSQL::_begin
-     * @see MySQL::_begin
-     * @see OData::_begin
-     * @see begin
-     */
-    abstract protected function _begin(): bool;
 
     /**
      * Simplifies update procedures. Method makes updates of the rows by giving parameters and prepared values. Returns self instance.
@@ -1126,107 +1022,6 @@ abstract class DBD
     abstract protected function _compileUpdate($table, $params, $where, $return = "");
 
     /**
-     * @return bool
-     * @throws DBDException
-     */
-    private function rollbackIntermediate(): bool
-    {
-        if ($this->inTransaction) {
-            $this->transactionsIntermediate--;
-
-            if ($this->transactionsIntermediate == 0) {
-                return $this->rollback();
-            }
-        } else {
-            throw new DBDException("No transaction to rollback");
-        }
-
-        return true;
-    }
-
-    /**
-     * Rolls back a transaction that was begun
-     *
-     * @return bool
-     * @throws DBDException
-     */
-    public function rollback(): bool
-    {
-        if ($this->inTransaction) {
-            $this->connectionPreCheck();
-            $this->result = $this->_rollback();
-            if ($this->result === false) {
-                throw new DBDException("Can not end transaction: " . $this->_errorMessage());
-            }
-        } else {
-            throw new DBDException("No transaction to rollback");
-        }
-        $this->inTransaction = false;
-
-        return true;
-    }
-
-    /**
-     * @return bool true on successful rollback
-     * @see Pg::_rollback
-     * @see MSSQL::_rollback
-     * @see MySQL::_rollback
-     * @see OData::_rollback
-     * @see rollback
-     */
-    abstract protected function _rollback(): bool;
-
-    /**
-     *  Commit transaction internally of we don't know was transaction started somewhere else or not
-     *
-     * @return bool
-     * @throws DBDException
-     */
-    private function commitIntermediate(): bool
-    {
-        $this->transactionsIntermediate--;
-
-        if ($this->transactionsIntermediate == 0) {
-            return $this->commit();
-        }
-
-        return true;
-    }
-
-    /**
-     * Commits a transaction that was begun
-     *
-     * @return bool
-     * @throws DBDException
-     */
-    public function commit(): bool
-    {
-        if (!$this->isConnected()) {
-            throw new DBDException("No connection established yet");
-        }
-        if ($this->inTransaction) {
-            $this->result = $this->_commit();
-            if ($this->result === false)
-                throw new DBDException("Can not commit transaction: " . $this->_errorMessage());
-        } else {
-            throw new DBDException("No transaction to commit");
-        }
-        $this->inTransaction = false;
-
-        return true;
-    }
-
-    /**
-     * @return bool true on success commit
-     * @see Pg::_commit
-     * @see MSSQL::_commit
-     * @see MySQL::_commit
-     * @see OData::_commit
-     * @see commit
-     */
-    abstract protected function _commit(): bool;
-
-    /**
      * Common usage when you have an Entity object with filled primary key only and want to fetch all available data
      *
      * @param Entity $entity
@@ -1325,4 +1120,100 @@ abstract class DBD
      * @see fetch
      */
     abstract protected function _fetchArray();
+
+    /**
+     * Starts database transaction
+     *
+     * @return bool
+     * @throws DBDException
+     */
+    public function begin(): bool
+    {
+        if ($this->inTransaction == true)
+            throw new DBDException("Already in transaction");
+
+        $this->connectionPreCheck();
+        $this->result = $this->_begin();
+        if ($this->result === false)
+            throw new DBDException("Can't start transaction: " . $this->_errorMessage());
+
+        $this->inTransaction = true;
+
+        return true;
+    }
+
+    /**
+     * @return bool true on success begin
+     * @see Pg::_begin
+     * @see MSSQL::_begin
+     * @see MySQL::_begin
+     * @see OData::_begin
+     * @see begin
+     */
+    abstract protected function _begin(): bool;
+
+    /**
+     * Rolls back a transaction that was begun
+     *
+     * @return bool
+     * @throws DBDException
+     */
+    public function rollback(): bool
+    {
+        if ($this->inTransaction) {
+            $this->connectionPreCheck();
+            $this->result = $this->_rollback();
+            if ($this->result === false) {
+                throw new DBDException("Can not end transaction: " . $this->_errorMessage());
+            }
+        } else {
+            throw new DBDException("No transaction to rollback");
+        }
+        $this->inTransaction = false;
+
+        return true;
+    }
+
+    /**
+     * @return bool true on successful rollback
+     * @see Pg::_rollback
+     * @see MSSQL::_rollback
+     * @see MySQL::_rollback
+     * @see OData::_rollback
+     * @see rollback
+     */
+    abstract protected function _rollback(): bool;
+
+    /**
+     * Commits a transaction that was begun
+     *
+     * @return bool
+     * @throws DBDException
+     */
+    public function commit(): bool
+    {
+        if (!$this->isConnected()) {
+            throw new DBDException("No connection established yet");
+        }
+        if ($this->inTransaction) {
+            $this->result = $this->_commit();
+            if ($this->result === false)
+                throw new DBDException("Can not commit transaction: " . $this->_errorMessage());
+        } else {
+            throw new DBDException("No transaction to commit");
+        }
+        $this->inTransaction = false;
+
+        return true;
+    }
+
+    /**
+     * @return bool true on success commit
+     * @see Pg::_commit
+     * @see MSSQL::_commit
+     * @see MySQL::_commit
+     * @see OData::_commit
+     * @see commit
+     */
+    abstract protected function _commit(): bool;
 }

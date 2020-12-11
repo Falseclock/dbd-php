@@ -230,7 +230,7 @@ class OData extends DBD
 
     /*--------------------------------------------------------------*/
 
-    protected function _compileInsert($table, $params, $return = ""): string
+    protected function _compileInsert(string $table, array $params, string $return = ""): string
     {
         // TODO: Implement _compileInsert() method.
     }

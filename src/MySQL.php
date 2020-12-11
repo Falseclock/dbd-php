@@ -62,7 +62,7 @@ class MySQL extends DBD
         return mysqli_commit($this->resourceLink);
     }
 
-    protected function _compileInsert($table, $params, $return = ""): string
+    protected function _compileInsert(string $table, array $params, string $return = ""): string
     {
         return "INSERT INTO $table ({$params['COLUMNS']}) VALUES ({$params['VALUES']})";
     }

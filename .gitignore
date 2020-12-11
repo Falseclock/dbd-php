@@ -4,3 +4,4 @@ vendor/
 /build/
 /.run/
 /.phpunit.result.cache
+./run/

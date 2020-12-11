@@ -7,6 +7,7 @@
  * @license   https://en.wikipedia.org/wiki/MIT_License MIT License
  * @link      https://github.com/Falseclock/dbd-php
  */
+
 declare(strict_types=1);
 
 namespace DBD\Tests;
@@ -17,12 +18,13 @@ use DBD\Cache\MemCache;
 use DBD\Common\DBDException;
 use DBD\Entity\Common\EntityException;
 use DBD\Pg;
-use DBD\Tests\Entities\TestBase;
-use DBD\Tests\Entities\TestBaseMap;
 use DBD\Tests\Entities\TestBaseNoAuto;
+use DBD\Tests\Entities\TestBaseNullable;
+use DBD\Tests\Entities\TestBaseNullable2;
+use DBD\Tests\Entities\TestBaseNullable2Map;
+use DBD\Tests\Entities\TestBaseNullableMap;
 use PHPUnit\Framework\TestCase;
 use Psr\SimpleCache\InvalidArgumentException;
-use ReflectionException;
 
 class PgTest extends TestCase
 {
@@ -1055,22 +1057,21 @@ class PgTest extends TestCase
     /**
      * @throws DBDException
      * @throws EntityException
-     * @throws ReflectionException
      */
-    public function testEntityBaseInsert()
+    public function testEntityBase()
     {
         $this->options->setConvertNumeric(true);
         $this->options->setConvertBoolean(true);
 
-        /** @var TestBaseMap $map */
-        $map = TestBase::map();
+        /** @var TestBaseNullableMap $map */
+        $map = TestBaseNullable::map();
 
-        $this->db->do("DROP TABLE IF EXISTS " . TestBase::TABLE);
-        $this->db->do("CREATE TABLE " . TestBase::TABLE . " (" . $map->id->name . " serial, " . $map->name->name . " text)");
+        $this->db->do("DROP TABLE IF EXISTS " . TestBaseNullable::TABLE);
+        $this->db->do("CREATE TABLE " . TestBaseNullable::TABLE . " (" . $map->id->name . " serial, " . $map->name->name . " text)");
 
         $i = 1;
         while ($i < 11) {
-            $entity = new TestBase();
+            $entity = new TestBaseNullable();
             $entity->name = substr(str_shuffle(str_repeat($x = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ', intval(ceil(10 / strlen($x))))), 1, 10);
 
             $this->db->entityInsert($entity);
@@ -1078,14 +1079,30 @@ class PgTest extends TestCase
 
             $i++;
         }
-        self::assertSame(10, $this->db->select("SELECT count(*) FROM " . TestBase::TABLE));
-        $sth = $this->db->prepare("SELECT * FROM " . TestBase::TABLE);
+        self::assertSame(10, $this->db->select("SELECT count(*) FROM " . TestBaseNullable::TABLE));
+        $sth = $this->db->prepare("SELECT * FROM " . TestBaseNullable::TABLE);
         $sth->execute();
         while ($row = $sth->fetchRow()) {
-            $entity = new TestBase($row);
+            $entity = new TestBaseNullable($row);
             self::assertNotNull($entity->name);
+            self::assertNotNull($entity->id);
+
+            $entityInitial = clone $entity;
+
+            $this->db->entitySelect($entity);
+            self::assertEquals($entityInitial, $entity);
+
+            $entity->name = "updated";
+
+            $this->db->entityUpdate($entity);
+
+            self::assertSame("updated", $entity->name);
+
+            self::assertTrue($this->db->entityDelete($entity));
+
         }
     }
+
 
     /**
      * @throws DBDException
@@ -1097,10 +1114,63 @@ class PgTest extends TestCase
 
         $entity = new TestBaseNoAuto();
 
+        self::expectException(DBDException::class);
         $this->db->entityInsert($entity);
 
     }
 
+    /**
+     * @throws DBDException
+     * @throws EntityException
+     */
+    public function testEntityBaseDefaultValueInsert()
+    {
+        /** @var TestBaseNullableMap $map */
+        $map = TestBaseNullable::map();
+
+        $this->db->do("DROP TABLE IF EXISTS " . TestBaseNullable::TABLE);
+        $this->db->do("CREATE TABLE " . TestBaseNullable::TABLE . " (" . $map->id->name . " serial, " . $map->name->name . " text)");
+
+
+        $i = 0;
+        while ($i < 10) {
+            $entity = new TestBaseNullable();
+            $this->db->entityInsert($entity);
+            $i++;
+        }
+
+        $sth = $this->db->prepare("SELECT * FROM " . TestBaseNullable::TABLE . " WHERE " . $map->name->name . "=?");
+        $sth->execute($map->name->defaultValue);
+
+        self::assertCount(10, $sth->fetchRowSet());
+    }
+
+
+    /**
+     * @throws DBDException
+     * @throws EntityException
+     */
+    public function testEntityBaseNullableValueInsert()
+    {
+        /** @var TestBaseNullable2Map $map */
+        $map = TestBaseNullable2::map();
+
+        $this->db->do("DROP TABLE IF EXISTS " . TestBaseNullable2::TABLE);
+        $this->db->do("CREATE TABLE " . TestBaseNullable2::TABLE . " (" . $map->id->name . " serial, " . $map->name->name . " text, " . $map->name2->name . " text)");
+
+
+        $i = 0;
+        while ($i < 10) {
+            $entity = new TestBaseNullable2();
+            $this->db->entityInsert($entity);
+            $i++;
+        }
+
+        $sth = $this->db->prepare("SELECT * FROM " . TestBaseNullable2::TABLE . " WHERE " . $map->name->name . " IS NULL");
+        $sth->execute();
+
+        self::assertCount(10, $sth->fetchRowSet());
+    }
 
     /**
      * This should be last as transaction may be in fail state
