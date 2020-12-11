@@ -1,27 +1,15 @@
 <?php
-/************************************************************************************
- *   MIT License                                                                     *
- *                                                                                   *
- *   Copyright (C) 2009-2019 by Nurlan Mukhanov <nurike@gmail.com>                   *
- *                                                                                   *
- *   Permission is hereby granted, free of charge, to any person obtaining a copy    *
- *   of this software and associated documentation files (the "Software"), to deal   *
- *   in the Software without restriction, including without limitation the rights    *
- *   to use, copy, modify, merge, publish, distribute, sublicense, and/or sell       *
- *   copies of the Software, and to permit persons to whom the Software is           *
- *   furnished to do so, subject to the following conditions:                        *
- *                                                                                   *
- *   The above copyright notice and this permission notice shall be included in all  *
- *   copies or substantial portions of the Software.                                 *
- *                                                                                   *
- *   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR      *
- *   IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,        *
- *   FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT. IN NO EVENT SHALL THE    *
- *   AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER          *
- *   LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,   *
- *   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE   *
- *   SOFTWARE.                                                                       *
- ************************************************************************************/
+/**
+ * OData
+ *
+ * @author    Nurlan Mukhanov <nurike@gmail.com>
+ * @copyright 2020 Nurlan Mukhanov
+ * @license   https://en.wikipedia.org/wiki/MIT_License MIT License
+ * @link      https://github.com/Falseclock/dbd-php
+ * @noinspection PhpComposerExtensionStubsInspection
+ */
+
+declare(strict_types=1);
 
 namespace DBD;
 
@@ -31,7 +19,7 @@ use LSS\XML2Array;
 
 class OData extends DBD
 {
-	protected $body         = null;
+    protected $body = null;
 	protected $dataKey      = null;
 	protected $header       = null;
 	protected $httpCode     = null;
@@ -237,7 +225,7 @@ class OData extends DBD
 
     /*--------------------------------------------------------------*/
 
-    protected function _compileUpdate($table, $params, $where, $return = "")
+    protected function _compileUpdate(string $table, array $params, string $where, string $return = ""): string
     {
         // TODO: Implement _compileUpdate() method.
     }
@@ -303,18 +291,20 @@ class OData extends DBD
      *
      * @return mixed
 	 * @see MSSQL::_execute
-	 * @see MySQL::_execute
-	 * @see OData::_execute
-	 * @see Pg::_execute
-	 */
-	protected function _execute($uniqueName, $arguments) {
-		// TODO: Implement _execute() method.
-	}
+     * @see MySQL::_execute
+     * @see OData::_execute
+     * @see Pg::_execute
+     */
+    protected function _execute($uniqueName, $arguments)
+    {
+        // TODO: Implement _execute() method.
+    }
 
-	/*--------------------------------------------------------------*/
+    /*--------------------------------------------------------------*/
 
-	protected function _fetchArray() {
-		// TODO: Implement _fetchArray() method.
+    protected function _fetchArray(): array
+    {
+        // TODO: Implement _fetchArray() method.
     }
 
     /*--------------------------------------------------------------*/

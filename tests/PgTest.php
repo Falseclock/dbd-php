@@ -1194,5 +1194,4 @@ class PgTest extends TestCase
         $this->expectException(DBDException::class);
         $this->db->query("SELECT * FROM unknown_TABLE");
     }
-
 }

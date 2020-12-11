@@ -6,6 +6,7 @@
  * @copyright 2020 Nurlan Mukhanov
  * @license   https://en.wikipedia.org/wiki/MIT_License MIT License
  * @link      https://github.com/Falseclock/dbd-php
+ * @noinspection PhpComposerExtensionStubsInspection
  */
 
 declare(strict_types=1);
@@ -33,7 +34,6 @@ class Pg extends DBD
      */
     public function connect(): DBD
     {
-
         $dsn = "host={$this->Config->getHost()} ";
         $dsn .= "dbname={$this->Config->getDatabase()} ";
         $dsn .= $this->Config->getUsername() ? "user={$this->Config->getUsername()} " : "";
@@ -137,46 +137,10 @@ class Pg extends DBD
      *
      * @return string
      */
-    protected function _compileUpdate($table, $params, $where, $return = "")
+    protected function _compileUpdate(string $table, array $params, string $where, string $return = ""): string
     {
         /** @noinspection SqlWithoutWhere */
         return "UPDATE $table SET {$params['COLUMNS']}" . ($where ? " WHERE $where" : "") . ($return ? " RETURNING {$return}" : "");
-    }
-
-    /**
-     * @param $data
-     * @param $type
-     *
-     * @return array|mixed
-     * @throws DBDException
-     */
-    protected function _convertBoolean(&$data)
-    {
-        if ($type == 'row') {
-            if (isset($data) and is_array($data) and count($data) > 0) {
-                for ($i = 0; $i < pg_num_fields($this->result); $i++) {
-                    if (pg_field_type($this->result, $i) == 'bool') {
-                        $dataKey = pg_field_name($this->result, $i);
-                        if (array_keys($data) !== range(0, count($data) - 1)) {
-                            $key = $dataKey;
-                        } else {
-                            $key = $i;
-                        }
-                        if ($data[$key] == 't') {
-                            $data[$key] = true;
-                        } else if ($data[$key] == 'f') {
-                            $data[$key] = false;
-                        } else if ($data[$key] == null) {
-                            $data[$key] = null;
-                        } else {
-                            throw new DBDException("Unexpected boolean value");
-                        }
-                    }
-                }
-            }
-        }
-
-        return $data;
     }
 
     /**
@@ -184,7 +148,7 @@ class Pg extends DBD
      *
      * @param $data
      *
-     * TODO: in case of fetchrowset do not get each time and use static variable
+     * TODO: in case of fetchRowSet do not get each time and use static variable
      */
     protected function _convertTypes(&$data): void
     {
@@ -256,6 +220,7 @@ class Pg extends DBD
 
     /**
      * @inheritDoc
+     * @throws DBDException
      */
     protected function _dump(string $preparedQuery, string $fileName, string $delimiter, string $nullString, bool $showHeader, string $tmpPath): string
     {
@@ -294,15 +259,12 @@ class Pg extends DBD
      */
     protected function _escape($value): string
     {
-        if (!isset($value)) {
+        if (!isset($value))
             return "NULL";
-        }
-        /*		if(is_numeric($value)) {
-                    return $value;
-                }*/
-        if (is_bool($value)) {
+
+        if (is_bool($value))
             return ($value) ? "TRUE" : "FALSE";
-        }
+
         $str = pg_escape_string((string)$value);
 
         return "'$str'";
@@ -313,10 +275,7 @@ class Pg extends DBD
      * @param $arguments
      *
      * @return mixed|null
-     * @see MSSQL::_execute
-     * @see MySQL::_execute
-     * @see OData::_execute
-     * @see Pg::_execute
+     * @inheritDoc
      */
     protected function _execute($uniqueName, $arguments)
     {
@@ -333,8 +292,9 @@ class Pg extends DBD
      * Returns an array that corresponds to the fetched row (record).
      *
      * @return array
+     * @inheritDoc
      */
-    protected function _fetchArray()
+    protected function _fetchArray(): array
     {
         return pg_fetch_array($this->result, 0, PGSQL_NUM);
     }
@@ -342,7 +302,8 @@ class Pg extends DBD
     /**
      * Returns an associative array that corresponds to the fetched row (records).
      *
-     * @return array
+     * @return array|bool
+     * @inheritDoc
      */
     protected function _fetchAssoc()
     {

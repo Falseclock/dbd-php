@@ -534,7 +534,7 @@ abstract class DBD
     }
 
     /**
-     * @return mixed
+     * @return array|bool
      * @see Pg::_fetchAssoc
      * @see MSSQL::_fetchAssoc
      * @see MySQL::_fetchAssoc
@@ -1019,7 +1019,7 @@ abstract class DBD
      * @see MySQL::_compileUpdate
      * @see OData::_compileUpdate
      */
-    abstract protected function _compileUpdate($table, $params, $where, $return = "");
+    abstract protected function _compileUpdate(string $table, array $params, string $where, string $return = ""): string;
 
     /**
      * Common usage when you have an Entity object with filled primary key only and want to fetch all available data
@@ -1112,14 +1112,14 @@ abstract class DBD
     }
 
     /**
-     * @return mixed
+     * @return array
      * @see Pg::_fetchArray
      * @see MSSQL::_fetchArray
      * @see MySQL::_fetchArray
      * @see OData::_fetchArray
      * @see fetch
      */
-    abstract protected function _fetchArray();
+    abstract protected function _fetchArray(): array;
 
     /**
      * Starts database transaction
