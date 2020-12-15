@@ -1409,7 +1409,7 @@ abstract class DBD
 	 *
 	 * @return DBD
 	 */
-	final private function extendMe(DBD $context, string $statement) {
+	private function extendMe(DBD $context, string $statement) {
 
 		$className = get_class($context);
 

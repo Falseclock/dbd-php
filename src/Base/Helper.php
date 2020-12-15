@@ -82,7 +82,7 @@ final class Helper
 
 		foreach($array as $idx => $line) {
 			//$array[$idx] = trim($array[$idx], "\s\t\n\r");
-			if(!$array[$idx] || preg_match('/^[\s\R\t]*?$/u', $array[$idx])) {
+			if(!$array[$idx] || preg_match('/^[\s\t]*?$/u', $array[$idx])) {
 				unset($array[$idx]);
 				continue;
 			}

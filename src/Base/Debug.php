@@ -25,6 +25,7 @@
 
 namespace DBD\Base;
 
+use DBD\Common\Instantiatable;
 use DBD\Common\Singleton;
 use Exception;
 
@@ -105,7 +106,7 @@ final class Debug extends Singleton
 	 * @return Debug
 	 * @throws Exception
 	 */
-	public static function me() {
+	public static function me(): Instantiatable {
 		return Singleton::getInstance(__CLASS__);
 	}
 
