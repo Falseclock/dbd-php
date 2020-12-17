@@ -40,7 +40,7 @@ final class Config
      * @param $username
      * @param $password
      */
-    public function __construct(string $host, int $port, string $database, string $username, string $password)
+    public function __construct(string $host, ?int $port, ?string $database, string $username, string $password)
     {
         $this->host = $host;
         $this->port = $port;

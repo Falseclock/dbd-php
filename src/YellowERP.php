@@ -2,14 +2,14 @@
 /**
  * YellowERP
  *
- * @author    Nurlan Mukhanov <nurike@gmail.com>
- * @copyright 2020 Nurlan Mukhanov
- * @license   https://en.wikipedia.org/wiki/MIT_License MIT License
- * @link      https://github.com/Falseclock/dbd-php
+ * @author       Nurlan Mukhanov <nurike@gmail.com>
+ * @copyright    2020 Nurlan Mukhanov
+ * @license      https://en.wikipedia.org/wiki/MIT_License MIT License
+ * @link         https://github.com/Falseclock/dbd-php
  * @noinspection PhpComposerExtensionStubsInspection
  */
 
-declare(strict_types=1);
+declare(strict_types = 1);
 
 namespace DBD;
 
@@ -19,7 +19,7 @@ use ReflectionException;
 
 final class YellowERP extends OData
 {
-    protected $httpServicesUrl = null;
+	protected $httpServicesUrl = null;
 	/** @var int $maxRetries количество попыток HTTP запросов в случае, если неудачи */
 	protected $maxRetries = 3;
 	/** @var bool $reuseSessions флаг использования cookie-based сессий в 1С */
@@ -27,11 +27,11 @@ final class YellowERP extends OData
 	/** @var string $servicesPath обращение к самописным сервисам в конфигурации по адресу Общие->HTTP-сервисы */
 	protected $servicesPath = null;
 	/** @var string $sessionFile место хранения файла с cookie. TODO: сделать возможность хранения в кэше, если он присутствует */
-	protected $sessionFile  = null;
-	protected $timeOutLimit = 30;
-	private static $ibsession       = null;
-	private static $retry           = 0;
-	private static $sessionExist    = false;
+	protected      $sessionFile  = null;
+	protected      $timeOutLimit = 30;
+	private static $ibsession    = null;
+	private static $retry        = 0;
+	private static $sessionExist = false;
 
 	/**
 	 * Здесь мы должны открыть соединение в случае с базой, если у нас не стоит ондеманд.
@@ -41,7 +41,7 @@ final class YellowERP extends OData
 	 *
 	 * @return $this
 	 */
-	public function connect() {
+	public function connect(): DBD {
 
 		return $this;
 	}
@@ -90,11 +90,11 @@ final class YellowERP extends OData
 	 */
 	public function finish() {
 		if($this->resourceLink && self::$ibsession) {
-            curl_setopt($this->resourceLink, CURLOPT_URL, $this->Config->getHost());
-            curl_setopt($this->resourceLink, CURLOPT_COOKIE, "ibsession=" . self::$ibsession);
-            curl_setopt($this->resourceLink, CURLOPT_HTTPHEADER, ['IBSession: finish']);
-            curl_exec($this->resourceLink);
-        }
+			curl_setopt($this->resourceLink, CURLOPT_URL, $this->Config->getHost());
+			curl_setopt($this->resourceLink, CURLOPT_COOKIE, "ibsession=" . self::$ibsession);
+			curl_setopt($this->resourceLink, CURLOPT_HTTPHEADER, [ 'IBSession: finish' ]);
+			curl_exec($this->resourceLink);
+		}
 		// Возможно мы не раз еще будем пользоваться файлом, поэтому чтобы его не создавать постоянно, просто запишем в него пустоту
 		file_put_contents($this->sessionFile, null);
 		self::$ibsession = null;
@@ -170,12 +170,13 @@ final class YellowERP extends OData
 	 *
 	 * @return $this|DBD|OData|YellowERP
 	 * @throws Exception
+	 * @inheritDoc
 	 */
-	protected function _connect() {
+	protected function _connect(): void {
 
 		if(!is_resource($this->resourceLink)) {
-            $this->setupRequest($this->Config->getHost());
-        }
+			$this->setupRequest($this->Config->getHost());
+		}
 
 		if($this->reuseSessions && !self::$sessionExist) {
 			self::$retry++;
@@ -222,7 +223,7 @@ final class YellowERP extends OData
 				file_put_contents($this->sessionFile, null);
 				self::$ibsession = null;
 
-				return $this->_connect();
+				$this->_connect();
 			}
 
 			preg_match_all('/^Set-Cookie:\s*([^;]*)/mi', $this->header, $matches);
@@ -250,7 +251,7 @@ final class YellowERP extends OData
 			if(!$this->reuseSessions && $this->httpCode == 0 && self::$retry < $this->maxRetries) {
 				self::$retry++;
 
-				return $this->_connect();
+				$this->_connect();
 			}
 			else {
 				$this->parseError();
@@ -258,6 +259,5 @@ final class YellowERP extends OData
 		}
 		self::$retry = 0;
 
-		return $this;
 	}
 }
