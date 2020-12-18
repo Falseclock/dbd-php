@@ -1082,7 +1082,7 @@ abstract class DBD
         if ($sth->rows())
             return $sth->fetch();
 
-        throw new DBDException("Possibly non SELECT query");
+        return null;
     }
 
     /**

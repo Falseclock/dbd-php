@@ -339,7 +339,7 @@ class Pg extends DBD
      */
     protected function _rollback(): bool
     {
-        return $this->_query("ROLLBACK;") !== null;
+        return $this->_query("ROLLBACK") !== null;
     }
 
     /**
