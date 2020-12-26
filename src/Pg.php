@@ -127,17 +127,17 @@ class Pg extends DBD
         return "INSERT INTO $table ({$params['COLUMNS']}) VALUES ({$params['VALUES']})" . ($return ? " RETURNING {$return}" : "");
     }
 
-    /**
-     * Compiles UPDATE query
-     *
-     * @param string $table
-     * @param array $params
-     * @param string $where
-     * @param string $return
-     *
-     * @return string
-     */
-    protected function _compileUpdate(string $table, array $params, string $where, string $return = ""): string
+	/**
+	 * Compiles UPDATE query
+	 *
+	 * @param string      $table
+	 * @param array       $params
+	 * @param string      $where
+	 * @param string|null $return
+	 *
+	 * @return string
+	 */
+    protected function _compileUpdate(string $table, array $params, string $where, ?string $return = ""): string
     {
         /** @noinspection SqlWithoutWhere */
         return "UPDATE $table SET {$params['COLUMNS']}" . ($where ? " WHERE $where" : "") . ($return ? " RETURNING {$return}" : "");

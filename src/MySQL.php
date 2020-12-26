@@ -54,7 +54,7 @@ class MySQL extends DBD
         return "INSERT INTO $table ({$params['COLUMNS']}) VALUES ({$params['VALUES']})";
     }
 
-    protected function _compileUpdate(string $table, array $params, string $where, string $return = ""): string
+    protected function _compileUpdate(string $table, array $params, string $where, ?string $return = ""): string
     {
         return "UPDATE $table SET {$params['COLUMNS']}" . ($where ? " WHERE $where" : "");
     }

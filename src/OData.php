@@ -387,7 +387,7 @@ class OData extends DBD
 
 	/*--------------------------------------------------------------*/
 
-	protected function _compileUpdate(string $table, array $params, string $where, string $return = ""): string {
+	protected function _compileUpdate(string $table, array $params, string $where, ?string $return = ""): string {
 		// TODO: Implement _compileUpdate() method.
 	}
 

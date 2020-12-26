@@ -1006,20 +1006,20 @@ abstract class DBD
         return $this->query($this->_compileUpdate($table, $params, $where, $return), $params['ARGS']);
     }
 
-    /**
-     * @param        $table
-     * @param        $params
-     * @param        $where
-     * @param string $return
-     *
-     * @return mixed
-     * @see update
-     * @see Pg::_compileUpdate
-     * @see MSSQL::_compileUpdate
-     * @see MySQL::_compileUpdate
-     * @see OData::_compileUpdate
-     */
-    abstract protected function _compileUpdate(string $table, array $params, string $where, string $return = ""): string;
+	/**
+	 * @param string      $table
+	 * @param array       $params
+	 * @param string      $where
+	 * @param string|null $return
+	 *
+	 * @return mixed
+	 * @see update
+	 * @see Pg::_compileUpdate
+	 * @see MSSQL::_compileUpdate
+	 * @see MySQL::_compileUpdate
+	 * @see OData::_compileUpdate
+	 */
+    abstract protected function _compileUpdate(string $table, array $params, string $where, ?string $return = ""): string;
 
     /**
      * Common usage when you have an Entity object with filled primary key only and want to fetch all available data
@@ -1067,6 +1067,14 @@ abstract class DBD
     {
         return $this->Options;
     }
+
+	/**
+	 * @return Config
+	 */
+	public function getConfig(): Config
+	{
+		return $this->Config;
+	}
 
     /**
      * Simply query and get first column.
