@@ -2,10 +2,10 @@
 /**
  * TestCacheDriver
  *
- * @author    Nurlan Mukhanov <nurike@gmail.com>
- * @copyright 2020 Nurlan Mukhanov
- * @license   https://en.wikipedia.org/wiki/MIT_License MIT License
- * @link      https://github.com/Falseclock/dbd-php
+ * @author       Nurlan Mukhanov <nurike@gmail.com>
+ * @copyright    2020 Nurlan Mukhanov
+ * @license      https://en.wikipedia.org/wiki/MIT_License MIT License
+ * @link         https://github.com/Falseclock/dbd-php
  * @noinspection PhpMissingReturnTypeInspection
  */
 
@@ -15,35 +15,27 @@ use Psr\SimpleCache\CacheInterface;
 
 class TestCacheDriver implements CacheInterface
 {
-    public function get($key, $default = null)
-    {
-    }
+	public function clear() {
+	}
 
-    public function set($key, $value, $ttl = null)
-    {
-    }
+	public function delete($key) {
+	}
 
-    public function delete($key)
-    {
-    }
+	public function deleteMultiple($keys) {
+	}
 
-    public function clear()
-    {
-    }
+	public function get($key, $default = null) {
+	}
 
-    public function getMultiple($keys, $default = null)
-    {
-    }
+	public function getMultiple($keys, $default = null) {
+	}
 
-    public function setMultiple($values, $ttl = null)
-    {
-    }
+	public function has($key) {
+	}
 
-    public function deleteMultiple($keys)
-    {
-    }
+	public function set($key, $value, $ttl = null) {
+	}
 
-    public function has($key)
-    {
-    }
+	public function setMultiple($values, $ttl = null) {
+	}
 }

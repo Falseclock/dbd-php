@@ -202,7 +202,7 @@ class MSSQL extends DBD
      * @see OData::_prepare
      * @see Pg::_prepare
      */
-    protected function _prepare($uniqueName, $statement): bool
+    protected function _prepare(string $uniqueName, string $statement): bool
     {
         // TODO: Implement _prepare() method.
     }

@@ -51,7 +51,7 @@ abstract class DBD
     protected $query;
     /** @var resource $resourceLink Database or curl connection resource */
     protected $resourceLink;
-    /** @var resource|string $result Query result data */
+    /** @var resource $result Query result data */
     protected $result;
     /** @var CacheHolder */
     protected $CacheHolder = null;
