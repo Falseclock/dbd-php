@@ -89,12 +89,12 @@ class MySQL extends DBD
         return mysqli_error($this->resourceLink);
     }
 
-    protected function _escape($value): string
+    protected function _escape($string): string
     {
-        if (!isset($value) or $value === null) {
+        if (!isset($string))
             return "NULL";
-        }
-        $str = mysqli_real_escape_string($this->resourceLink, $value);
+
+        $str = mysqli_real_escape_string($this->resourceLink, $string);
 
         return "'$str'";
     }
@@ -162,8 +162,8 @@ class MySQL extends DBD
      *
      * @return string|null
      */
-    protected function _binaryEscape(?string $binaryString): ?string
+    protected function _escapeBinary(?string $binaryString): ?string
     {
         // TODO: Implement _binaryEscape() method.
-	}
+    }
 }

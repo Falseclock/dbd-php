@@ -400,7 +400,7 @@ abstract class DBD
     }
 
     /**
-     * @param mixed $value
+     * @param mixed $string
      *
      * @return mixed
      * @see MSSQL::_escape
@@ -409,7 +409,7 @@ abstract class DBD
      * @see Pg::_escape
      * @see getPreparedQuery
      */
-    abstract protected function _escape($value): string;
+    abstract protected function _escape($string): string;
 
     /**
      * Check connection existence and does connection if not
@@ -746,13 +746,13 @@ abstract class DBD
                             else
                                 $finalValue = $column->defaultValue;
 
-                            $record[$originName] = $column->type->getValue() == Primitive::Binary ? $this->_binaryEscape($finalValue) : $finalValue;
+                            $record[$originName] = $column->type->getValue() == Primitive::Binary ? $this->_escapeBinary($finalValue) : $finalValue;
                         }
                     }
                 } else {
                     // Finally add column to record if it is set
                     if (isset($entity->$propertyName)) {
-                        $record[$originName] = ($column->type->getValue() == Primitive::Binary) ? $this->_binaryEscape($entity->$propertyName) : $entity->$propertyName;
+                        $record[$originName] = ($column->type->getValue() == Primitive::Binary) ? $this->_escapeBinary($entity->$propertyName) : $entity->$propertyName;
                     } else {
                         // If value not set and we have some default value, let's define also
                         if ($column->isAuto === false and isset($column->defaultValue))
@@ -783,13 +783,13 @@ abstract class DBD
      *
      * @return string|null
      * @see entityInsert
-     * @see Pg::_binaryEscape
-     * @see MSSQL::_binaryEscape
-     * @see MySQL::_binaryEscape
-     * @see OData::_binaryEscape
+     * @see Pg::_escapeBinary
+     * @see MSSQL::_escapeBinary
+     * @see MySQL::_escapeBinary
+     * @see OData::_escapeBinary
      * @see execute
      */
-    abstract protected function _binaryEscape(?string $binaryString): ?string;
+    abstract protected function _escapeBinary(?string $binaryString): ?string;
 
     /**
      * Easy insert operation
@@ -1006,19 +1006,19 @@ abstract class DBD
         return $this->query($this->_compileUpdate($table, $params, $where, $return), $params['ARGS']);
     }
 
-	/**
-	 * @param string      $table
-	 * @param array       $params
-	 * @param string      $where
-	 * @param string|null $return
-	 *
-	 * @return mixed
-	 * @see update
-	 * @see Pg::_compileUpdate
-	 * @see MSSQL::_compileUpdate
-	 * @see MySQL::_compileUpdate
-	 * @see OData::_compileUpdate
-	 */
+    /**
+     * @param string $table
+     * @param array $params
+     * @param string $where
+     * @param string|null $return
+     *
+     * @return mixed
+     * @see update
+     * @see Pg::_compileUpdate
+     * @see MSSQL::_compileUpdate
+     * @see MySQL::_compileUpdate
+     * @see OData::_compileUpdate
+     */
     abstract protected function _compileUpdate(string $table, array $params, string $where, ?string $return = ""): string;
 
     /**
@@ -1051,13 +1051,24 @@ abstract class DBD
         return $entity;
     }
 
+
     /**
-     * @param $string
+     * @param string|null $string
      * @return string
      */
-    public function escape(string $string): string
+    public function escape(?string $string): string
     {
         return $this->_escape($string);
+    }
+
+
+    /**
+     * @param string|null $string
+     * @return string
+     */
+    public function escapeBinary(?string $string): string
+    {
+        return $this->_escapeBinary($string);
     }
 
     /**
@@ -1068,13 +1079,13 @@ abstract class DBD
         return $this->Options;
     }
 
-	/**
-	 * @return Config
-	 */
-	public function getConfig(): Config
-	{
-		return $this->Config;
-	}
+    /**
+     * @return Config
+     */
+    public function getConfig(): Config
+    {
+        return $this->Config;
+    }
 
     /**
      * Simply query and get first column.

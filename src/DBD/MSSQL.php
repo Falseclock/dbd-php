@@ -22,10 +22,10 @@ use DBD\Common\DBDException as Exception;
  */
 class MSSQL extends DBD
 {
-	const SQLSRV_CURSOR_CLIENT_BUFFERED = 'buffered';
-	const SQLSRV_CURSOR_DYNAMIC         = 'dynamic';
-	const SQLSRV_CURSOR_FORWARD         = 'forward';
-	const SQLSRV_CURSOR_KEYSET          = 'keyset';
+    const SQLSRV_CURSOR_CLIENT_BUFFERED = 'buffered';
+    const SQLSRV_CURSOR_DYNAMIC = 'dynamic';
+    const SQLSRV_CURSOR_FORWARD = 'forward';
+    const SQLSRV_CURSOR_KEYSET = 'keyset';
     const SQLSRV_CURSOR_STATIC = 'static';
     //
     protected $connectionInfo = [];
@@ -53,6 +53,27 @@ class MSSQL extends DBD
         }
 
         return $this;
+    }
+
+    /**
+     * Do real connection. Can be invoked if OnDemand is set to TRUE
+     *
+     * @return void
+     * @throws Exception
+     */
+    protected function _connect(): void
+    {
+        $this->resourceLink = sqlsrv_connect($this->Config->getHost(), $this->connectionInfo);
+
+        if (!$this->resourceLink)
+            throw new Exception($this->_errorMessage());
+    }
+
+    protected function _errorMessage(): string
+    {
+        $errors = sqlsrv_errors();
+
+        return preg_replace('/^(\[.*\])+?/', '', $errors[0]['message']) . " SQL State: " . $errors[0]['SQLSTATE'] . ". Code: " . $errors[0]['code'];
     }
 
     protected function _rows(): int
@@ -89,20 +110,6 @@ class MSSQL extends DBD
         return "UPDATE $table SET {$params['COLUMNS']}" . ($where ? " WHERE $where" : "");
     }
 
-    /**
-     * Do real connection. Can be invoked if OnDemand is set to TRUE
-     *
-     * @return void
-     * @throws Exception
-     */
-    protected function _connect(): void
-    {
-        $this->resourceLink = sqlsrv_connect($this->Config->getHost(), $this->connectionInfo);
-
-        if (!$this->resourceLink)
-            throw new Exception($this->_errorMessage());
-    }
-
     protected function _convertTypes(&$data): void
     {
         // TODO: Implement _convertTypes() method.
@@ -113,48 +120,40 @@ class MSSQL extends DBD
         return sqlsrv_close($this->resourceLink);
     }
 
-    protected function _errorMessage(): string
+    protected function _escape($string): string
     {
-        $errors = sqlsrv_errors();
-
-        return preg_replace('/^(\[.*\])+?/', '', $errors[0]['message']) . " SQL State: " . $errors[0]['SQLSTATE'] . ". Code: " . $errors[0]['code'];
-    }
-
-    protected function _escape($str): string
-    {
-        if (!isset($str) or $str === null) {
+        if (!isset($string))
             return "NULL";
-        }
 
-        if (is_numeric($str))
-            return $str;
+        if (is_numeric($string))
+            return $string;
 
         $nonDisplayAble = [
             '/%0[0-8bcef]/',
             // url encoded 00-08, 11, 12, 14, 15
-			'/%1[0-9a-f]/',
-			// url encoded 16-31
-			'/[\x00-\x08]/',
-			// 00-08
-			'/\x0b/',
-			// 11
-			'/\x0c/',
-			// 12
-			'/[\x0e-\x1f]/'
-			// 14-31
-		];
-		foreach($nonDisplayAble as $regex)
-			$str = preg_replace($regex, '', $str);
+            '/%1[0-9a-f]/',
+            // url encoded 16-31
+            '/[\x00-\x08]/',
+            // 00-08
+            '/\x0b/',
+            // 11
+            '/\x0c/',
+            // 12
+            '/[\x0e-\x1f]/'
+            // 14-31
+        ];
+        foreach ($nonDisplayAble as $regex)
+            $string = preg_replace($regex, '', $string);
 
-		$str = str_replace("'", "''", $str);
+        $string = str_replace("'", "''", $string);
 
-		return "'$str'";
-	}
+        return "'$string'";
+    }
 
-	/**
-	 * @param $uniqueName
-	 * @param $arguments
-	 *
+    /**
+     * @param $uniqueName
+     * @param $arguments
+     *
      * @return mixed
      * @see MSSQL::_execute
      * @see MySQL::_execute
@@ -240,8 +239,8 @@ class MSSQL extends DBD
      *
      * @return string|null
      */
-    protected function _binaryEscape(?string $binaryString): ?string
+    protected function _escapeBinary(?string $binaryString): ?string
     {
         // TODO: Implement _binaryEscape() method.
-	}
+    }
 }

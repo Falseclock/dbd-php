@@ -253,21 +253,21 @@ class Pg extends DBD
     /**
      * Escapes a string for querying the database.
      *
-     * @param mixed $value
-     *
+     * @param mixed $string
+     * @inheritDoc
      * @return string
      */
-    protected function _escape($value): string
+    protected function _escape($string): string
     {
-        if (!isset($value))
+        if (!isset($string))
             return "NULL";
 
-        if (is_bool($value))
-            return ($value) ? "TRUE" : "FALSE";
+        if (is_bool($string))
+            return ($string) ? "TRUE" : "FALSE";
 
-        $str = pg_escape_string((string)$value);
+        $string = pg_escape_string((string)$string);
 
-        return "'$str'";
+        return "'$string'";
     }
 
     /**
@@ -347,7 +347,7 @@ class Pg extends DBD
      *
      * @return string|null
      */
-    protected function _binaryEscape(?string $binaryString): ?string
+    protected function _escapeBinary(?string $binaryString): ?string
     {
         if (!is_null($binaryString)) {
             $binaryString = pg_escape_bytea($binaryString);

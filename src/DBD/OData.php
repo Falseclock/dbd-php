@@ -359,27 +359,29 @@ class OData extends DBD
 	/*--------------------------------------------------------------*/
 
 	protected function _begin(): bool {
-		// TODO: Implement _begin() method.
-	}
+        // TODO: Implement _begin() method.
+    }
 
-	/*--------------------------------------------------------------*/
+    /*--------------------------------------------------------------*/
 
-	/**
-	 * @param string|null $binaryString
-	 *
-	 * @return string|null
-	 */
-	protected function _binaryEscape(?string $binaryString): ?string {
-		// TODO: Implement _binaryEscape() method.
-	}
+    /**
+     * @param string|null $binaryString
+     *
+     * @return string|null
+     */
+    protected function _escapeBinary(?string $binaryString): ?string
+    {
+        // TODO: Implement _binaryEscape() method.
+    }
 
-	/*--------------------------------------------------------------*/
+    /*--------------------------------------------------------------*/
 
-	protected function _commit(): bool {
-		// TODO: Implement _commit() method.
-	}
+    protected function _commit(): bool
+    {
+        // TODO: Implement _commit() method.
+    }
 
-	/*--------------------------------------------------------------*/
+    /*--------------------------------------------------------------*/
 
 	protected function _compileInsert(string $table, array $params, string $return = ""): string {
 		// TODO: Implement _compileInsert() method.
@@ -426,27 +428,30 @@ class OData extends DBD
 	}
 
 	/**
-	 * @inheritDoc
-	 */
-	protected function _dump(string $preparedQuery, string $fileName, string $delimiter, string $nullString, bool $showHeader, string $tmpPath): string {
-		// TODO: Implement _dump() method.
-	}
+     * @inheritDoc
+     */
+    protected function _dump(string $preparedQuery, string $fileName, string $delimiter, string $nullString, bool $showHeader, string $tmpPath): string
+    {
+        // TODO: Implement _dump() method.
+    }
 
-	protected function _errorMessage(): string {
-		// TODO: Implement _errorMessage() method.
-	}
+    protected function _errorMessage(): string
+    {
+        // TODO: Implement _errorMessage() method.
+    }
 
-	protected function _escape($value): string {
-		// TODO: Implement _escape() method.
-	}
+    protected function _escape($string): string
+    {
+        // TODO: Implement _escape() method.
+    }
 
-	/**
-	 * @param $uniqueName
-	 * @param $arguments
-	 *
-	 * @return mixed
-	 * @see MSSQL::_execute
-	 * @see MySQL::_execute
+    /**
+     * @param $uniqueName
+     * @param $arguments
+     *
+     * @return mixed
+     * @see MSSQL::_execute
+     * @see MySQL::_execute
 	 * @see OData::_execute
 	 * @see Pg::_execute
 	 */
