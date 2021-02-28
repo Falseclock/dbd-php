@@ -13,6 +13,8 @@ declare(strict_types=1);
 
 namespace DBD;
 
+use DBD\Base\Bind;
+
 /**
  * Class MySQL
  *
@@ -165,5 +167,10 @@ class MySQL extends DBD
     protected function _escapeBinary(?string $binaryString): ?string
     {
         // TODO: Implement _binaryEscape() method.
+    }
+
+    protected function replaceBind(string &$preparedQuery, Bind $bind): void
+    {
+        // TODO: Implement replaceBind() method.
     }
 }

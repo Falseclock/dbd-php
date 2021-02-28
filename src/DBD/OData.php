@@ -13,6 +13,7 @@ declare(strict_types = 1);
 
 namespace DBD;
 
+use DBD\Base\Bind;
 use DBD\Base\Helper;
 use DBD\Common\DBDException as Exception;
 use LSS\XML2Array;
@@ -790,4 +791,9 @@ class OData extends DBD
 
 		return $string;
 	}
+
+    protected function replaceBind(string &$preparedQuery, Bind $bind): void
+    {
+        // TODO: Implement replaceBind() method.
+    }
 }

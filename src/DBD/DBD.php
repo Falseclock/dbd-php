@@ -13,6 +13,7 @@ declare(strict_types=1);
 namespace DBD;
 
 use DateInterval;
+use DBD\Base\Bind;
 use DBD\Base\CacheHolder;
 use DBD\Base\Config;
 use DBD\Base\Debug;
@@ -43,6 +44,8 @@ abstract class DBD
     const GOT_FROM_CACHE = "GOT_FROM_CACHE";
     /** @var array $preparedStatements */
     public static $preparedStatements = [];
+    /** @var array $executedStatements queries that's really executed in database */
+    public static $executedStatements = [];
     /** @var Config $Config */
     protected $Config;
     /** @var Options $Options */
@@ -61,6 +64,8 @@ abstract class DBD
     private $inTransaction = false;
     /** @var string $storage This param is used for identifying where data taken from */
     private $storage;
+    /** @var Bind[] $binds */
+    private $binds = [];
 
     /**
      * DBD constructor.
@@ -307,9 +312,11 @@ abstract class DBD
                         throw new DBDException ($this->_errorMessage(), $preparedQuery);
                 }
                 $this->result = $this->_execute($uniqueName, Helper::parseArgs($executeArguments));
+                self::$executedStatements[] = $preparedQuery;
             } else {
                 // Execute query to the database
                 $this->result = $this->_query($preparedQuery);
+                self::$executedStatements[] = $preparedQuery;
             }
 
             $cost = Debug::me()->endTimer();
@@ -396,6 +403,9 @@ abstract class DBD
             $preparedQuery = implode("", $query);
         }
 
+        foreach ($this->binds as $bind)
+            $this->replaceBind($preparedQuery, $bind);
+
         return $preparedQuery;
     }
 
@@ -410,6 +420,17 @@ abstract class DBD
      * @see getPreparedQuery
      */
     abstract protected function _escape($string): string;
+
+    /**
+     * @param string $preparedQuery
+     * @param Bind $bind
+     * @return void
+     * @see Pg::replaceBind
+     * @see MSSQL::replaceBind
+     * @see MySQL::replaceBind
+     * @see OData::replaceBind
+     */
+    abstract protected function replaceBind(string &$preparedQuery, Bind $bind): void;
 
     /**
      * Check connection existence and does connection if not
@@ -577,6 +598,19 @@ abstract class DBD
      * @see OData::_rows
      */
     abstract protected function _rows(): int;
+
+    /**
+     * @param string $paramName
+     * @param mixed $value
+     * @param string $dataType
+     * @return $this
+     * @throws DBDException
+     */
+    public function bind(string $paramName, $value, string $dataType = Primitive::String): DBD
+    {
+        $this->binds[] = new Bind($paramName, $value, $dataType);
+        return $this;
+    }
 
     /**
      * Dumping result as CSV file
@@ -1051,7 +1085,6 @@ abstract class DBD
         return $entity;
     }
 
-
     /**
      * @param string|null $string
      * @return string
@@ -1060,7 +1093,6 @@ abstract class DBD
     {
         return $this->_escape($string);
     }
-
 
     /**
      * @param string|null $string

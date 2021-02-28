@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace DBD;
 
+use DBD\Base\Bind;
 use DBD\Common\DBDException as Exception;
 
 /**
@@ -242,5 +243,10 @@ class MSSQL extends DBD
     protected function _escapeBinary(?string $binaryString): ?string
     {
         // TODO: Implement _binaryEscape() method.
+    }
+
+    protected function replaceBind(string &$preparedQuery, Bind $bind): void
+    {
+        // TODO: Implement replaceBind() method.
     }
 }

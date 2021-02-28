@@ -13,7 +13,9 @@ declare(strict_types=1);
 
 namespace DBD;
 
+use DBD\Base\Bind;
 use DBD\Common\DBDException;
+use DBD\Entity\Primitive;
 use Exception;
 
 /**
@@ -127,16 +129,16 @@ class Pg extends DBD
         return "INSERT INTO $table ({$params['COLUMNS']}) VALUES ({$params['VALUES']})" . ($return ? " RETURNING {$return}" : "");
     }
 
-	/**
-	 * Compiles UPDATE query
-	 *
-	 * @param string      $table
-	 * @param array       $params
-	 * @param string      $where
-	 * @param string|null $return
-	 *
-	 * @return string
-	 */
+    /**
+     * Compiles UPDATE query
+     *
+     * @param string $table
+     * @param array $params
+     * @param string $where
+     * @param string|null $return
+     *
+     * @return string
+     */
     protected function _compileUpdate(string $table, array $params, string $where, ?string $return = ""): string
     {
         /** @noinspection SqlWithoutWhere */
@@ -251,26 +253,6 @@ class Pg extends DBD
     }
 
     /**
-     * Escapes a string for querying the database.
-     *
-     * @param mixed $string
-     * @inheritDoc
-     * @return string
-     */
-    protected function _escape($string): string
-    {
-        if (!isset($string))
-            return "NULL";
-
-        if (is_bool($string))
-            return ($string) ? "TRUE" : "FALSE";
-
-        $string = pg_escape_string((string)$string);
-
-        return "'$string'";
-    }
-
-    /**
      * @param $uniqueName
      * @param $arguments
      *
@@ -343,16 +325,64 @@ class Pg extends DBD
     }
 
     /**
+     * @param string $preparedQuery
+     * @param Bind $bind
+     * @inheritDoc
+     */
+    protected function replaceBind(string &$preparedQuery, Bind $bind): void
+    {
+        switch ($bind->type) {
+            case Primitive::Int16:
+            case Primitive::Int32:
+            case Primitive::Int64:
+                if (is_array($bind->value))
+                    $preparedQuery = $this->_replaceBind($bind->name, implode(',', $bind->value), $preparedQuery);
+                else
+                    $preparedQuery = $this->_replaceBind($bind->name, $bind->value, $preparedQuery);
+                break;
+            case Primitive::Binary:
+                $binary = $this->_escapeBinary($bind->value);
+                $preparedQuery = $this->_replaceBind($bind->name, "'{$binary}'", $preparedQuery);
+                break;
+            default:
+                $preparedQuery = $this->_replaceBind($bind->name, $this->_escape($bind->value), $preparedQuery);
+        }
+    }
+
+    private function _replaceBind( $name, $value, $subject) {
+        return preg_replace('~'.$name.'(::\w+)?(\s|\t|]|\))~', "{$value}$1$2", $subject);
+    }
+
+    /**
      * @param string|null $binaryString
      *
      * @return string|null
      */
     protected function _escapeBinary(?string $binaryString): ?string
     {
-        if (!is_null($binaryString)) {
+        if (!is_null($binaryString))
             $binaryString = pg_escape_bytea($binaryString);
-        }
 
         return $binaryString;
+    }
+
+    /**
+     * Escapes a string for querying the database.
+     *
+     * @param mixed $string
+     * @inheritDoc
+     * @return string
+     */
+    protected function _escape($string): string
+    {
+        if (!isset($string))
+            return "NULL";
+
+        if (is_bool($string))
+            return ($string) ? "TRUE" : "FALSE";
+
+        $string = pg_escape_string((string)$string);
+
+        return "'$string'";
     }
 }
