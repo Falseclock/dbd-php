@@ -218,10 +218,7 @@ abstract class DBD
 
         [$statement, $args] = Helper::prepareArgs(func_get_args());
 
-        $sth = $this->prepare($statement);
-        $sth->execute($args);
-
-        return $sth;
+        return $this->prepare($statement)->execute($args);
     }
 
     /**
@@ -253,11 +250,10 @@ abstract class DBD
     /**
      * Sends a request to execute a prepared statement with given parameters, and waits for the result.
      *
-     * @return resource|string
+     * @return DBD
      * @throws DBDException
-     * @noinspection PhpMissingReturnTypeInspection
      */
-    public function execute()
+    public function execute(): DBD
     {
         // Unset result
         $this->result = null;
@@ -362,7 +358,7 @@ abstract class DBD
             Debug::addTotalCost($cost);
         }
 
-        return $this->result;
+        return $this;
     }
 
     /**
@@ -840,9 +836,8 @@ abstract class DBD
         $params = Helper::compileInsertArgs($args, $this, $this->Options);
 
         $sth = $this->prepare($this->_compileInsert($table, $params, $return));
-        $sth->execute($params['ARGS']);
 
-        return $sth;
+        return $sth->execute($params['ARGS']);
     }
 
     /**

@@ -1255,7 +1255,5 @@ class PgTest extends TestCase
         self::assertEquals(2, $row['fourth']);
         self::assertSame('another string', $row['fifth']);
         self::assertSame('{1,2,3,4,5}', $row['array_of_int']);
-
     }
-
 }
