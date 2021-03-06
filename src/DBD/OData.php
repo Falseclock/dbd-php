@@ -42,6 +42,18 @@ class OData extends DBD
         try {
             $record = $this->createInsertRecord($entity);
 
+            $embeddings = $entity::map()->getEmbedded();
+
+            foreach($embeddings as $propertyName => $embedded) {
+                if (property_exists($entity, $propertyName)) {
+                    if ($embedded->isIterable)
+                        foreach($entity->$propertyName as $row)
+                            $record[$embedded->name][] = $this->createInsertRecord($row);
+                    else
+                        trigger_error("not implemented");
+                }
+            }
+
             /** @var Entity $class */
             $class = get_class($entity);
 
@@ -464,7 +476,7 @@ class OData extends DBD
                 $where
             );
 
-            $where = str_replace(['=', '<>', '>=', '<=', '>', '<'], ['eq', 'ne', 'ge', 'le', 'gt', 'lt'], $where);
+            $where = str_replace(['<>', '>=', '<=', '>', '<', '='], ['ne', 'ge', 'le', 'gt', 'lt', 'eq'], $where);
             $where = str_replace(array_keys($params), array_values($params), $where);
 
             $this->requestUrl .= '$filter=' . $where . '&';
