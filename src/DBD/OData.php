@@ -648,7 +648,7 @@ class OData extends DBD
     public function rows(): int
     {
         //if(is_iterable($this->result) and count($this->result) == 1 and !isset($this->result['value'])) // FIXME: исправить в выборке
-        if (is_iterable($this->result))
+        if (is_iterable($this->result) and !isset($this->result['value']))
             return count($this->result);
 
         return 0;
