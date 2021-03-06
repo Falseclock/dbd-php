@@ -37,7 +37,9 @@
     "ext-pgsql": "*",
     "ext-memcache": "*",
     "phpunit/phpunit": "^9.5.0",
-    "php-coveralls/php-coveralls": "^2.4.3"
+    "php-coveralls/php-coveralls": "^2.4.3",
+    "ext-simplexml": "*",
+    "ext-dom": "*"
   },
   "suggest": {
     "ext-memcache": "Required to support Memcached",

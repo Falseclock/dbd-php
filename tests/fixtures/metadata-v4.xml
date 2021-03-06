@@ -1,0 +1,462 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<edmx:Edmx Version="4.0" xmlns:edmx="http://docs.oasis-open.org/odata/ns/edmx">
+    <edmx:Reference
+            Uri="http://docs.oasis-open.org/odata/odata/v4.0/errata02/os/complete/vocabularies/Org.OData.Core.V1.xml">
+        <edmx:Include Namespace="Org.OData.Core.V1" Alias="Core"/>
+    </edmx:Reference>
+    <edmx:DataServices>
+        <Schema xmlns="http://docs.oasis-open.org/odata/ns/edm" Namespace="kz.mp.api">
+            <EntityType Name="Currency">
+                <Key>
+                    <PropertyRef Name="id"/>
+                </Key>
+                <Property Name="name" Type="Edm.String" Nullable="false" MaxLength="256">
+                    <Annotation Term="Core.Description">
+                        <String>Название валюты</String>
+                    </Annotation>
+                </Property>
+                <Property Name="id" Type="Edm.Int32" Nullable="false">
+                    <Annotation Term="Core.Description">
+                        <String>Идентификатор валюты</String>
+                    </Annotation>
+                </Property>
+                <Property Name="abbreviation" Type="Edm.String" Nullable="false" MaxLength="1024">
+                    <Annotation Term="Core.Description">
+                        <String>короткая аббревиатура валюты</String>
+                    </Annotation>
+                </Property>
+                <Property Name="shortName" Type="Edm.String" Nullable="false" MaxLength="256">
+                    <Annotation Term="Core.Description">
+                        <String>Короткое название валюты</String>
+                    </Annotation>
+                </Property>
+                <Annotation Term="Core.Description">
+                    <String>Таблица валют</String>
+                </Annotation>
+            </EntityType>
+            <EntityType Name="Company">
+                <Key>
+                    <PropertyRef Name="id"/>
+                </Key>
+                <Property Name="identity" Type="Edm.String" MaxLength="255">
+                    <Annotation Term="Core.Description">
+                        <String>БИН / ИИН компании</String>
+                    </Annotation>
+                </Property>
+                <Property Name="name" Type="Edm.String" Nullable="false" MaxLength="256">
+                    <Annotation Term="Core.Description">
+                        <String>Название компании согласно ГБДЮЛ без аббревиатуры организационной формы</String>
+                    </Annotation>
+                </Property>
+                <Property Name="registrationDate" Type="Edm.Date" Nullable="false">
+                    <Annotation Term="Core.Description">
+                        <String>Дата регистрации на площадке</String>
+                    </Annotation>
+                </Property>
+                <Property Name="id" Type="Edm.Int64" Nullable="false">
+                    <Annotation Term="Core.Description">
+                        <String>Идентификатор компании</String>
+                    </Annotation>
+                </Property>
+                <Property Name="legalFormId" Type="Edm.Int32" Nullable="false">
+                    <Annotation Term="Core.Description">
+                        <String>Ссылка на идентификатор организационной формы</String>
+                    </Annotation>
+                </Property>
+                <NavigationProperty Name="LegalForm" Type="kz.mp.api.LegalForm">
+                    <ReferentialConstraint Property="legalFormId" ReferencedProperty="id"/>
+                </NavigationProperty>
+                <Annotation Term="Core.Description">
+                    <String>Список зарегистрированных компаний</String>
+                </Annotation>
+            </EntityType>
+            <EntityType Name="LotStateExp">
+                <Key>
+                    <PropertyRef Name="id"/>
+                </Key>
+                <Property Name="name" Type="Edm.String" Nullable="false" MaxLength="256">
+                    <Annotation Term="Core.Description">
+                        <String>Название статуса лота тендера</String>
+                    </Annotation>
+                </Property>
+                <Property Name="description" Type="Edm.String" Nullable="false" MaxLength="1024">
+                    <Annotation Term="Core.Description">
+                        <String>Описание статус лота тендера</String>
+                    </Annotation>
+                </Property>
+                <Property Name="id" Type="Edm.Int32" Nullable="false">
+                    <Annotation Term="Core.Description">
+                        <String>Идентификатор статуса лота, уникальный, серийный</String>
+                    </Annotation>
+                </Property>
+                <Annotation Term="Core.Description">
+                    <String>Таблица видов состояний каждого лота тендера</String>
+                </Annotation>
+            </EntityType>
+            <EntityType Name="TenderLot">
+                <Key>
+                    <PropertyRef Name="id"/>
+                </Key>
+                <Property Name="deliveryEntityId" Type="Edm.Int32">
+                    <Annotation Term="Core.Description">
+                        <String>Ссылка на регион поставки конкретного лота</String>
+                    </Annotation>
+                </Property>
+                <Property Name="initiatorCompanyId" Type="Edm.Int32">
+                    <Annotation Term="Core.Description">
+                        <String>Ссылка на компанию инициатора, через Company(&lt;id>) можно получить полную
+                            информацию.
+                        </String>
+                    </Annotation>
+                </Property>
+                <Property Name="attributesJson" Type="Edm.String" MaxLength="409600">
+                    <Annotation Term="Core.Description">
+                        <String>Различные атрибуты лоты в виде JSON массива</String>
+                    </Annotation>
+                </Property>
+                <Property Name="quantity" Type="Edm.Int32">
+                    <Annotation Term="Core.Description">
+                        <String>Количество поставляемых товаров или услуг</String>
+                    </Annotation>
+                </Property>
+                <Property Name="dateCommit" Type="Edm.DateTimeOffset" Precision="6">
+                    <Annotation Term="Core.Description">
+                        <String>Дата утвеждения итогов тендера</String>
+                    </Annotation>
+                </Property>
+                <Property Name="stateId" Type="Edm.Int32">
+                    <Annotation Term="Core.Description">
+                        <String>Ссылка на статус лота в тендерах</String>
+                    </Annotation>
+                </Property>
+                <Property Name="description" Type="Edm.String" Nullable="false" MaxLength="4000">
+                    <Annotation Term="Core.Description">
+                        <String>Более расширенное описание лота</String>
+                    </Annotation>
+                </Property>
+                <Property Name="dateStop" Type="Edm.DateTimeOffset" Precision="6">
+                    <Annotation Term="Core.Description">
+                        <String>Дата окончания приема заявок. Лот может автоматически продлятся и эта дата ответственна
+                            за это
+                        </String>
+                    </Annotation>
+                </Property>
+                <Property Name="measureUnitId" Type="Edm.Int32">
+                    <Annotation Term="Core.Description">
+                        <String>Ссылка на единицу измерения</String>
+                    </Annotation>
+                </Property>
+                <Property Name="dateStart" Type="Edm.DateTimeOffset" Precision="6">
+                    <Annotation Term="Core.Description">
+                        <String>Дата начала приема заявок по лоту</String>
+                    </Annotation>
+                </Property>
+                <Property Name="name" Type="Edm.String" Nullable="false" MaxLength="512">
+                    <Annotation Term="Core.Description">
+                        <String>Наименовение лота</String>
+                    </Annotation>
+                </Property>
+                <Property Name="isPublic" Type="Edm.Boolean">
+                    <Annotation Term="Core.Description">
+                        <String>Доступ к лоту. Бывают закрыте лоты среди выбранных поставщиков</String>
+                    </Annotation>
+                </Property>
+                <Property Name="initiatorCompanyName" Type="Edm.String" MaxLength="1024">
+                    <Annotation Term="Core.Description">
+                        <String>Наименование компании инициатора</String>
+                    </Annotation>
+                </Property>
+                <Property Name="typeId" Type="Edm.Int32">
+                    <Annotation Term="Core.Description">
+                        <String>Ссылка на тип лота</String>
+                    </Annotation>
+                </Property>
+                <Property Name="id" Type="Edm.Int32" Nullable="false">
+                    <Annotation Term="Core.Description">
+                        <String>Номер тендерного лота, уникальный, серийный</String>
+                    </Annotation>
+                </Property>
+                <Property Name="currencyId" Type="Edm.Int32">
+                    <Annotation Term="Core.Description">
+                        <String>Ссылка на валюту</String>
+                    </Annotation>
+                </Property>
+                <Property Name="categoryId" Type="Edm.Int32">
+                    <Annotation Term="Core.Description">
+                        <String>Ссылка на категорию</String>
+                    </Annotation>
+                </Property>
+                <Property Name="budget" Type="Edm.Double">
+                    <Annotation Term="Core.Description">
+                        <String>Бюджет лота за единицу товара или услуги</String>
+                    </Annotation>
+                </Property>
+                <NavigationProperty Name="TenderLotState" Type="kz.mp.api.LotStateExp">
+                    <ReferentialConstraint Property="stateId" ReferencedProperty="id"/>
+                </NavigationProperty>
+                <NavigationProperty Name="TenderLotType" Type="kz.mp.api.LotType">
+                    <ReferentialConstraint Property="typeId" ReferencedProperty="id"/>
+                </NavigationProperty>
+                <NavigationProperty Name="MeasureUnit" Type="kz.mp.api.MeasureUnit">
+                    <ReferentialConstraint Property="measureUnitId" ReferencedProperty="id"/>
+                </NavigationProperty>
+                <NavigationProperty Name="Currency" Type="kz.mp.api.Currency">
+                    <ReferentialConstraint Property="currencyId" ReferencedProperty="id"/>
+                </NavigationProperty>
+                <NavigationProperty Name="Category" Type="kz.mp.api.Category">
+                    <ReferentialConstraint Property="categoryId" ReferencedProperty="id"/>
+                </NavigationProperty>
+                <NavigationProperty Name="DeliveryEntity" Type="kz.mp.api.DeliveryEntity">
+                    <ReferentialConstraint Property="deliveryEntityId" ReferencedProperty="id"/>
+                </NavigationProperty>
+                <Annotation Term="Core.Description">
+                    <String>Таблица лотов, которые принадлежат определенному тендеру</String>
+                </Annotation>
+            </EntityType>
+            <EntityType Name="MeasureUnit">
+                <Key>
+                    <PropertyRef Name="id"/>
+                </Key>
+                <Property Name="name" Type="Edm.String" Nullable="false" MaxLength="256">
+                    <Annotation Term="Core.Description">
+                        <String>Полное название единицы измерения</String>
+                    </Annotation>
+                </Property>
+                <Property Name="id" Type="Edm.Int32" Nullable="false">
+                    <Annotation Term="Core.Description">
+                        <String>Идентификатор единицы измерения, уникальный, серийный</String>
+                    </Annotation>
+                </Property>
+                <Property Name="shortName" Type="Edm.String" Nullable="false" MaxLength="1024">
+                    <Annotation Term="Core.Description">
+                        <String>Короткое название единицы измерения</String>
+                    </Annotation>
+                </Property>
+                <Annotation Term="Core.Description">
+                    <String>Единицы измерения, используемые в лотах, аукционах, планах и т.д.</String>
+                </Annotation>
+            </EntityType>
+            <EntityType Name="LotType">
+                <Key>
+                    <PropertyRef Name="id"/>
+                </Key>
+                <Property Name="name" Type="Edm.String" Nullable="false" MaxLength="256">
+                    <Annotation Term="Core.Description">
+                        <String>Наименование типа тендера</String>
+                    </Annotation>
+                </Property>
+                <Property Name="description" Type="Edm.String" Nullable="false" MaxLength="1024">
+                    <Annotation Term="Core.Description">
+                        <String>Описание типа торга в лота</String>
+                    </Annotation>
+                </Property>
+                <Property Name="id" Type="Edm.Int32" Nullable="false">
+                    <Annotation Term="Core.Description">
+                        <String>Идентификатор типа тендера, уникальный, серийный</String>
+                    </Annotation>
+                </Property>
+                <Annotation Term="Core.Description">
+                    <String>Типы закупа в тендерных лотах</String>
+                </Annotation>
+            </EntityType>
+            <EntityType Name="DeliveryEntity">
+                <Key>
+                    <PropertyRef Name="id"/>
+                </Key>
+                <Property Name="name" Type="Edm.String" Nullable="false" MaxLength="256">
+                    <Annotation Term="Core.Description">
+                        <String>Название территориальной единицы</String>
+                    </Annotation>
+                </Property>
+                <Property Name="fullName" Type="Edm.String" Nullable="false" MaxLength="256">
+                    <Annotation Term="Core.Description">
+                        <String>Полное наименование территориальной единицы доставки</String>
+                    </Annotation>
+                </Property>
+                <Property Name="id" Type="Edm.Int32" Nullable="false">
+                    <Annotation Term="Core.Description">
+                        <String>Идентификатор территориальной единицы, уникальный, серийный</String>
+                    </Annotation>
+                </Property>
+                <Annotation Term="Core.Description">
+                    <String>Территориальные единицы доставки или поставки</String>
+                </Annotation>
+            </EntityType>
+            <EntityType Name="MeasureUnits">
+                <Key>
+                    <PropertyRef Name="id"/>
+                </Key>
+                <Property Name="name" Type="Edm.String" MaxLength="255">
+                    <Annotation Term="Core.Description">
+                        <String>Полное название единицы измерения</String>
+                    </Annotation>
+                </Property>
+                <Property Name="lotId" Type="Edm.Int32" DefaultValue="0"/>
+                <Property Name="id" Type="Edm.Int32">
+                    <Annotation Term="Core.Description">
+                        <String>Идентификатор единицы измерения, уникальный, серийный</String>
+                    </Annotation>
+                </Property>
+                <Property Name="shortName" Type="Edm.String" MaxLength="255">
+                    <Annotation Term="Core.Description">
+                        <String>Короткое название единицы измерения</String>
+                    </Annotation>
+                </Property>
+                <Annotation Term="Core.Description">
+                    <String>Единицы измерения, используемые в лотах, аукционах, планах и т.д.</String>
+                </Annotation>
+            </EntityType>
+            <EntityType Name="Category">
+                <Key>
+                    <PropertyRef Name="id"/>
+                </Key>
+                <Property Name="name" Type="Edm.String" Nullable="false" MaxLength="256">
+                    <Annotation Term="Core.Description">
+                        <String>Название категории</String>
+                    </Annotation>
+                </Property>
+                <Property Name="description" Type="Edm.String" MaxLength="512">
+                    <Annotation Term="Core.Description">
+                        <String>Дополнительная информация по категории</String>
+                    </Annotation>
+                </Property>
+                <Property Name="id" Type="Edm.Int32" Nullable="false">
+                    <Annotation Term="Core.Description">
+                        <String>Идентификатор категории, уникальный, серийный</String>
+                    </Annotation>
+                </Property>
+                <Annotation Term="Core.Description">
+                    <String>Категоризация лотов</String>
+                </Annotation>
+            </EntityType>
+            <EntityType Name="TenderLotPlan">
+                <Key>
+                    <PropertyRef Name="id"/>
+                </Key>
+                <Property Name="initiatorCompanyId" Type="Edm.Int32">
+                    <Annotation Term="Core.Description">
+                        <String>Ссылка на компанию инициатора, через Company(&lt;id>) можно получить полную
+                            информацию.
+                        </String>
+                    </Annotation>
+                </Property>
+                <Property Name="deliveryEntityId" Type="Edm.Int32">
+                    <Annotation Term="Core.Description">
+                        <String>Ссылка на регион поставки конкретного лота</String>
+                    </Annotation>
+                </Property>
+                <Property Name="quantity" Type="Edm.Int32">
+                    <Annotation Term="Core.Description">
+                        <String>Количество поставляемых товаров или услуг</String>
+                    </Annotation>
+                </Property>
+                <Property Name="planningYear" Type="Edm.Int32">
+                    <Annotation Term="Core.Description">
+                        <String>Планируемый год закупа</String>
+                    </Annotation>
+                </Property>
+                <Property Name="name" Type="Edm.String" Nullable="false" MaxLength="512">
+                    <Annotation Term="Core.Description">
+                        <String>Наименовение лота в плане</String>
+                    </Annotation>
+                </Property>
+                <Property Name="initiatorCompanyName" Type="Edm.String" MaxLength="1024">
+                    <Annotation Term="Core.Description">
+                        <String>Наименование компании инициатора</String>
+                    </Annotation>
+                </Property>
+                <Property Name="description" Type="Edm.String" Nullable="false" MaxLength="4000">
+                    <Annotation Term="Core.Description">
+                        <String>Более расширенное описание лота в плане</String>
+                    </Annotation>
+                </Property>
+                <Property Name="id" Type="Edm.Int32" Nullable="false">
+                    <Annotation Term="Core.Description">
+                        <String>Номер плана, уникальный, серийный</String>
+                    </Annotation>
+                </Property>
+                <Property Name="currencyId" Type="Edm.Int32">
+                    <Annotation Term="Core.Description">
+                        <String>Планируемый год закупа</String>
+                    </Annotation>
+                </Property>
+                <Property Name="categoryId" Type="Edm.Int32">
+                    <Annotation Term="Core.Description">
+                        <String>Ссылка на категорию</String>
+                    </Annotation>
+                </Property>
+                <Property Name="measureUnitId" Type="Edm.Int32">
+                    <Annotation Term="Core.Description">
+                        <String>Ссылка на единицу измерения</String>
+                    </Annotation>
+                </Property>
+                <Property Name="budget" Type="Edm.Double">
+                    <Annotation Term="Core.Description">
+                        <String>Бюджет лота в плане за единицу товара или услуги</String>
+                    </Annotation>
+                </Property>
+                <NavigationProperty Name="MeasureUnit" Type="kz.mp.api.MeasureUnit">
+                    <ReferentialConstraint Property="measureUnitId" ReferencedProperty="id"/>
+                </NavigationProperty>
+                <NavigationProperty Name="Currency" Type="kz.mp.api.Currency">
+                    <ReferentialConstraint Property="currencyId" ReferencedProperty="id"/>
+                </NavigationProperty>
+                <NavigationProperty Name="Category" Type="kz.mp.api.Category">
+                    <ReferentialConstraint Property="categoryId" ReferencedProperty="id"/>
+                </NavigationProperty>
+                <NavigationProperty Name="DeliveryEntity" Type="kz.mp.api.DeliveryEntity">
+                    <ReferentialConstraint Property="deliveryEntityId" ReferencedProperty="id"/>
+                </NavigationProperty>
+                <Annotation Term="Core.Description">
+                    <String>Планы закупок</String>
+                </Annotation>
+            </EntityType>
+            <EntityType Name="LegalForm">
+                <Key>
+                    <PropertyRef Name="id"/>
+                </Key>
+                <Property Name="description" Type="Edm.String" Nullable="false" MaxLength="1024">
+                    <Annotation Term="Core.Description">
+                        <String>Полное наименование организационно-правовой формы</String>
+                    </Annotation>
+                </Property>
+                <Property Name="id" Type="Edm.Int32" Nullable="false">
+                    <Annotation Term="Core.Description">
+                        <String>Идентификатор организационно-правовой формы, уникальный, серийный</String>
+                    </Annotation>
+                </Property>
+                <Property Name="value" Type="Edm.String" Nullable="false" MaxLength="256"/>
+                <Annotation Term="Core.Description">
+                    <String>Таблица видов организационно-правовоых форм</String>
+                </Annotation>
+            </EntityType>
+            <EntityContainer Name="KzMpApiContainer">
+                <EntitySet Name="MeasureUnit" EntityType="kz.mp.api.MeasureUnit"/>
+                <EntitySet Name="TenderLotState" EntityType="kz.mp.api.LotStateExp"/>
+                <EntitySet Name="TenderLotPlan" EntityType="kz.mp.api.TenderLotPlan">
+                    <NavigationPropertyBinding Path="MeasureUnit" Target="MeasureUnits"/>
+                    <NavigationPropertyBinding Path="Category" Target="Categories"/>
+                    <NavigationPropertyBinding Path="Currency" Target="Currencies"/>
+                    <NavigationPropertyBinding Path="DeliveryEntity" Target="DeliveryEntities"/>
+                </EntitySet>
+                <EntitySet Name="Category" EntityType="kz.mp.api.Category"/>
+                <EntitySet Name="TenderLotType" EntityType="kz.mp.api.LotType"/>
+                <EntitySet Name="Currency" EntityType="kz.mp.api.Currency"/>
+                <EntitySet Name="LegalForm" EntityType="kz.mp.api.LegalForm"/>
+                <EntitySet Name="Company" EntityType="kz.mp.api.Company">
+                    <NavigationPropertyBinding Path="LegalForm" Target="LegalForms"/>
+                </EntitySet>
+                <EntitySet Name="DeliveryEntity" EntityType="kz.mp.api.DeliveryEntity"/>
+                <EntitySet Name="MeasureUnits" EntityType="kz.mp.api.MeasureUnits"/>
+                <EntitySet Name="TenderLot" EntityType="kz.mp.api.TenderLot">
+                    <NavigationPropertyBinding Path="MeasureUnit" Target="MeasureUnits"/>
+                    <NavigationPropertyBinding Path="Category" Target="Categories"/>
+                    <NavigationPropertyBinding Path="Currency" Target="Currencies"/>
+                    <NavigationPropertyBinding Path="TenderLotState" Target="LotStateExps"/>
+                    <NavigationPropertyBinding Path="DeliveryEntity" Target="DeliveryEntities"/>
+                    <NavigationPropertyBinding Path="TenderLotType" Target="LotTypes"/>
+                </EntitySet>
+            </EntityContainer>
+        </Schema>
+    </edmx:DataServices>
+</edmx:Edmx>

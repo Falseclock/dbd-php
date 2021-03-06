@@ -19,7 +19,7 @@ use DBD\Common\DBDException;
 use DBD\Common\DBDException as Exception;
 use DBD\Entity\Common\EntityException;
 use DBD\Entity\Entity;
-use LSS\XML2Array;
+use DBD\Utils\OData\Metadata;
 
 class OData extends DBD
 {
@@ -174,7 +174,7 @@ class OData extends DBD
         return $this;
     }
 
-        protected function urlEncode($string)
+    protected function urlEncode($string)
     {
         $entities = [
             '%20',
@@ -189,7 +189,7 @@ class OData extends DBD
         return $string;
     } // TODO:
 
-        protected function _connect(): void
+    protected function _connect(): void
     {
         // if we never invoke connect and did not setup it, just call setup with DSN url
         if (!is_resource($this->resourceLink)) {
@@ -276,7 +276,7 @@ class OData extends DBD
 
     /*--------------------------------------------------------------*/
 
-/**
+    /**
      * @return $this
      */
     public function disconnect(): DBD
@@ -290,7 +290,7 @@ class OData extends DBD
 
     /*--------------------------------------------------------------*/
 
-public function du()
+    public function du()
     {
         return $this;
     }
@@ -577,25 +577,18 @@ public function du()
 
     /*--------------------------------------------------------------*/
 
-    public function metadata($key = null, $expire = null)
+    public function metadata(): ?Metadata
     {
         // If we already got metadata
-        if ($this->metadata) {
-            if ($key)
-                return $this->metadata[$key];
-            else
-                return $this->metadata;
-        }
+        if ($this->metadata)
+            return $this->metadata;
 
         // Let's get from cache
         if (isset($this->Config->CacheDriver)) {
-            $metadata = $this->Config->CacheDriver->get(__CLASS__ . ':metadata');
-            if ($metadata && $metadata !== false) {
+            $metadata = $this->Config->CacheDriver->get($this->Config->getHost() . ':metadata');
+            if ($metadata !== false) {
                 $this->metadata = $metadata;
-                if ($key)
-                    return $this->metadata[$key];
-                else
-                    return $this->metadata;
+                return $this->metadata;
             }
         }
         $this->dropVars();
@@ -603,58 +596,16 @@ public function du()
         $this->setupRequest($this->Config->getHost() . '$metadata');
         $this->_connect();
 
-        $array = XML2Array::createArray($this->body);
+        $xml = simplexml_load_string($this->body);
+        $body = $xml->xpath("//edmx:Edmx/edmx:DataServices/*");
+        $schema = json_decode(json_encode($body[0]));
 
-        $metadata = [];
+        $this->metadata = new Metadata($schema);
 
-        foreach ($array['edmx:Edmx']['edmx:DataServices']['Schema']['EntityType'] as $EntityType) {
+        if (isset($this->Config->CacheDriver))
+            $this->Config->CacheDriver->set($this->Config->getHost() . ':metadata', $this->metadata, $this->CacheHolder->expire);
 
-            $object = [];
-
-            foreach ($EntityType['Property'] as $Property) {
-                if (preg_match('/Collection\(StandardODATA\.(.+)\)/', $Property['@attributes']['Type'], $matches)) {
-
-                    $object[$Property['@attributes']['Name']] = [];
-
-                    $ComplexType = $this->findComplexTypeByName($array, $matches[1]);
-                    foreach ($ComplexType['Property'] as $prop) {
-                        $object[$Property['@attributes']['Name']][0][$prop['@attributes']['Name']] = [
-                            'Type' => $prop['@attributes']['Type'],
-                            'Nullable' => $prop['@attributes']['Nullable'],
-                        ];
-                    }
-                } else {
-                    $object[$Property['@attributes']['Name']] = [
-                        'Type' => $Property['@attributes']['Type'],
-                        'Nullable' => $Property['@attributes']['Nullable'],
-                    ];
-                }
-            }
-            $metadata[$EntityType['@attributes']['Name']] = $object;
-        }
-
-        if (isset($this->Config->CacheDriver)) {
-            $this->Config->CacheDriver->set(__CLASS__ . ':metadata', $metadata, $expire ? $expire : $this->CacheHolder['expire']);
-        }
-        $this->metadata = $metadata;
-
-        if ($key)
-            return $this->metadata[$key];
-        else
-            return $this->metadata;
-    }
-
-    /*--------------------------------------------------------------*/
-
-    protected function findComplexTypeByName($array, $name)
-    {
-        foreach ($array['edmx:Edmx']['edmx:DataServices']['Schema']['ComplexType'] as $ComplexType) {
-            if ($ComplexType['@attributes']['Name'] == $name) {
-                return $ComplexType;
-            }
-        }
-
-        return null;
+        return $this->metadata;
     }
 
     /*--------------------------------------------------------------*/
@@ -691,6 +642,8 @@ public function du()
 
         return false;
     }
+
+    /*--------------------------------------------------------------*/
 
     public function rows(): int
     {
@@ -750,6 +703,17 @@ public function du()
         $this->_connect();
 
         return json_decode($this->body, true);
+    }
+
+    protected function findComplexTypeByName($array, $name)
+    {
+        foreach ($array['edmx:Edmx']['edmx:DataServices']['Schema']['ComplexType'] as $ComplexType) {
+            if ($ComplexType['@attributes']['Name'] == $name) {
+                return $ComplexType;
+            }
+        }
+
+        return null;
     }
 
     protected function _begin(): bool
