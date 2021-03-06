@@ -42,12 +42,10 @@ class OData extends DBD
         try {
             $record = $this->createInsertRecord($entity);
 
-            $sth = $this->insertCustom($entity::TABLE, $record, "*");
-
             /** @var Entity $class */
             $class = get_class($entity);
 
-            $entity = new $class($sth->fetchRow());
+            $entity = new $class($this->insertCustom($entity::TABLE, $record));
 
             return $entity;
 
@@ -63,7 +61,7 @@ class OData extends DBD
      * @param string $table
      * @param array $args
      *
-     * @return DBD|mixed
+     * @return array
      */
     public function insertCustom(string $table, array $args): array
     {
