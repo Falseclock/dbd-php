@@ -754,42 +754,7 @@ abstract class DBD
     public function entityInsert(Entity &$entity): Entity
     {
         try {
-            $record = [];
-
-            $columns = $entity::map()->getColumns();
-
-            // Cycle through all available columns according to Mapper definition
-            foreach ($columns as $propertyName => $column) {
-
-                $originName = $column->name;
-
-                if ($column->nullable == false) {
-                    // Mostly we always define properties for any columns
-                    if (property_exists($entity, $propertyName)) {
-                        if (!isset($entity->$propertyName) and ($column->isAuto === false and !isset($column->defaultValue)))
-                            throw new DBDException(sprintf("Property '%s' of %s can't be null according to Mapper annotation", $propertyName, get_class($entity)));
-
-                        if ($column->isAuto === false) {
-                            // Finally add column to record if it is set
-                            if (isset($entity->$propertyName))
-                                $finalValue = $entity->$propertyName;
-                            else
-                                $finalValue = $column->defaultValue;
-
-                            $record[$originName] = $column->type->getValue() == Primitive::Binary ? $this->_escapeBinary($finalValue) : $finalValue;
-                        }
-                    }
-                } else {
-                    // Finally add column to record if it is set
-                    if (isset($entity->$propertyName)) {
-                        $record[$originName] = ($column->type->getValue() == Primitive::Binary) ? $this->_escapeBinary($entity->$propertyName) : $entity->$propertyName;
-                    } else {
-                        // If value not set and we have some default value, let's define also
-                        if ($column->isAuto === false and isset($column->defaultValue))
-                            $record[$originName] = $column->defaultValue;
-                    }
-                }
-            }
+            $record = $this->createInsertRecord($entity);
 
             $sth = $this->insert($entity::table(), $record, "*");
 
@@ -1262,4 +1227,51 @@ abstract class DBD
      * @see commit
      */
     abstract protected function _commit(): bool;
+
+    /**
+     * @param Entity $entity
+     * @return array
+     * @throws DBDException
+     * @throws EntityException
+     */
+    protected function createInsertRecord(Entity $entity): array
+    {
+        $record = [];
+
+        $columns = $entity::map()->getColumns();
+
+        // Cycle through all available columns according to Mapper definition
+        foreach ($columns as $propertyName => $column) {
+
+            $originName = $column->name;
+
+            if ($column->nullable == false) {
+                // Mostly we always define properties for any columns
+                if (property_exists($entity, $propertyName)) {
+                    if (!isset($entity->$propertyName) and ($column->isAuto === false and !isset($column->defaultValue)))
+                        throw new DBDException(sprintf("Property '%s' of %s can't be null according to Mapper annotation", $propertyName, get_class($entity)));
+
+                    if ($column->isAuto === false) {
+                        // Finally add column to record if it is set
+                        if (isset($entity->$propertyName))
+                            $finalValue = $entity->$propertyName;
+                        else
+                            $finalValue = $column->defaultValue;
+
+                        $record[$originName] = $column->type->getValue() == Primitive::Binary ? $this->_escapeBinary($finalValue) : $finalValue;
+                    }
+                }
+            } else {
+                // Finally add column to record if it is set
+                if (isset($entity->$propertyName)) {
+                    $record[$originName] = ($column->type->getValue() == Primitive::Binary) ? $this->_escapeBinary($entity->$propertyName) : $entity->$propertyName;
+                } else {
+                    // If value not set and we have some default value, let's define also
+                    if ($column->isAuto === false and isset($column->defaultValue))
+                        $record[$originName] = $column->defaultValue;
+                }
+            }
+        }
+        return $record;
+    }
 }

@@ -41,7 +41,6 @@ final class YellowERP extends OData
      */
     public function connect(): DBD
     {
-
         return $this;
     }
 
@@ -179,7 +178,7 @@ final class YellowERP extends OData
      *
      * @return $this
      */
-    public function finish()
+    public function finish(): YellowERP
     {
         if ($this->resourceLink && self::$ibsession) {
             curl_setopt($this->resourceLink, CURLOPT_URL, $this->Config->getHost());
@@ -205,7 +204,7 @@ final class YellowERP extends OData
      *
      * @return $this
      */
-    public function reuseSessions($reuseSessions = false, $maxRetries = 3, $sessionFile = null)
+    public function reuseSessions($reuseSessions = false, $maxRetries = 3, $sessionFile = null): YellowERP
     {
         if (!isset($sessionFile)) {
             $sessionFile = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'YellowERP.ses';
@@ -231,7 +230,7 @@ final class YellowERP extends OData
      *
      * @return $this
      */
-    public function service($url)
+    public function service($url): YellowERP
     {
         $this->dropVars();
 
@@ -253,7 +252,7 @@ final class YellowERP extends OData
      *
      * @return $this
      */
-    public function setHttpServicesUrl(string $httpServicesUrl)
+    public function setHttpServicesUrl(string $httpServicesUrl): YellowERP
     {
         $this->httpServicesUrl = $httpServicesUrl;
 

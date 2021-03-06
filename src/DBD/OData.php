@@ -15,7 +15,10 @@ namespace DBD;
 
 use DBD\Base\Bind;
 use DBD\Base\Helper;
+use DBD\Common\DBDException;
 use DBD\Common\DBDException as Exception;
+use DBD\Entity\Common\EntityException;
+use DBD\Entity\Entity;
 use LSS\XML2Array;
 
 class OData extends DBD
@@ -28,6 +31,229 @@ class OData extends DBD
     protected $replacements = null;
     protected $requestUrl = null;
 
+    /**
+     * @param Entity $entity
+     * @return Entity
+     * @throws Exception
+     * @inheritDoc
+     */
+    public function entityInsert(Entity &$entity): Entity
+    {
+        try {
+            $record = $this->createInsertRecord($entity);
+
+            $sth = $this->insert($entity::TABLE, $record, "*");
+
+            /** @var Entity $class */
+            $class = get_class($entity);
+
+            $entity = new $class($sth->fetchRow());
+
+            return $entity;
+
+        } catch (DBDException | EntityException $e) {
+            if ($e instanceof DBDException)
+                throw $e;
+            else
+                throw new DBDException($e->getMessage(), null, null, $e);
+        }
+    }
+
+    /**
+     * @param string $table
+     * @param array $args
+     * @param null $return
+     *
+     * @return DBD|mixed
+     */
+    public function insert(string $table, array $args, $return = null): DBD
+    {
+        $this->dropVars();
+
+        /*
+        $insert = $this->metadata($table);
+
+        foreach ($insert as $key => &$option) {
+            // if we have defined such field
+            if (isset($data[$key])) {
+                // check options
+                if (array_keys($option) !== range(0, count($option) - 1)) { // associative
+                    // TODO: check value type
+                    $option = $data[$key];
+                } else {
+                    $option = array();
+                    $i = 1;
+                    foreach ($data[$key] as $row) {
+                        // TODO: check value type
+                        $option[] = $row;
+                        $i++;
+                    }
+                }
+            } else {
+                if (array_keys($option) !== range(0, count($option) - 1)) { // associative
+                    if ($option['Nullable']) {
+                        $option = null;
+                    } else {
+                        throw new Exception("$key can't be null");
+                    }
+                } else {
+                    $option = array();
+                }
+            }
+        }
+        */
+
+        $this->setupRequest($this->Config->getHost() . $table . '?$format=application/json;odata=nometadata&', "POST", json_encode($args, JSON_UNESCAPED_UNICODE));
+        $this->_connect();
+
+        return json_decode($this->body, true);
+    }
+
+    protected function dropVars()
+    {
+        $this->CacheHolder = [
+            'key' => null,
+            'result' => null,
+            'compress' => null,
+            'expire' => null,
+        ];
+
+        $this->query = null;
+        $this->replacements = null;
+        $this->result = null;
+        $this->requestUrl = null;
+        $this->httpCode = null;
+        $this->header = null;
+        $this->body = null;
+    }
+
+    protected function setupRequest($url, $method = "GET", $content = null)
+    {
+        if (!is_resource($this->resourceLink)) {
+            $this->resourceLink = curl_init();
+        }
+        curl_setopt($this->resourceLink, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_V4);
+        curl_setopt($this->resourceLink, CURLOPT_URL, $this->urlEncode($url));
+        curl_setopt($this->resourceLink, CURLOPT_USERAGENT, __CLASS__);
+        curl_setopt($this->resourceLink, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($this->resourceLink, CURLOPT_HEADER, 1);
+
+        if ($this->Config->getUsername() && $this->Config->getPassword()) {
+            curl_setopt($this->resourceLink, CURLOPT_HTTPAUTH, CURLAUTH_BASIC);
+            curl_setopt($this->resourceLink, CURLOPT_USERPWD, $this->Config->getUsername() . ":" . $this->Config->getPassword());
+        }
+        switch ($method) {
+            case "POST":
+                curl_setopt($this->resourceLink, CURLOPT_POST, true);
+                curl_setopt($this->resourceLink, CURLOPT_HTTPGET, false);
+                curl_setopt($this->resourceLink, CURLOPT_CUSTOMREQUEST, null);
+                break;
+            case "PATCH":
+                curl_setopt($this->resourceLink, CURLOPT_POST, false);
+                curl_setopt($this->resourceLink, CURLOPT_HTTPGET, false);
+                curl_setopt($this->resourceLink, CURLOPT_CUSTOMREQUEST, 'PATCH');
+                break;
+            case "PUT":
+                curl_setopt($this->resourceLink, CURLOPT_POST, false);
+                curl_setopt($this->resourceLink, CURLOPT_HTTPGET, false);
+                curl_setopt($this->resourceLink, CURLOPT_CUSTOMREQUEST, 'PUT');
+                break;
+            case "DELETE":
+                curl_setopt($this->resourceLink, CURLOPT_POST, false);
+                curl_setopt($this->resourceLink, CURLOPT_HTTPGET, false);
+                curl_setopt($this->resourceLink, CURLOPT_CUSTOMREQUEST, 'DELETE');
+                break;
+            case "GET":
+            default:
+                curl_setopt($this->resourceLink, CURLOPT_POST, false);
+                curl_setopt($this->resourceLink, CURLOPT_HTTPGET, true);
+                curl_setopt($this->resourceLink, CURLOPT_CUSTOMREQUEST, null);
+                break;
+        }
+        if ($content) {
+            curl_setopt($this->resourceLink, CURLOPT_POSTFIELDS, $content);
+        }
+
+        return $this;
+    }
+
+        protected function urlEncode($string)
+    {
+        $entities = [
+            '%20',
+            '%27',
+        ];
+        $replacements = [
+            ' ',
+            "'",
+        ];
+        $string = str_replace($replacements, $entities, $string);
+
+        return $string;
+    } // TODO:
+
+        protected function _connect(): void
+    {
+        // if we never invoke connect and did not setup it, just call setup with DSN url
+        if (!is_resource($this->resourceLink)) {
+            $this->setupRequest($this->Config->getHost());
+        }
+        // TODO: read keep-alive header and reset handler if not exist
+        $response = curl_exec($this->resourceLink);
+        $header_size = curl_getinfo($this->resourceLink, CURLINFO_HEADER_SIZE);
+        $this->header = trim(substr($response, 0, $header_size));
+        $this->body = preg_replace("/\xEF\xBB\xBF/", "", substr($response, $header_size));
+        $this->httpCode = curl_getinfo($this->resourceLink, CURLINFO_HTTP_CODE);
+
+        if ($this->httpCode >= 200 && $this->httpCode < 300) {
+            // do nothing
+        } else {
+            $this->parseError();
+        }
+    } // TODO:
+
+    protected function parseError()
+    {
+        $fail = $this->urlDecode(curl_getinfo($this->resourceLink, CURLINFO_EFFECTIVE_URL));
+        if ($this->body) {
+            $error = json_decode($this->body, true);
+            if ($error && isset($error['odata.error']['message']['value'])) {
+                throw new Exception("URL: {$fail}\n" . $error['odata.error']['message']['value'], $this->query);
+            } else {
+                $this->body = str_replace([
+                    "\\r\\n",
+                    "\\n",
+                    "\\r",
+                ],
+                    "\n",
+                    $this->body
+                );
+                throw new Exception("HEADER: {$this->header}\nURL: {$fail}\nBODY: {$this->body}\n", $this->query);
+            }
+        } else {
+            throw new Exception("HTTP STATUS: {$this->httpCode}\n" . strtok($this->header, "\n"), $this->query);
+        }
+    }
+
+    /*--------------------------------------------------------------*/
+
+    protected function urlDecode($string)
+    {
+        $replacements = [
+            '%20',
+            '%27',
+        ];
+        $entities = [
+            ' ',
+            "'",
+        ];
+        $string = str_replace($replacements, $entities, $string);
+
+        return $string;
+    }
+
+    /*--------------------------------------------------------------*/
+
     public function begin(): bool
     {
         throw new Exception("BEGIN not supported by OData");
@@ -37,6 +263,8 @@ class OData extends DBD
     {
         throw new Exception("COMMIT not supported by OData");
     }
+
+    /*--------------------------------------------------------------*/
 
     /**
      * We do not need to connect anywhere until something real should be get via HTTP request, otherwise we will
@@ -49,7 +277,9 @@ class OData extends DBD
         return $this;
     }
 
-    /**
+    /*--------------------------------------------------------------*/
+
+/**
      * @return $this
      */
     public function disconnect(): DBD
@@ -59,12 +289,16 @@ class OData extends DBD
         }
 
         return $this;
-    } // TODO:
+    }
 
-    public function du()
+    /*--------------------------------------------------------------*/
+
+public function du()
     {
         return $this;
-    } // TODO:
+    }
+
+    /*--------------------------------------------------------------*/
 
     /**
      * @return DBD
@@ -264,137 +498,6 @@ class OData extends DBD
         return $this;
     }
 
-    protected function setupRequest($url, $method = "GET", $content = null)
-    {
-        if (!is_resource($this->resourceLink)) {
-            $this->resourceLink = curl_init();
-        }
-        curl_setopt($this->resourceLink, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_V4);
-        curl_setopt($this->resourceLink, CURLOPT_URL, $this->urlEncode($url));
-        curl_setopt($this->resourceLink, CURLOPT_USERAGENT, __CLASS__);
-        curl_setopt($this->resourceLink, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($this->resourceLink, CURLOPT_HEADER, 1);
-
-        if ($this->Config->getUsername() && $this->Config->getPassword()) {
-            curl_setopt($this->resourceLink, CURLOPT_HTTPAUTH, CURLAUTH_BASIC);
-            curl_setopt($this->resourceLink, CURLOPT_USERPWD, $this->Config->getUsername() . ":" . $this->Config->getPassword());
-        }
-        switch ($method) {
-            case "POST":
-                curl_setopt($this->resourceLink, CURLOPT_POST, true);
-                curl_setopt($this->resourceLink, CURLOPT_HTTPGET, false);
-                curl_setopt($this->resourceLink, CURLOPT_CUSTOMREQUEST, null);
-                break;
-            case "PATCH":
-                curl_setopt($this->resourceLink, CURLOPT_POST, false);
-                curl_setopt($this->resourceLink, CURLOPT_HTTPGET, false);
-                curl_setopt($this->resourceLink, CURLOPT_CUSTOMREQUEST, 'PATCH');
-                break;
-            case "PUT":
-                curl_setopt($this->resourceLink, CURLOPT_POST, false);
-                curl_setopt($this->resourceLink, CURLOPT_HTTPGET, false);
-                curl_setopt($this->resourceLink, CURLOPT_CUSTOMREQUEST, 'PUT');
-                break;
-            case "DELETE":
-                curl_setopt($this->resourceLink, CURLOPT_POST, false);
-                curl_setopt($this->resourceLink, CURLOPT_HTTPGET, false);
-                curl_setopt($this->resourceLink, CURLOPT_CUSTOMREQUEST, 'DELETE');
-                break;
-            case "GET":
-            default:
-                curl_setopt($this->resourceLink, CURLOPT_POST, false);
-                curl_setopt($this->resourceLink, CURLOPT_HTTPGET, true);
-                curl_setopt($this->resourceLink, CURLOPT_CUSTOMREQUEST, null);
-                break;
-        }
-        if ($content) {
-            curl_setopt($this->resourceLink, CURLOPT_POSTFIELDS, $content);
-        }
-
-        return $this;
-    }
-
-    /*--------------------------------------------------------------*/
-
-    protected function urlEncode($string)
-    {
-        $entities = [
-            '%20',
-            '%27',
-        ];
-        $replacements = [
-            ' ',
-            "'",
-        ];
-        $string = str_replace($replacements, $entities, $string);
-
-        return $string;
-    }
-
-    /*--------------------------------------------------------------*/
-
-    protected function _connect(): void
-    {
-        // if we never invoke connect and did not setup it, just call setup with DSN url
-        if (!is_resource($this->resourceLink)) {
-            $this->setupRequest($this->Config->getHost());
-        }
-        // TODO: read keep-alive header and reset handler if not exist
-        $response = curl_exec($this->resourceLink);
-        $header_size = curl_getinfo($this->resourceLink, CURLINFO_HEADER_SIZE);
-        $this->header = trim(substr($response, 0, $header_size));
-        $this->body = preg_replace("/\xEF\xBB\xBF/", "", substr($response, $header_size));
-        $this->httpCode = curl_getinfo($this->resourceLink, CURLINFO_HTTP_CODE);
-
-        if ($this->httpCode >= 200 && $this->httpCode < 300) {
-            // do nothing
-        } else {
-            $this->parseError();
-        }
-    }
-
-    /*--------------------------------------------------------------*/
-
-    protected function parseError()
-    {
-        $fail = $this->urlDecode(curl_getinfo($this->resourceLink, CURLINFO_EFFECTIVE_URL));
-        if ($this->body) {
-            $error = json_decode($this->body, true);
-            if ($error && isset($error['odata.error']['message']['value'])) {
-                throw new Exception("URL: {$fail}\n" . $error['odata.error']['message']['value'], $this->query);
-            } else {
-                $this->body = str_replace([
-                    "\\r\\n",
-                    "\\n",
-                    "\\r",
-                ],
-                    "\n",
-                    $this->body
-                );
-                throw new Exception("HEADER: {$this->header}\nURL: {$fail}\nBODY: {$this->body}\n", $this->query);
-            }
-        } else {
-            throw new Exception("HTTP STATUS: {$this->httpCode}\n" . strtok($this->header, "\n"), $this->query);
-        }
-    }
-
-    /*--------------------------------------------------------------*/
-
-    protected function urlDecode($string)
-    {
-        $replacements = [
-            '%20',
-            '%27',
-        ];
-        $entities = [
-            ' ',
-            "'",
-        ];
-        $string = str_replace($replacements, $entities, $string);
-
-        return $string;
-    }
-
     /*--------------------------------------------------------------*/
 
     protected function doReplacements($data)
@@ -473,78 +576,6 @@ class OData extends DBD
     public function fetchRow()
     {
         return array_shift($this->result);
-    }
-
-    /*--------------------------------------------------------------*/
-
-    /**
-     * @param string $table
-     * @param array $args
-     * @param null $return
-     *
-     * @return DBD|mixed
-     */
-    public function insert(string $table, array $args, $return = null): DBD
-    {
-        $this->dropVars();
-
-        /*
-        $insert = $this->metadata($table);
-
-        foreach ($insert as $key => &$option) {
-            // if we have defined such field
-            if (isset($data[$key])) {
-                // check options
-                if (array_keys($option) !== range(0, count($option) - 1)) { // associative
-                    // TODO: check value type
-                    $option = $data[$key];
-                } else {
-                    $option = array();
-                    $i = 1;
-                    foreach ($data[$key] as $row) {
-                        // TODO: check value type
-                        $option[] = $row;
-                        $i++;
-                    }
-                }
-            } else {
-                if (array_keys($option) !== range(0, count($option) - 1)) { // associative
-                    if ($option['Nullable']) {
-                        $option = null;
-                    } else {
-                        throw new Exception("$key can't be null");
-                    }
-                } else {
-                    $option = array();
-                }
-            }
-        }
-        */
-
-        $this->setupRequest($this->Config->getHost() . $table . '?$format=application/json;odata=nometadata&', "POST", json_encode($args, JSON_UNESCAPED_UNICODE));
-        $this->_connect();
-
-        return json_decode($this->body, true);
-    }
-
-    /*--------------------------------------------------------------*/
-
-    protected function dropVars()
-    {
-        $this->CacheHolder = [
-            'key' => null,
-            'result' => null,
-            'compress' => null,
-            'expire' => null,
-        ];
-
-        $this->query = null;
-        $this->replacements = null;
-        $this->result = null;
-        $this->requestUrl = null;
-        $this->httpCode = null;
-        $this->header = null;
-        $this->body = null;
     }
 
     /*--------------------------------------------------------------*/
