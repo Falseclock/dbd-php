@@ -167,13 +167,17 @@ class OData extends DBD
         $query = trim($query);
 
         // split whole query by special words
-        $pieces = preg_split('/(?=(SELECT|FROM|WHERE|ORDER BY|LIMIT|EXPAND).+?)/u', $query);
+        $pieces = preg_split('/(?=(SELECT|FROM|WHERE|ORDER BY|LIMIT|EXPAND|JOIN).+?)/u', $query);
         $struct = [];
 
         foreach ($pieces as $piece) {
-            preg_match('/(SELECT|FROM|WHERE|ORDER BY|LIMIT|EXPAND)(.+)/u', $piece, $matches);
+            preg_match('/(SELECT|FROM|WHERE|ORDER BY|LIMIT|EXPAND|JOIN)(.+)/u', $piece, $matches);
             if (count($matches)) {
-                $struct[trim($matches[1])] = trim($matches[2]);
+                $rule = strtoupper(trim($matches[1]));
+                if ($rule == 'JOIN')
+                    $struct[$rule][] = trim($matches[2]);
+                else
+                    $struct[$rule] = trim($matches[2]);
             }
         }
 
@@ -199,6 +203,15 @@ class OData extends DBD
 
         if (isset($struct['EXPAND'])) {
             $this->requestUrl .= '$expand=' . $struct['EXPAND'] . '&';
+        }
+
+        if (isset($struct['JOIN'])) {
+            $expands = [];
+            foreach ($struct['JOIN'] as $expand) {
+                preg_match('/(.+?)\s/', $expand, $matches);
+                $expands[] = $matches[1];
+            }
+            $this->requestUrl .= '$expand=' . implode(',', $expands) . '&';
         }
 
         if (isset($struct['WHERE'])) {
