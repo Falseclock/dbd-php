@@ -233,7 +233,7 @@ class OData extends DBD
                 $where
             );
 
-            $where = str_replace('=', 'eq', $where);
+            $where = str_replace(['=', '>', '<'], ['eq', 'ge', 'le'], $where);
             $where = str_replace(array_keys($params), array_values($params), $where);
 
             $this->requestUrl .= '$filter=' . $where . '&';
