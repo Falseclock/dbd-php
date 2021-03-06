@@ -702,7 +702,8 @@ class OData extends DBD
         $this->setupRequest($this->Config->getHost() . $url . '?$format=application/json;odata=nometadata&', "PATCH", json_encode($values, JSON_UNESCAPED_UNICODE));
         $this->_connect();
 
-        return json_decode($this->body, true);
+        //return json_decode($this->body, true);
+        return $this;
     }
 
     protected function findComplexTypeByName($array, $name)
