@@ -120,7 +120,7 @@ class Pg extends DBD
      *
      * @param string $table
      * @param array $params
-     * @param string $return
+     * @param string|null $return
      *
      * @return string
      */
