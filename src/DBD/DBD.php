@@ -806,9 +806,9 @@ abstract class DBD
     }
 
     /**
-     * @param        $table
-     * @param        $params
-     * @param string $return
+     * @param string $table
+     * @param array $params
+     * @param string|null $return
      *
      * @return mixed
      * @see OData::_compileInsert
@@ -817,7 +817,7 @@ abstract class DBD
      * @see MySQL::_compileInsert
      * @see insert
      */
-    abstract protected function _compileInsert(string $table, array $params, string $return = ""): string;
+    abstract protected function _compileInsert(string $table, array $params, ?string $return = ""): string;
 
     /**
      *

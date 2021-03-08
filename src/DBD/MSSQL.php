@@ -101,7 +101,7 @@ class MSSQL extends DBD
         return sqlsrv_commit($this->resourceLink);
     }
 
-    protected function _compileInsert(string $table, array $params, string $return = ""): string
+    protected function _compileInsert(string $table, array $params, ?string $return = ""): string
     {
         return "INSERT INTO $table ({$params['COLUMNS']}) VALUES ({$params['VALUES']})";
     }
