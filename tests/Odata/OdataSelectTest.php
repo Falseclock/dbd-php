@@ -156,7 +156,8 @@ class OdataSelectTest extends OdataTest
      * @noinspection SqlResolve
      * @noinspection SqlRedundantOrderingDirection
      */
-    public function testFetchWithoutCache() {
+    public function testFetchWithoutCache()
+    {
         $sth = $this->db->prepare("
             SELECT 
                    * 
@@ -192,5 +193,61 @@ class OdataSelectTest extends OdataTest
         // fetch all remaining rows
         $rows = $sth->fetchRowSet();
         self::assertCount(9, $rows);
+    }
+
+    /**
+     * @throws DBDException
+     * @noinspection SqlResolve
+     * @noinspection SqlRedundantOrderingDirection
+     */
+    public function testWithSpecialChars()
+    {
+        $sth = $this->db->prepare("
+            SELECT 
+                   * 
+            FROM 
+                 Document_ПлатежноеПоручениеВходящее 
+            WHERE
+                DeletionMark = false and (
+                substringof('#',Комментарий) = true or 
+                substringof('&',Комментарий) = true or
+                substringof('$',Комментарий) = true
+                )
+            ORDER BY 
+                Date desc, 
+                Number asc
+            LIMIT 10
+        ");
+        $sth->execute();
+
+        self::assertGreaterThan(0, $sth->rows());
+    }
+
+    /**
+     * @throws DBDException
+     * @noinspection SqlResolve
+     * @noinspection SqlRedundantOrderingDirection
+     */
+    public function testPlaceHolders()
+    {
+        $sth = $this->db->prepare("
+            SELECT 
+                   * 
+            FROM 
+                 Document_ПлатежноеПоручениеВходящее 
+            WHERE
+                DeletionMark = false and
+                substringof('?',Комментарий) = false and
+                substringof('?',Комментарий) = false and
+                substringof('?',Комментарий) = false
+            
+            ORDER BY 
+                Date desc, 
+                Number asc
+            LIMIT 10
+        ");
+        $sth->execute('?', '$', '&');
+
+        self::assertGreaterThan(0, $sth->rows());
     }
 }

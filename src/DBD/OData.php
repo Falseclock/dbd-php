@@ -454,9 +454,13 @@ class OData extends DBD
 
     }
 
+    /**
+     * @param mixed $string
+     * @return string
+     */
     protected function _escape($string): string
     {
-
+        return urlencode($string);
     }
 
     /**
@@ -486,15 +490,15 @@ class OData extends DBD
      * @return $this
      * @throws DBDException
      */
-    protected function prepareRequestUrl(array $ARGS = [])
+    protected function prepareRequestUrl(array $ARGS = []): self
     {
         // Check and prepare args
         $binds = substr_count($this->query, $this->Options->getPlaceHolder());
         $args = Helper::parseArgs($ARGS);
-        $numargs = count($args);
+        $numberOfArguments = count($args);
 
-        if ($binds != $numargs) {
-            throw new DBDException("Query failed: called with $numargs bind variables when $binds are needed", $this->query);
+        if ($binds != $numberOfArguments) {
+            throw new DBDException("Query failed: called with $numberOfArguments bind variables when $binds are needed", $this->query);
         }
 
         // Make url and put arguments
@@ -571,6 +575,7 @@ class OData extends DBD
             $this->requestUrl .= '$expand=' . implode(',', $expands) . '&';
         }
 
+        // TODO: change AND and OR case
         if (isset($struct['WHERE'])) {
 
             $where = $struct['WHERE'];
@@ -579,11 +584,12 @@ class OData extends DBD
             preg_replace_callback("('.+?')",
                 function ($matches) use (&$where, &$paramId, &$params) {
                     foreach ($matches as $match) {
-                        $params[sprintf(":param%d", $paramId)] = $match;
-                        $pos = strpos($where, $match);
-                        if ($pos !== false) {
-                            $where = substr_replace($where, sprintf(":param%d", $paramId), $pos, strlen($match));
-                        }
+                        $params[sprintf(":param%d", $paramId)] = urlencode($match);
+                        $position = strpos($where, $match);
+
+                        if ($position !== false)
+                            $where = substr_replace($where, sprintf(":param%d", $paramId), $position, strlen($match));
+
                         $paramId++;
                     }
                 },
