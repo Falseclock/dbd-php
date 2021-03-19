@@ -115,7 +115,10 @@ class MySQL extends DBD
 		// TODO: Implement _execute() method.
     }
 
-    protected function _fetchArray(): array
+    /**
+     * @return array|bool
+     */
+    protected function _fetchArray()
     {
         return mysqli_fetch_array($this->resourceLink);
     }

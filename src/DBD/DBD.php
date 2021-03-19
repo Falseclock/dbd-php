@@ -58,12 +58,12 @@ abstract class DBD
     protected $result;
     /** @var CacheHolder */
     protected $CacheHolder = null;
+    /** @var string $storage This param is used for identifying where data taken from */
+    protected $storage;
     /** @var mixed $fetch */
     private $fetch = self::UNDEFINED;
     /** @var bool $inTransaction Stores current transaction state */
     private $inTransaction = false;
-    /** @var string $storage This param is used for identifying where data taken from */
-    private $storage;
     /** @var Bind[] $binds */
     private $binds = [];
 
@@ -219,32 +219,6 @@ abstract class DBD
         [$statement, $args] = Helper::prepareArgs(func_get_args());
 
         return $this->prepare($statement)->execute($args);
-    }
-
-    /**
-     * Creates a prepared statement for later execution.
-     * Calling this function new instance of driver will be created and all
-     * options and configuration will be passed as reference, as well as resource
-     * link, caching driver and transaction state
-     *
-     * @param string $statement
-     *
-     * @return $this
-     * @throws DBDException
-     */
-    public function prepare(string $statement): DBD
-    {
-        if (!isset($statement) or empty($statement))
-            throw new DBDException("prepare failed: statement is not set or empty");
-
-        $className = get_class($this);
-        $class = new $className($this->Config, $this->Options);
-
-        $class->resourceLink = &$this->resourceLink;
-        $class->inTransaction = &$this->inTransaction;
-        $class->query = $statement;
-
-        return $class;
     }
 
     /**
@@ -475,17 +449,20 @@ abstract class DBD
      * @param $arguments
      *
      * @return mixed
-     * @see MSSQL::_execute
-     * @see MySQL::_execute
-     * @see OData::_execute
-     * @see Pg::_execute
+     * @see MSSQL::_execute()
+     * @see MySQL::_execute()
+     * @see OData::_execute()
+     * @see Pg::_execute()
+     * @see DBD::execute()
      */
     abstract protected function _execute($uniqueName, $arguments);
 
     /**
+     * Executes the query on the specified database connection.
+     *
      * @param $statement
      *
-     * @return resource|null
+     * @return mixed|null
      * @see MSSQL::_query
      * @see MySQL::_query
      * @see OData::_query
@@ -552,6 +529,7 @@ abstract class DBD
 
     /**
      * @return array|bool
+     * @see DBD::fetchRow()
      * @see Pg::_fetchAssoc
      * @see MSSQL::_fetchAssoc
      * @see MySQL::_fetchAssoc
@@ -572,11 +550,37 @@ abstract class DBD
     abstract protected function _convertTypes(&$data): void;
 
     /**
+     * Creates a prepared statement for later execution.
+     * Calling this function new instance of driver will be created and all
+     * options and configuration will be passed as reference, as well as resource
+     * link, caching driver and transaction state
+     *
+     * @param string $statement
+     *
+     * @return $this
+     * @throws DBDException
+     */
+    public function prepare(string $statement): DBD
+    {
+        if (!isset($statement) or empty($statement))
+            throw new DBDException("prepare failed: statement is not set or empty");
+
+        $className = get_class($this);
+        $class = new $className($this->Config, $this->Options);
+
+        $class->resourceLink = &$this->resourceLink;
+        $class->inTransaction = &$this->inTransaction;
+        $class->query = $statement;
+
+        return $class;
+    }
+
+    /**
      * Returns the number of rows in the result
      *
      * @return int
      */
-    public function rows(): int
+    final public function rows(): int
     {
         if ($this->storage == self::STORAGE_DATABASE) {
             return $this->_rows();
@@ -771,6 +775,53 @@ abstract class DBD
             else
                 throw new DBDException($e->getMessage(), null, null, $e);
         }
+    }
+
+    /**
+     * @param Entity $entity
+     * @return array
+     * @throws DBDException
+     * @throws EntityException
+     */
+    protected function createInsertRecord(Entity $entity): array
+    {
+        $record = [];
+
+        $columns = $entity::map()->getColumns();
+
+        // Cycle through all available columns according to Mapper definition
+        foreach ($columns as $propertyName => $column) {
+
+            $originName = $column->name;
+
+            if ($column->nullable == false) {
+                // Mostly we always define properties for any columns
+                if (property_exists($entity, $propertyName)) {
+                    if (!isset($entity->$propertyName) and ($column->isAuto === false and !isset($column->defaultValue)))
+                        throw new DBDException(sprintf("Property '%s' of %s can't be null according to Mapper annotation", $propertyName, get_class($entity)));
+
+                    if ($column->isAuto === false) {
+                        // Finally add column to record if it is set
+                        if (isset($entity->$propertyName))
+                            $finalValue = $entity->$propertyName;
+                        else
+                            $finalValue = $column->defaultValue;
+
+                        $record[$originName] = $column->type->getValue() == Primitive::Binary ? $this->_escapeBinary($finalValue) : $finalValue;
+                    }
+                }
+            } else {
+                // Finally add column to record if it is set
+                if (isset($entity->$propertyName)) {
+                    $record[$originName] = ($column->type->getValue() == Primitive::Binary) ? $this->_escapeBinary($entity->$propertyName) : $entity->$propertyName;
+                } else {
+                    // If value not set and we have some default value, let's define also
+                    if ($column->isAuto === false and isset($column->defaultValue))
+                        $record[$originName] = $column->defaultValue;
+                }
+            }
+        }
+        return $record;
     }
 
     /**
@@ -1097,6 +1148,7 @@ abstract class DBD
     }
 
     /**
+     * Fetches first row, reduces result and returns shifted first element
      * @return null|mixed
      */
     public function fetch()
@@ -1116,21 +1168,21 @@ abstract class DBD
                 $this->fetch = array_shift($this->CacheHolder->result);
             }
         }
-        if (!count($this->fetch))
+        if (!$this->fetch || !count($this->fetch))
             return null;
 
         return array_shift($this->fetch);
     }
 
     /**
-     * @return array
+     * @return array|bool
      * @see Pg::_fetchArray
      * @see MSSQL::_fetchArray
      * @see MySQL::_fetchArray
      * @see OData::_fetchArray
      * @see fetch
      */
-    abstract protected function _fetchArray(): array;
+    abstract protected function _fetchArray();
 
     /**
      * Starts database transaction
@@ -1227,51 +1279,4 @@ abstract class DBD
      * @see commit
      */
     abstract protected function _commit(): bool;
-
-    /**
-     * @param Entity $entity
-     * @return array
-     * @throws DBDException
-     * @throws EntityException
-     */
-    protected function createInsertRecord(Entity $entity): array
-    {
-        $record = [];
-
-        $columns = $entity::map()->getColumns();
-
-        // Cycle through all available columns according to Mapper definition
-        foreach ($columns as $propertyName => $column) {
-
-            $originName = $column->name;
-
-            if ($column->nullable == false) {
-                // Mostly we always define properties for any columns
-                if (property_exists($entity, $propertyName)) {
-                    if (!isset($entity->$propertyName) and ($column->isAuto === false and !isset($column->defaultValue)))
-                        throw new DBDException(sprintf("Property '%s' of %s can't be null according to Mapper annotation", $propertyName, get_class($entity)));
-
-                    if ($column->isAuto === false) {
-                        // Finally add column to record if it is set
-                        if (isset($entity->$propertyName))
-                            $finalValue = $entity->$propertyName;
-                        else
-                            $finalValue = $column->defaultValue;
-
-                        $record[$originName] = $column->type->getValue() == Primitive::Binary ? $this->_escapeBinary($finalValue) : $finalValue;
-                    }
-                }
-            } else {
-                // Finally add column to record if it is set
-                if (isset($entity->$propertyName)) {
-                    $record[$originName] = ($column->type->getValue() == Primitive::Binary) ? $this->_escapeBinary($entity->$propertyName) : $entity->$propertyName;
-                } else {
-                    // If value not set and we have some default value, let's define also
-                    if ($column->isAuto === false and isset($column->defaultValue))
-                        $record[$originName] = $column->defaultValue;
-                }
-            }
-        }
-        return $record;
-    }
 }

@@ -29,7 +29,7 @@ final class YellowERP extends OData
     protected $servicesPath = null;
     /** @var string $sessionFile место хранения файла с cookie. TODO: сделать возможность хранения в кэше, если он присутствует */
     protected $sessionFile = null;
-    protected $timeOutLimit = 30;
+    protected $timeOutLimit = 5;
 
     /**
      * Здесь мы должны открыть соединение в случае с базой, если у нас не стоит ондеманд.
@@ -52,12 +52,10 @@ final class YellowERP extends OData
      * @return YellowERP
      * @throws Exception
      */
-    public function execute(): DBD
+    public function execute111(): DBD
     {
         if ($this->servicesPath) {
             $this->result = null;
-
-            $this->tryGetFromCache();
 
             // If not found in cache, then let's get via HTTP request
             if ($this->result === null) {
@@ -68,7 +66,6 @@ final class YellowERP extends OData
                 // Will return NULL in case of failure
                 $this->result = json_decode($this->body, true);
 
-                $this->storeResultToCache();
             }
 
             $this->servicesPath = null;
@@ -232,8 +229,6 @@ final class YellowERP extends OData
      */
     public function service($url): YellowERP
     {
-        $this->dropVars();
-
         $this->servicesPath = $url;
 
         // We have to fake, otherwise DBD will issue exception on cache for non select query

@@ -16,7 +16,6 @@ namespace DBD;
 use DBD\Base\Bind;
 use DBD\Base\Helper;
 use DBD\Common\DBDException;
-use DBD\Common\DBDException as Exception;
 use DBD\Entity\Common\EntityException;
 use DBD\Entity\Entity;
 use DBD\Utils\OData\Metadata;
@@ -30,11 +29,14 @@ class OData extends DBD
     protected $metadata = null;
     protected $replacements = null;
     protected $requestUrl = null;
+    /** @var array */
+    protected $result;
+    /** @var int */
+    protected $initialAffectedRows;
 
     /**
      * @param Entity $entity
      * @return Entity
-     * @throws Exception
      * @inheritDoc
      */
     public function entityInsert(Entity &$entity): Entity
@@ -44,10 +46,10 @@ class OData extends DBD
 
             $embeddings = $entity::map()->getEmbedded();
 
-            foreach($embeddings as $propertyName => $embedded) {
+            foreach ($embeddings as $propertyName => $embedded) {
                 if (property_exists($entity, $propertyName)) {
                     if ($embedded->isIterable)
-                        foreach($entity->$propertyName as $row)
+                        foreach ($entity->$propertyName as $row)
                             $record[$embedded->name][] = $this->createInsertRecord($row);
                     else
                         trigger_error("not implemented");
@@ -74,10 +76,10 @@ class OData extends DBD
      * @param array $args
      *
      * @return array
+     * @throws DBDException
      */
     public function insertCustom(string $table, array $args): array
     {
-        $this->dropVars();
 
         /*
         $insert = $this->metadata($table);
@@ -118,25 +120,13 @@ class OData extends DBD
         return json_decode($this->body, true);
     }
 
-    protected function dropVars()
-    {
-        $this->CacheHolder = [
-            'key' => null,
-            'result' => null,
-            'compress' => null,
-            'expire' => null,
-        ];
-
-        $this->query = null;
-        $this->replacements = null;
-        $this->result = null;
-        $this->requestUrl = null;
-        $this->httpCode = null;
-        $this->header = null;
-        $this->body = null;
-    }
-
-    protected function setupRequest($url, $method = "GET", $content = null)
+    /**
+     * @param $url
+     * @param string $method
+     * @param null $content
+     * @return $this
+     */
+    protected function setupRequest($url, $method = "GET", $content = null): self
     {
         if (!is_resource($this->resourceLink)) {
             $this->resourceLink = curl_init();
@@ -199,8 +189,11 @@ class OData extends DBD
         $string = str_replace($replacements, $entities, $string);
 
         return $string;
-    } // TODO:
+    }
 
+    /**
+     * @throws DBDException
+     */
     protected function _connect(): void
     {
         // if we never invoke connect and did not setup it, just call setup with DSN url
@@ -221,13 +214,16 @@ class OData extends DBD
         }
     } // TODO:
 
+    /**
+     * @throws DBDException
+     */
     protected function parseError()
     {
         $fail = $this->urlDecode(curl_getinfo($this->resourceLink, CURLINFO_EFFECTIVE_URL));
         if ($this->body) {
             $error = json_decode($this->body, true);
             if ($error && isset($error['odata.error']['message']['value'])) {
-                throw new Exception("URL: {$fail}\n" . $error['odata.error']['message']['value'], $this->query);
+                throw new DBDException("URL: {$fail}\n" . $error['odata.error']['message']['value'], $this->query);
             } else {
                 $this->body = str_replace([
                     "\\r\\n",
@@ -237,14 +233,12 @@ class OData extends DBD
                     "\n",
                     $this->body
                 );
-                throw new Exception("HEADER: {$this->header}\nURL: {$fail}\nBODY: {$this->body}\n", $this->query);
+                throw new DBDException("HEADER: {$this->header}\nURL: {$fail}\nBODY: {$this->body}\n", $this->query);
             }
         } else {
-            throw new Exception("HTTP STATUS: {$this->httpCode}\n" . strtok($this->header, "\n"), $this->query);
+            throw new DBDException("HTTP STATUS: {$this->httpCode}\n" . strtok($this->header, "\n"), $this->query);
         }
     }
-
-    /*--------------------------------------------------------------*/
 
     protected function urlDecode($string)
     {
@@ -260,20 +254,6 @@ class OData extends DBD
 
         return $string;
     }
-
-    /*--------------------------------------------------------------*/
-
-    public function begin(): bool
-    {
-        throw new Exception("BEGIN not supported by OData");
-    }
-
-    public function commit(): bool
-    {
-        throw new Exception("COMMIT not supported by OData");
-    }
-
-    /*--------------------------------------------------------------*/
 
     /**
      * We do not need to connect anywhere until something real should be get via HTTP request, otherwise we will
@@ -300,79 +280,213 @@ class OData extends DBD
         return $this;
     }
 
-    /*--------------------------------------------------------------*/
-
-    public function du()
+    /**
+     * @return Metadata|null
+     * @throws DBDException
+     */
+    public function metadata(): ?Metadata
     {
+        // If we already got metadata
+        if ($this->metadata)
+            return $this->metadata;
+
+        // Let's get from cache
+        if (isset($this->Config->CacheDriver)) {
+            $metadata = $this->Config->CacheDriver->get($this->Config->getHost() . ':metadata');
+            if ($metadata !== false) {
+                $this->metadata = $metadata;
+                return $this->metadata;
+            }
+        }
+
+        $this->setupRequest($this->Config->getHost() . '$metadata');
+        $this->_connect();
+
+        $xml = simplexml_load_string($this->body);
+        $body = $xml->xpath("//edmx:Edmx/edmx:DataServices/*");
+        $schema = json_decode(json_encode($body[0]));
+
+        $this->metadata = new Metadata($schema);
+
+        if (isset($this->Config->CacheDriver))
+            $this->Config->CacheDriver->set($this->Config->getHost() . ':metadata', $this->metadata, $this->CacheHolder->expire);
+
+        return $this->metadata;
+    }
+
+    public function setDataKey($dataKey)
+    {
+        $this->dataKey = $dataKey;
+
         return $this;
     }
 
-    /*--------------------------------------------------------------*/
+    public function update(): DBD
+    {
+        $binds = 0;
+        $where = null;
+        $return = null;
+        $ARGS = func_get_args();
+        $table = $ARGS[0];
+        $values = $ARGS[1];
+        $args = [];
+
+        if (func_num_args() > 2) {
+            $where = $ARGS[2];
+            $binds = substr_count($where, $this->Options->getPlaceHolder());
+        }
+        // If we set $where with placeholders or we set $return
+        if (func_num_args() > 3) {
+            for ($i = 3; $i < $binds + 3; $i++) {
+                $args[] = $ARGS[$i];
+            }
+            //if(func_num_args() > $binds + 3) {
+            // FIXME: закоментарил, потому что варнило
+            //$return = $ARGS[ func_num_args() - 1 ];
+            //}
+        }
+
+        $url = $table . ($where ? $where : "");
+
+        if (count($args)) {
+            $request = str_split($url);
+
+            foreach ($request as $ind => $str) {
+                if ($str == $this->Options->getPlaceHolder()) {
+                    $request[$ind] = "'" . array_shift($args) . "'";
+                }
+            }
+            $url = implode("", $request);
+        }
+
+        $this->setupRequest($this->Config->getHost() . $url . '?$format=application/json;odata=nometadata&', "PATCH", json_encode($values, JSON_UNESCAPED_UNICODE));
+        $this->_connect();
+
+        //return json_decode($this->body, true);
+        return $this;
+    }
+
+    protected function doReplacements($data)
+    {
+        if (isset($this->replacements) && count($this->replacements) && $data != null) {
+            foreach ($data as &$value) {
+                foreach ($value as $key => $val) {
+                    if (array_key_exists($key, $this->replacements)) {
+                        $value[$this->replacements[$key]] = $val;
+                        unset($value[$key]);
+                    }
+                }
+            }
+        }
+
+        return $data;
+    }
+
+    protected function findComplexTypeByName($array, $name)
+    {
+        foreach ($array['edmx:Edmx']['edmx:DataServices']['Schema']['ComplexType'] as $ComplexType) {
+            if ($ComplexType['@attributes']['Name'] == $name) {
+                return $ComplexType;
+            }
+        }
+
+        return null;
+    }
 
     /**
-     * @return DBD
-     * @throws Exception
+     * @return bool
+     * @throws DBDException
      */
-    public function execute(): DBD
+    protected function _begin(): bool
     {
-
-        $this->tryGetFromCache();
-
-        // If not found in cache or we dont use it, then let's get via HTTP request
-        if ($this->result === null) {
-
-            $this->prepareUrl(func_get_args());
-
-            // just initicate connect with prepared URL and HEADERS
-            $this->setupRequest($this->Config->getHost() . $this->requestUrl);
-            // and make request
-            $this->_connect();
-
-            // Will return NULL in case of failure
-            $json = json_decode($this->body, true);
-
-            if ($this->dataKey) {
-                if ($json[$this->dataKey]) {
-                    $this->result = $this->doReplacements($json[$this->dataKey]);
-                } else {
-                    $this->result = $json;
-                }
-            } else {
-                $this->result = $this->doReplacements($json);
-            }
-
-            $this->storeResultToCache();
-        }
-        $this->query = null;
-
-        return $this;
+        throw new DBDException("OData doesn't not support transactions");
     }
 
-    /*--------------------------------------------------------------*/
-
-    protected function tryGetFromCache()
+    /**
+     * @param string|null $binaryString
+     *
+     * @return string|null
+     */
+    protected function _escapeBinary(?string $binaryString): ?string
     {
-        // If we have cache driver
-        if (isset($this->Config->CacheDriver)) {
-            // we set cache via $sth->cache('blabla');
-            if ($this->CacheHolder['key'] !== null) {
-                // getting result
-                $this->CacheHolder['result'] = $this->Config->CacheDriver->get($this->CacheHolder['key']);
 
-                // Cache not empty?
-                if ($this->CacheHolder['result'] && $this->CacheHolder['result'] !== false) {
-                    // set to our class var and count rows
-                    $this->result = $this->CacheHolder['result'];
-                }
-            }
-        }
-
-        return $this;
     }
 
-    /*--------------------------------------------------------------*/
+    /**
+     * @return bool
+     * @throws DBDException
+     */
+    protected function _commit(): bool
+    {
+        throw new DBDException("OData doesn't not support transactions");
+    }
 
-    protected function prepareUrl($ARGS)
+    protected function _compileInsert(string $table, array $params, ?string $return = ""): string
+    {
+
+    }
+
+    protected function _compileUpdate(string $table, array $params, string $where, ?string $return = ""): string
+    {
+
+    }
+
+    protected function _convertTypes(&$data): void
+    {
+
+    }
+
+    protected function _disconnect(): bool
+    {
+
+    }
+
+    /**
+     * @inheritDoc
+     */
+    protected function _dump(string $preparedQuery, string $fileName, string $delimiter, string $nullString, bool $showHeader, string $tmpPath): string
+    {
+
+    }
+
+    protected function _errorMessage(): string
+    {
+
+    }
+
+    protected function _escape($string): string
+    {
+
+    }
+
+    /**
+     * @param $uniqueName
+     * @param $arguments
+     *
+     * @return mixed
+     * @throws DBDException
+     * @inheritDoc
+     */
+    protected function _execute($uniqueName, $arguments)
+    {
+        $this->prepareRequestUrl(func_get_args());
+
+        // just initiate connect with prepared URL and HEADERS
+        $this->setupRequest($this->Config->getHost() . $this->requestUrl);
+        // and make request
+        $this->_connect();
+
+        // Will return NULL in case of failure
+        return json_decode($this->body, true);
+
+    }
+
+    /**
+     * @param $ARGS
+     * @return $this
+     * @throws DBDException
+     */
+    protected function prepareRequestUrl(array $ARGS = [])
     {
         // Check and prepare args
         $binds = substr_count($this->query, $this->Options->getPlaceHolder());
@@ -380,7 +494,7 @@ class OData extends DBD
         $numargs = count($args);
 
         if ($binds != $numargs) {
-            throw new Exception("Query failed: called with $numargs bind variables when $binds are needed", $this->query);
+            throw new DBDException("Query failed: called with $numargs bind variables when $binds are needed", $this->query);
         }
 
         // Make url and put arguments
@@ -507,309 +621,34 @@ class OData extends DBD
         return $this;
     }
 
-    /*--------------------------------------------------------------*/
-
-    protected function doReplacements($data)
-    {
-        if (isset($this->replacements) && count($this->replacements) && $data != null) {
-            foreach ($data as &$value) {
-                foreach ($value as $key => $val) {
-                    if (array_key_exists($key, $this->replacements)) {
-                        $value[$this->replacements[$key]] = $val;
-                        unset($value[$key]);
-                    }
-                }
-            }
-        }
-
-        return $data;
-    }
-
-    /*--------------------------------------------------------------*/
-
-    protected function storeResultToCache()
-    {
-        if ($this->result) {
-            // If we want to store to the cache
-            if ($this->CacheHolder['key'] !== null) {
-                // Setting up our cache
-                $this->Config->CacheDriver->set($this->CacheHolder['key'], $this->result, $this->CacheHolder['expire']);
-            }
-        }
-
-        return $this;
-    }
-
-    /*--------------------------------------------------------------*/
-
     /**
-     * @see https://github.com/Falseclock/dbd-php/issues/19 FIXME: see below
-     * @return bool|mixed|null
-     * @throws Exception
+     * @return array|boolean
+     * @inheritDoc
      */
-    public function fetch()
+    protected function _fetchArray()
     {
-        if (is_iterable($this->result) and count($this->result) == 1 and !isset($this->result['value'])) { // FIXME : !isset($this->result['value']
-            if (!count($this->result[0]))
-                return null;
+        if (count($this->result['value']) > 0) {
+            $row = array_shift($this->result['value']);
+            $array = [];
+            foreach ($row as $key => $value)
+                $array[] = $value;
 
-            return array_shift($this->result[0]);
-        } else if (is_iterable($this->result) and count($this->result) > 1) {
-            throw new Exception("Do not know how to fetch results if number of rows more then 1");
+            return $array;
         } else {
-            return null;
-            // FIXME поставить как исправится баг
-            //throw new Exception("Nothing to fetch");
+            return false;
         }
-    }
-
-    /*--------------------------------------------------------------*/
-
-    public function fetchRowSet($uniqueKey = null): array
-    {
-
-        $array = [];
-        while ($row = $this->fetchRow()) {
-            if ($uniqueKey) {
-                $array[$row[$uniqueKey]] = $row;
-            } else {
-                $array[] = $row;
-            }
-        }
-
-        return $array;
-    }
-
-    /*--------------------------------------------------------------*/
-
-    public function fetchRow()
-    {
-        return array_shift($this->result);
-    }
-
-    /*--------------------------------------------------------------*/
-
-    public function metadata(): ?Metadata
-    {
-        // If we already got metadata
-        if ($this->metadata)
-            return $this->metadata;
-
-        // Let's get from cache
-        if (isset($this->Config->CacheDriver)) {
-            $metadata = $this->Config->CacheDriver->get($this->Config->getHost() . ':metadata');
-            if ($metadata !== false) {
-                $this->metadata = $metadata;
-                return $this->metadata;
-            }
-        }
-        $this->dropVars();
-
-        $this->setupRequest($this->Config->getHost() . '$metadata');
-        $this->_connect();
-
-        $xml = simplexml_load_string($this->body);
-        $body = $xml->xpath("//edmx:Edmx/edmx:DataServices/*");
-        $schema = json_decode(json_encode($body[0]));
-
-        $this->metadata = new Metadata($schema);
-
-        if (isset($this->Config->CacheDriver))
-            $this->Config->CacheDriver->set($this->Config->getHost() . ':metadata', $this->metadata, $this->CacheHolder->expire);
-
-        return $this->metadata;
-    }
-
-    /*--------------------------------------------------------------*/
-
-    public function prepare($statement): DBD
-    {
-
-        // This is not SQL driver, so we can't make several instances with prepare
-        // and let's allow only one by one requests per driver
-        if ($this->query) {
-            throw new Exception("You have an unexecuted query", $this->query);
-        }
-        // Drop current protected vars to do not mix up
-        $this->dropVars();
-
-        // Just storing query. Parse will be done later during buildQuery
-        $this->query = $statement;
-
-        return $this;
-    }
-
-    /*--------------------------------------------------------------*/
-
-    public function query(): DBD
-    {
-        return $this;
-    }
-
-    /*--------------------------------------------------------------*/
-
-    public function rollback(): bool
-    {
-        trigger_error("ROLLBACK not supported by OData");
-
-        return false;
-    }
-
-    /*--------------------------------------------------------------*/
-
-    public function rows(): int
-    {
-        //if(is_iterable($this->result) and count($this->result) == 1 and !isset($this->result['value'])) // FIXME: исправить в выборке
-        if (is_iterable($this->result) and !isset($this->result['value']))
-            return count($this->result);
-
-        return 0;
-    }
-
-    public function setDataKey($dataKey)
-    {
-        $this->dataKey = $dataKey;
-
-        return $this;
-    }
-
-    public function update(): DBD
-    {
-        $binds = 0;
-        $where = null;
-        $return = null;
-        $ARGS = func_get_args();
-        $table = $ARGS[0];
-        $values = $ARGS[1];
-        $args = [];
-
-        if (func_num_args() > 2) {
-            $where = $ARGS[2];
-            $binds = substr_count($where, $this->Options->getPlaceHolder());
-        }
-        // If we set $where with placeholders or we set $return
-        if (func_num_args() > 3) {
-            for ($i = 3; $i < $binds + 3; $i++) {
-                $args[] = $ARGS[$i];
-            }
-            //if(func_num_args() > $binds + 3) {
-            // FIXME: закоментарил, потому что варнило
-            //$return = $ARGS[ func_num_args() - 1 ];
-            //}
-        }
-
-        $url = $table . ($where ? $where : "");
-
-        if (count($args)) {
-            $request = str_split($url);
-
-            foreach ($request as $ind => $str) {
-                if ($str == $this->Options->getPlaceHolder()) {
-                    $request[$ind] = "'" . array_shift($args) . "'";
-                }
-            }
-            $url = implode("", $request);
-        }
-
-        $this->setupRequest($this->Config->getHost() . $url . '?$format=application/json;odata=nometadata&', "PATCH", json_encode($values, JSON_UNESCAPED_UNICODE));
-        $this->_connect();
-
-        //return json_decode($this->body, true);
-        return $this;
-    }
-
-    protected function findComplexTypeByName($array, $name)
-    {
-        foreach ($array['edmx:Edmx']['edmx:DataServices']['Schema']['ComplexType'] as $ComplexType) {
-            if ($ComplexType['@attributes']['Name'] == $name) {
-                return $ComplexType;
-            }
-        }
-
-        return null;
-    }
-
-    protected function _begin(): bool
-    {
-        // TODO: Implement _begin() method.
-    }
-
-    /**
-     * @param string|null $binaryString
-     *
-     * @return string|null
-     */
-    protected function _escapeBinary(?string $binaryString): ?string
-    {
-        // TODO: Implement _binaryEscape() method.
-    }
-
-    protected function _commit(): bool
-    {
-        // TODO: Implement _commit() method.
-    }
-
-    protected function _compileInsert(string $table, array $params, ?string $return = ""): string
-    {
-        // TODO: Implement _compileInsert() method.
-    }
-
-    protected function _compileUpdate(string $table, array $params, string $where, ?string $return = ""): string
-    {
-        // TODO: Implement _compileUpdate() method.
-    }
-
-    protected function _convertTypes(&$data): void
-    {
-        // TODO: Implement _convertTypes() method.
-    }
-
-    protected function _disconnect(): bool
-    {
-        // TODO: Implement _disconnect() method.
     }
 
     /**
      * @inheritDoc
+     * @return array|bool
      */
-    protected function _dump(string $preparedQuery, string $fileName, string $delimiter, string $nullString, bool $showHeader, string $tmpPath): string
-    {
-        // TODO: Implement _dump() method.
-    }
-
-    protected function _errorMessage(): string
-    {
-        // TODO: Implement _errorMessage() method.
-    }
-
-    protected function _escape($string): string
-    {
-        // TODO: Implement _escape() method.
-    }
-
-    /**
-     * @param $uniqueName
-     * @param $arguments
-     *
-     * @return mixed
-     * @see MSSQL::_execute
-     * @see MySQL::_execute
-     * @see OData::_execute
-     * @see Pg::_execute
-     */
-    protected function _execute($uniqueName, $arguments)
-    {
-        // TODO: Implement _execute() method.
-    }
-
-    protected function _fetchArray(): array
-    {
-        // TODO: Implement _fetchArray() method.
-    }
-
     protected function _fetchAssoc()
     {
-        // TODO: Implement _fetchAssoc() method.
+        if (count($this->result['value']) > 0)
+            return array_shift($this->result['value']);
+        else
+            return false;
     }
 
     /**
@@ -827,23 +666,50 @@ class OData extends DBD
         // TODO: Implement _prepare() method.
     }
 
+    /**
+     * @param $statement
+     * @return mixed|null
+     * @throws DBDException
+     */
     protected function _query($statement)
     {
-        // TODO: Implement _query() method.
+        $this->query = $statement;
+        $this->prepareRequestUrl();
+
+        // just initiate connect with prepared URL and HEADERS
+        $this->setupRequest($this->Config->getHost() . $this->requestUrl);
+        // and make request
+        $this->_connect();
+
+        // Will return NULL in case of failure
+        return json_decode($this->body, true);
     }
 
+    /**
+     * @return bool
+     * @throws DBDException
+     */
     protected function _rollback(): bool
     {
-        // TODO: Implement _rollback() method.
+        throw new DBDException("OData doesn't not support transactions");
     }
 
+    /**
+     * @return int
+     * @inheritDoc
+     * @todo Проверить как реагарует постгрес на количество строк после фетчей
+     */
     protected function _rows(): int
     {
-        // TODO: Implement _affectedRows() method.
-    }
+        if (isset($this->initialAffectedRows))
+            return $this->initialAffectedRows;
 
-    protected function doConnection()
-    {
+        if (is_array($this->result) and isset($this->result['value']))
+            $this->initialAffectedRows = count($this->result['value']);
+        else
+            $this->initialAffectedRows = 0;
+
+        return $this->initialAffectedRows;
     }
 
     protected function replaceBind(string &$preparedQuery, Bind $bind): void

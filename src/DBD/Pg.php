@@ -87,8 +87,8 @@ class Pg extends DBD
     }
 
     /**
-     * Executes the query on the specified database connection.
      *
+     * @inheritDoc
      * @param $statement
      *
      * @return resource|null
@@ -273,10 +273,10 @@ class Pg extends DBD
     /**
      * Returns an array that corresponds to the fetched row (record).
      *
-     * @return array
+     * @return array|bool
      * @inheritDoc
      */
-    protected function _fetchArray(): array
+    protected function _fetchArray()
     {
         return pg_fetch_array($this->result, 0, PGSQL_NUM);
     }
@@ -349,8 +349,9 @@ class Pg extends DBD
         }
     }
 
-    private function _replaceBind( $name, $value, $subject) {
-        return preg_replace('~'.$name.'(::\w+)?(\s|\t|]|\))~', "{$value}$1$2", $subject);
+    private function _replaceBind($name, $value, $subject)
+    {
+        return preg_replace('~' . $name . '(::\w+)?(\s|\t|]|\))~', "{$value}$1$2", $subject);
     }
 
     /**

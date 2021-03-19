@@ -166,7 +166,10 @@ class MSSQL extends DBD
         // TODO: Implement _execute() method.
     }
 
-    protected function _fetchArray(): array
+    /**
+     * @return array|bool
+     */
+    protected function _fetchArray()
     {
         return sqlsrv_fetch_array($this->result, SQLSRV_FETCH_NUMERIC);
     }
