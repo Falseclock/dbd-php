@@ -14,15 +14,22 @@ declare(strict_types=1);
 namespace DBD;
 
 use DBD\Base\Bind;
+use DBD\Base\CRUD;
 use DBD\Base\Helper;
 use DBD\Common\DBDException;
 use DBD\Entity\Common\EntityException;
 use DBD\Entity\Entity;
 use DBD\Entity\Primitive;
 use DBD\Utils\OData\Metadata;
+use Throwable;
 
 class OData extends DBD
 {
+    const METHOD_POST = "POST";
+    const METHOD_GET = "GET";
+    const METHOD_PATCH = "PATCH";
+    const METHOD_DELETE = "DELETE";
+    const METHOD_PUT = "PUT";
     protected $body = null;
     protected $dataKey = null;
     protected $header = null;
@@ -37,6 +44,99 @@ class OData extends DBD
 
     /**
      * @param Entity $entity
+     * @return bool
+     * @throws DBDException
+     */
+    public function entityDelete(Entity $entity): bool
+    {
+        /** @var Bind[] $binds */
+        [$columns, $binds] = $this->makeBindsForEntity($entity);
+
+        $query = sprintf("DELETE FROM %s WHERE %s", $entity::TABLE, implode(" AND ", $columns));
+
+        $sth = $this->prepare($query);
+        foreach ($binds as $bind)
+            $sth->bind($bind->name, $bind->value, null, $bind->column);
+
+        $sth->execute();
+
+        if ($sth->rows() > 0)
+            return true;
+
+        return false;
+    }
+
+    /**
+     * @param Entity $entity
+     * @return array[]
+     * @throws DBDException
+     */
+    private function makeBindsForEntity(Entity $entity): array
+    {
+        try {
+            $keys = $entity::map()->getPrimaryKey();
+
+            if (!count($keys))
+                throw new DBDException(sprintf("Entity %s does not have any defined primary key", get_class($entity)));
+
+            $columns = [];
+            $binds = [];
+
+            foreach ($keys as $keyName => $column) {
+                if (!isset($entity->$keyName))
+                    throw new DBDException(sprintf("Value of %s->%s, which is primary key column, is null", get_class($entity), $keyName));
+
+                $columns[] = "{$column->name} = :{$column->name}";
+                $binds[] = new Bind(":{$column->name}", $entity->$keyName, $column->type->getValue(), $column->name);
+            }
+
+            return [$columns, $binds];
+        } catch (Throwable $e) {
+            if ($e instanceof DBDException)
+                throw $e;
+            else
+                throw new DBDException($e->getMessage(), null, null, $e);
+        }
+    }
+
+    /**
+     * @param Entity $entity
+     * @param bool $exceptionIfNoRecord
+     * @return Entity|null
+     * @throws DBDException
+     * @inheritDoc
+     */
+    public function entitySelect(Entity &$entity, bool $exceptionIfNoRecord = true): ?Entity
+    {
+        /** @var Bind[] $binds */
+        [$columns, $binds] = $this->makeBindsForEntity($entity);
+
+        // fictive query for logging and etc
+        $statement = sprintf("SELECT * FROM %s WHERE %s", $entity::TABLE, implode(" AND ", $columns));
+
+        foreach ($binds as $bind)
+            $this->replaceBind($statement, $bind);
+
+        $sth = $this->prepare($statement);
+        $sth->execute();
+
+        if (!$sth->rows()) {
+            if ($exceptionIfNoRecord)
+                throw new DBDException(sprintf("No data found for entity %s with ", get_class($entity)));
+            else
+                return null;
+        }
+
+        /** @var Entity $class */
+        $class = get_class($entity);
+
+        $entity = new $class($sth->fetchRow());
+
+        return $entity;
+    }
+
+    /**
+     * @param Entity $entity
      * @return Entity
      * @inheritDoc
      */
@@ -44,6 +144,11 @@ class OData extends DBD
     {
         try {
             $record = $this->createInsertRecord($entity);
+
+            $params = Helper::compileInsertArgs($record, $this, $this->Options);
+
+            // ONLY FOR EMULATION
+            $this->query = $this->_compileInsert($entity::TABLE, $params);
 
             $embeddings = $entity::map()->getEmbedded();
 
@@ -73,6 +178,49 @@ class OData extends DBD
     }
 
     /**
+     * That's a fictive function, just to emulate query
+     * @param string $table
+     * @param array $params
+     * @param string|null $return
+     * @return string
+     * @inheritDoc
+     */
+    protected function _compileInsert(string $table, array $params, ?string $return = ""): string
+    {
+        $values = array_map(function ($value) {
+            return $this->_escape($value);
+        }, $params['ARGS']);
+
+        $values = implode(",", $values);
+
+        return "INSERT INTO $table ({$params['COLUMNS']}) VALUES ({$values})" . ($return ? " RETURNING {$return}" : "");
+    }
+
+    /**
+     * @param mixed $string
+     * @return string
+     * @inheritDoc
+     */
+    protected function _escape($string): string
+    {
+        return sprintf("'%s'", $this->_escapeEncode($string));
+    }
+
+    /**
+     * @param $string
+     *
+     * @return string
+     */
+    protected function _escapeEncode($string): string
+    {
+
+        $search = ['!', '*', '\'', '(', ')', ';', ':', '@', '&', '=', '+', '$', ',', '/', '?', '#', '[', ']'];
+        $replace = ['%21', '%2A', '%27', '%28', '%29', '%3B', '%3A', '%40', '%26', '%3D', '%2B', '%24', '%2C', '%2F', '%3F', '%23', '%5B', '%5D'];
+
+        return str_replace($search, $replace, $string);
+    }
+
+    /**
      * @param string $table
      * @param array $args
      *
@@ -81,41 +229,7 @@ class OData extends DBD
      */
     public function insertCustom(string $table, array $args): array
     {
-
-        /*
-        $insert = $this->metadata($table);
-
-        foreach ($insert as $key => &$option) {
-            // if we have defined such field
-            if (isset($data[$key])) {
-                // check options
-                if (array_keys($option) !== range(0, count($option) - 1)) { // associative
-                    // TODO: check value type
-                    $option = $data[$key];
-                } else {
-                    $option = array();
-                    $i = 1;
-                    foreach ($data[$key] as $row) {
-                        // TODO: check value type
-                        $option[] = $row;
-                        $i++;
-                    }
-                }
-            } else {
-                if (array_keys($option) !== range(0, count($option) - 1)) { // associative
-                    if ($option['Nullable']) {
-                        $option = null;
-                    } else {
-                        throw new Exception("$key can't be null");
-                    }
-                } else {
-                    $option = array();
-                }
-            }
-        }
-        */
-
-        $this->setupRequest($this->Config->getHost() . $table . '?$format=application/json;odata=nometadata&', "POST", json_encode($args, JSON_UNESCAPED_UNICODE));
+        $this->setupRequest($this->Config->getHost() . $table . '?$format=application/json&', self::METHOD_POST, json_encode($args, JSON_UNESCAPED_UNICODE));
         $this->_connect();
 
         return json_decode($this->body, true);
@@ -127,11 +241,11 @@ class OData extends DBD
      * @param null $content
      * @return $this
      */
-    protected function setupRequest($url, $method = "GET", $content = null): self
+    protected function setupRequest($url, $method = self::METHOD_GET, $content = null): self
     {
-        if (!is_resource($this->resourceLink)) {
+        if (!is_resource($this->resourceLink))
             $this->resourceLink = curl_init();
-        }
+
         curl_setopt($this->resourceLink, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_V4);
         curl_setopt($this->resourceLink, CURLOPT_URL, $this->urlEncode($url));
         curl_setopt($this->resourceLink, CURLOPT_USERAGENT, __CLASS__);
@@ -143,27 +257,27 @@ class OData extends DBD
             curl_setopt($this->resourceLink, CURLOPT_USERPWD, $this->Config->getUsername() . ":" . $this->Config->getPassword());
         }
         switch ($method) {
-            case "POST":
+            case self::METHOD_POST:
                 curl_setopt($this->resourceLink, CURLOPT_POST, true);
                 curl_setopt($this->resourceLink, CURLOPT_HTTPGET, false);
                 curl_setopt($this->resourceLink, CURLOPT_CUSTOMREQUEST, null);
                 break;
-            case "PATCH":
+            case self::METHOD_PATCH:
                 curl_setopt($this->resourceLink, CURLOPT_POST, false);
                 curl_setopt($this->resourceLink, CURLOPT_HTTPGET, false);
-                curl_setopt($this->resourceLink, CURLOPT_CUSTOMREQUEST, 'PATCH');
+                curl_setopt($this->resourceLink, CURLOPT_CUSTOMREQUEST, self::METHOD_PATCH);
                 break;
-            case "PUT":
+            case self::METHOD_PUT:
                 curl_setopt($this->resourceLink, CURLOPT_POST, false);
                 curl_setopt($this->resourceLink, CURLOPT_HTTPGET, false);
-                curl_setopt($this->resourceLink, CURLOPT_CUSTOMREQUEST, 'PUT');
+                curl_setopt($this->resourceLink, CURLOPT_CUSTOMREQUEST, self::METHOD_PUT);
                 break;
-            case "DELETE":
+            case self::METHOD_DELETE:
                 curl_setopt($this->resourceLink, CURLOPT_POST, false);
                 curl_setopt($this->resourceLink, CURLOPT_HTTPGET, false);
-                curl_setopt($this->resourceLink, CURLOPT_CUSTOMREQUEST, 'DELETE');
+                curl_setopt($this->resourceLink, CURLOPT_CUSTOMREQUEST, self::METHOD_DELETE);
                 break;
-            case "GET":
+            case self::METHOD_GET:
             default:
                 curl_setopt($this->resourceLink, CURLOPT_POST, false);
                 curl_setopt($this->resourceLink, CURLOPT_HTTPGET, true);
@@ -194,6 +308,7 @@ class OData extends DBD
 
     /**
      * @throws DBDException
+     * @inheritDoc
      */
     protected function _connect(): void
     {
@@ -201,19 +316,34 @@ class OData extends DBD
         if (!is_resource($this->resourceLink)) {
             $this->setupRequest($this->Config->getHost());
         }
-        // TODO: read keep-alive header and reset handler if not exist
+
         $response = curl_exec($this->resourceLink);
         $header_size = curl_getinfo($this->resourceLink, CURLINFO_HEADER_SIZE);
         $this->header = trim(substr($response, 0, $header_size));
         $this->body = preg_replace("/\xEF\xBB\xBF/", "", substr($response, $header_size));
         $this->httpCode = curl_getinfo($this->resourceLink, CURLINFO_HTTP_CODE);
 
-        if ($this->httpCode >= 200 && $this->httpCode < 300) {
-            // do nothing
-        } else {
-            $this->parseError();
+        if ($this->httpCode < 200 || $this->httpCode > 300) {
+            switch (Helper::getQueryType($this->query)) {
+                case CRUD::DELETE:
+                    switch ($this->httpCode) {
+                        // Entity not found, we will just return 0 affected rows()
+                        case 404:
+                            return;
+                        default:
+                            $this->parseError();
+                    }
+                    break;
+                case CRUD::CREATE:
+                case CRUD::UPDATE:
+                case CRUD::READ:
+                default:
+                    $this->parseError();
+            }
         }
-    } // TODO:
+    }
+
+    /*--------------------------------------------------------------*/
 
     /**
      * @throws DBDException
@@ -266,8 +396,6 @@ class OData extends DBD
     {
         return $this;
     }
-
-    /*--------------------------------------------------------------*/
 
     /**
      * @return $this
@@ -388,11 +516,6 @@ class OData extends DBD
         throw new DBDException("OData doesn't not support transactions");
     }
 
-    protected function _compileInsert(string $table, array $params, ?string $return = ""): string
-    {
-
-    }
-
     protected function _compileUpdate(string $table, array $params, string $where, ?string $return = ""): string
     {
 
@@ -482,23 +605,11 @@ class OData extends DBD
      * @param $statement
      * @return array|null
      * @throws DBDException
+     * @inheritDoc
      */
-    protected function _query($statement)
+    protected function _query($statement): ?array
     {
-        $this->initialAffectedRows = null;
-        $this->query = $statement;
-        $this->prepareRequestUrl();
-
-        // just initiate connect with prepared URL and HEADERS
-        $this->setupRequest($this->Config->getHost() . $this->requestUrl);
-        // and make request
-        $this->_connect();
-
-        // Will return NULL in case of failure
-        $this->result = json_decode($this->body, true);
-
-        // Count rows in advance
-        $this->_rows();
+        $this->processQuery($statement);
 
         return $this->result;
     }
@@ -544,11 +655,11 @@ class OData extends DBD
         $query = trim($query);
 
         // split whole query by special words
-        $pieces = preg_split('/(?=(SELECT|FROM|WHERE|ORDER BY|LIMIT|EXPAND|JOIN).+?)/u', $query);
+        $pieces = preg_split('/(?=(DELETE|SELECT|FROM|WHERE|ORDER BY|LIMIT|EXPAND|JOIN).+?)/u', $query);
         $struct = [];
 
         foreach ($pieces as $piece) {
-            preg_match('/(SELECT|FROM|WHERE|ORDER BY|LIMIT|EXPAND|JOIN)(.+)/u', $piece, $matches);
+            preg_match('/(DELETE|SELECT|FROM|WHERE|ORDER BY|LIMIT|EXPAND|JOIN)(.+)/u', $piece, $matches);
             if (count($matches)) {
                 $rule = strtoupper(trim($matches[1]));
                 if ($rule == 'JOIN')
@@ -558,24 +669,39 @@ class OData extends DBD
             }
         }
 
+        if (isset($struct['DELETE'])) {
+            if (!isset($struct['WHERE']))
+                throw new DBDException("WHERE not declared for OData entity");
+
+            $params = [];
+            foreach ($this->binds as $bind)
+                $params[] = sprintf("%s='%s'", $bind->column, $bind->value);
+
+            $this->requestUrl = sprintf("%s(%s)?\$format=application/json", $struct['FROM'], implode(",", $params));
+
+            return $this;
+        }
+
         // Start URL build
         $this->requestUrl = "{$struct['FROM']}?\$format=application/json&";
 
-        // Let's identify we want to select some columns with diff names
-        $fields = explode(",", $struct['SELECT']);
+        if (isset($struct['SELECT'])) {
+            // Let's identify we want to select some columns with diff names
+            $fields = explode(",", $struct['SELECT']);
 
-        if (count($fields) && $fields[0] != '*') {
-            $this->replacements = [];
+            if (count($fields) && $fields[0] != '*') {
+                $this->replacements = [];
 
-            foreach ($fields as &$field) {
-                $keywords = preg_split("/AS/i", $field);
-                if (isset($keywords[1])) {
-                    $this->replacements[trim($keywords[0])] = trim($keywords[1]);
-                    $field = trim($keywords[0]);
+                foreach ($fields as &$field) {
+                    $keywords = preg_split("/AS/i", $field);
+                    if (isset($keywords[1])) {
+                        $this->replacements[trim($keywords[0])] = trim($keywords[1]);
+                        $field = trim($keywords[0]);
+                    }
+                    $field = trim($field);
                 }
-                $field = trim($field);
+                $this->requestUrl .= '$select=' . implode(",", $fields) . '&';
             }
-            $this->requestUrl .= '$select=' . implode(",", $fields) . '&';
         }
 
         $expandEntities = [];
@@ -646,19 +772,6 @@ class OData extends DBD
     }
 
     /**
-     * @param $string
-     *
-     * @return string
-     */
-    protected function _escapeEncode($string): string {
-
-        $search = [ '!',    '*',   '\'',  '(',   ')',   ';',   ':',   '@',   '&',   '=',   '+',   '$',   ',',   '/',   '?',   '#',   '[',   ']' ];
-        $replace = [ '%21', '%2A', '%27', '%28', '%29', '%3B', '%3A', '%40', '%26', '%3D', '%2B', '%24', '%2C', '%2F', '%3F', '%23', '%5B', '%5D' ];
-
-        return str_replace($search, $replace, $string);
-    }
-
-    /**
      * @return int
      * @inheritDoc
      */
@@ -702,12 +815,56 @@ class OData extends DBD
     }
 
     /**
-     * @param mixed $string
-     * @return string
-     * @inheritDoc
+     * @param $statement
+     * @param bool $doUrlPreparation
+     * @throws DBDException
      */
-    protected function _escape($string): string
+    private function processQuery($statement, $doUrlPreparation = true): void
     {
-        return sprintf("'%s'", $this->_escapeEncode($string));
+        $this->initialAffectedRows = null;
+        $this->query = $statement;
+
+        if ($doUrlPreparation)
+            $this->prepareRequestUrl();
+
+        $method = null;
+        switch (Helper::getQueryType($this->query)) {
+            case CRUD::UPDATE:
+                $method = self::METHOD_PATCH;
+                break;
+            case CRUD::DELETE:
+                $method = self::METHOD_DELETE;
+                break;
+            case CRUD::CREATE:
+                $method = self::METHOD_POST;
+                break;
+            default:
+                $method = self::METHOD_GET;
+        }
+
+        // just initiate connect with prepared URL and HEADERS
+        $this->setupRequest($this->Config->getHost() . $this->requestUrl, $method);
+        // and make request
+        $this->_connect();
+
+        switch ($method) {
+            case self::METHOD_DELETE:
+                $this->result = [];
+                switch ($this->httpCode) {
+                    case 204:
+                        $this->initialAffectedRows = 1;
+                        break;
+                    case 404:
+                        $this->initialAffectedRows = 0;
+                        break;
+                }
+                break;
+            default:
+                // Will return NULL in case of failure
+                $this->result = json_decode($this->body, true);
+                // Count rows in advance
+                $this->_rows();
+
+        }
     }
 }

@@ -1,27 +1,13 @@
 <?php
-/*************************************************************************************
- *   MIT License                                                                     *
- *                                                                                   *
- *   Copyright (C) 2009-2019 by Nurlan Mukhanov <nurike@gmail.com>                   *
- *                                                                                   *
- *   Permission is hereby granted, free of charge, to any person obtaining a copy    *
- *   of this software and associated documentation files (the "Software"), to deal   *
- *   in the Software without restriction, including without limitation the rights    *
- *   to use, copy, modify, merge, publish, distribute, sublicense, and/or sell       *
- *   copies of the Software, and to permit persons to whom the Software is           *
- *   furnished to do so, subject to the following conditions:                        *
- *                                                                                   *
- *   The above copyright notice and this permission notice shall be included in all  *
- *   copies or substantial portions of the Software.                                 *
- *                                                                                   *
- *   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR      *
- *   IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,        *
- *   FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT. IN NO EVENT SHALL THE    *
- *   AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER          *
- *   LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,   *
- *   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE   *
- *   SOFTWARE.                                                                       *
- ************************************************************************************/
+/**
+ * Helper
+ *
+ * @author       Nurlan Mukhanov <nurike@gmail.com>
+ * @copyright    2020 Nurlan Mukhanov
+ * @license      https://en.wikipedia.org/wiki/MIT_License MIT License
+ * @link         https://github.com/Falseclock/dbd-php
+ * @noinspection PhpComposerExtensionStubsInspection
+ */
 
 namespace DBD\Base;
 
@@ -298,4 +284,27 @@ final class Helper
 			$value = ($value) ? 'TRUE' : 'FALSE';
 		}
 	}
+
+    /**
+     * @param $query
+     * @return string
+     * @throws DBDException
+     */
+	public static function getQueryType($query): string
+    {
+	    preg_match('/^(\s*?--.*\n)?\s*(SELECT|UPDATE|DELETE|INSERT)\s+/',$query, $matches);
+
+	    switch (strtoupper(trim($matches[2]))) {
+            case CRUD::CREATE:
+                return CRUD::CREATE;
+            case CRUD::READ:
+                return CRUD::READ;
+            case CRUD::UPDATE:
+                return CRUD::UPDATE;
+            case CRUD::DELETE:
+                return CRUD::DELETE;
+            default:
+                throw new DBDException("non SQL query: {$query}");
+        }
+    }
 }

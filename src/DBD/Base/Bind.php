@@ -23,19 +23,23 @@ class Bind
     public $value;
     /** @var string */
     public $type;
+    /** @var string */
+    public $column;
 
     /**
      * Bind constructor.
      * @param string $name
      * @param mixed $value
-     * @param string $type
+     * @param string|null $type
+     * @param string|null $originalColumn
      * @throws DBDException
      */
-    public function __construct(string $name, $value, string $type)
+    public function __construct(string $name, $value, ?string $type = null, ?string $originalColumn = null)
     {
         $this->name = $name;
         $this->value = $value;
         $this->type = $type;
+        $this->column = $originalColumn;
 
         switch ($this->type) {
             case Primitive::Int16:

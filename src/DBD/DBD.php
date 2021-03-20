@@ -16,6 +16,7 @@ use DateInterval;
 use DBD\Base\Bind;
 use DBD\Base\CacheHolder;
 use DBD\Base\Config;
+use DBD\Base\CRUD;
 use DBD\Base\Debug;
 use DBD\Base\Helper;
 use DBD\Base\Options;
@@ -35,7 +36,7 @@ use Throwable;
  *
  * @package DBD
  */
-abstract class DBD
+abstract class DBD implements CRUD
 {
     const CSV_EXTENSION = "csv";
     const STORAGE_CACHE = "Cache";
@@ -60,12 +61,12 @@ abstract class DBD
     protected $CacheHolder = null;
     /** @var string $storage This param is used for identifying where data taken from */
     protected $storage;
+    /** @var Bind[] $binds */
+    protected $binds = [];
     /** @var mixed $fetch */
     private $fetch = self::UNDEFINED;
     /** @var bool $inTransaction Stores current transaction state */
     private $inTransaction = false;
-    /** @var Bind[] $binds */
-    private $binds = [];
 
     /**
      * DBD constructor.
@@ -605,13 +606,14 @@ abstract class DBD
     /**
      * @param string $paramName
      * @param mixed $value
-     * @param string $dataType
+     * @param string|null $dataType
+     * @param string|null $column
      * @return $this
      * @throws DBDException
      */
-    public function bind(string $paramName, $value, string $dataType = Primitive::String): DBD
+    public function bind(string $paramName, $value, ?string $dataType = Primitive::String, ?string $column = null): DBD
     {
-        $this->binds[] = new Bind($paramName, $value, $dataType);
+        $this->binds[] = new Bind($paramName, $value, $dataType, $column);
         return $this;
     }
 
