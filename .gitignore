@@ -5,3 +5,4 @@ vendor/
 /.run/
 /.phpunit.result.cache
 ./run/
+/phpunit.phar
