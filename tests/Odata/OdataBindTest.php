@@ -23,7 +23,8 @@ class OdataBindTest extends OdataTest
      * @noinspection SqlResolve
      * @noinspection SqlRedundantOrderingDirection
      */
-    public function testSimpleBind() {
+    public function testSimpleBind()
+    {
         $sth = $this->db->prepare("
             SELECT 
                    * 
@@ -55,7 +56,8 @@ class OdataBindTest extends OdataTest
      * @noinspection SqlResolve
      * @noinspection SqlRedundantOrderingDirection
      */
-    public function testMultiSpecialCharsBind() {
+    public function testMultiSpecialCharsBind()
+    {
         $sth = $this->db->prepare("
             SELECT 
                    * 
@@ -77,5 +79,22 @@ class OdataBindTest extends OdataTest
         $rows = $sth->fetchRowSet();
 
         self::assertIsArray($rows);
+    }
+
+    /**
+     * @noinspection SqlResolve
+     * @noinspection SqlRedundantOrderingDirection
+     * @throws DBDException
+     */
+    public function testOnePlaceholder()
+    {
+        $sth = $this->db->prepare("
+            SELECT Ref_Key FROM Catalog_Организации WHERE ИдентификационныйНомер = ?
+        ");
+        $sth->execute('130440026330');
+
+        $key = $sth->fetch();
+
+        self::assertNotNull($key);
     }
 }

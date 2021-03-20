@@ -320,7 +320,7 @@ abstract class DBD
 
             Debug::addQueries(
                 new Query(
-                    Helper::cleanSql($this->getPreparedQuery($executeArguments, true)),
+                    Helper::cleanSql($this->Options->isPrepareExecute() ? $this->getPreparedQuery($executeArguments, true) : $preparedQuery),
                     $cost,
                     $caller[0],
                     Helper::debugMark($cost),
