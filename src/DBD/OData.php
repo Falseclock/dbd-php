@@ -661,7 +661,6 @@ class OData extends DBD
     /**
      * @return int
      * @inheritDoc
-     * @todo Проверить как реагарует постгрес на количество строк после фетчей
      */
     protected function _rows(): int
     {
