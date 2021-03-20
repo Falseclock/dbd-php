@@ -1,6 +1,5 @@
 ##
-## Database driver for PHP (beta version)
-*(not native English speaker, any help appreciated)*
+## PostgreSQL Database driver for PHP
 
 #### Why not standard PDO?
 Actually, development of this library was started before PHP 5.0. Being mostly Perl developer and
@@ -8,14 +7,14 @@ inspired by DBI::DBD library I tried to develop the same functionality for PHP.
 
 #### Basic feature list:
 
-* Much comfortable and easy than PDO
+* Much comfortable and easier than PDO
 * SQL injections protection
 * DBD/DBI perl-like library
 * Easy caching integration
 * Better error handling
 * Measurements and debugging
 * Extendable by other drivers (only PostgreSQL fully ready)
-* Automatic conversion of records to objects with dbd-php-entity library
+* Automatic conversion of records to object with dbd-php-entity library
 
 ## Getting instance
 

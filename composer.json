@@ -1,8 +1,8 @@
 {
-  "name":        "falseclock/dbd-php",
-  "type":        "library",
+  "name": "falseclock/dbd-php",
+  "type": "library",
   "description": "Database driver for PHP (PostgreSQL, MySQL, MSSQL, OData, YellowERP, 1С)",
-  "keywords":    [
+  "keywords": [
     "dbd",
     "dbi",
     "sql",
@@ -19,31 +19,40 @@
     "YellowERP",
     "Yellow ERP"
   ],
-  "license":     "MIT",
-  "authors":     [
+  "license": "MIT",
+  "authors": [
     {
-      "name":  "Nurlan Mukhanov",
+      "name": "Nurlan Mukhanov",
       "email": "nurike@gmail.com"
     }
   ],
-  "require":     {
-    "php":                       "^7.1",
-    "psr/simple-cache":          "*",
-    "openlss/lib-array2xml":     "^1",
-    "falseclock/dbd-php-common": "dev-master",
-    "falseclock/dbd-php-entity": "dev-master"
+  "require": {
+    "php": "^7.1|^8.0",
+    "psr/simple-cache": "^1.0.1",
+    "openlss/lib-array2xml": "^1.0.0",
+    "falseclock/dbd-php-entity": "^2.3.1",
+    "ext-json": "*"
   },
   "require-dev": {
-    "ext-pgsql":  "*"
+    "ext-pgsql": "*",
+    "ext-memcache": "*",
+    "phpunit/phpunit": "^9.5.0",
+    "php-coveralls/php-coveralls": "^2.4.3",
+    "ext-simplexml": "*",
+    "ext-dom": "*"
   },
-  "suggest":     {
+  "suggest": {
     "ext-memcache": "Required to support Memcached",
-    "ext-pgsql":    "Required to support PostgreSQL database",
-    "ext-sqlsrv":   "Required to support MSSQL database"
+    "ext-pgsql": "Required to support PostgreSQL database"
   },
-  "autoload":    {
+  "autoload": {
     "psr-4": {
-      "DBD\\": "src/"
+      "DBD\\": "src/DBD"
+    }
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "DBD\\Tests\\": "tests/"
     }
   }
 }
