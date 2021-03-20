@@ -1,18 +1,16 @@
 <?php
 /**
- * @note         <Description>
- * @copyright    Copyright © Real Time Engineering, LLP - All Rights Reserved
- * @license      Proprietary and confidential
- * Unauthorized copying or using of this file, via any medium is strictly prohibited.
- * Content can not be copied and/or distributed without the express permission of Real Time Engineering, LLP
- * @author       Written by Nurlan Mukhanov <nmukhanov@mp.kz>, март 2021
+ * OdataUnsupportedTest
+ *
+ * @author    Nurlan Mukhanov <nurike@gmail.com>
+ * @copyright 2020 Nurlan Mukhanov
+ * @license   https://en.wikipedia.org/wiki/MIT_License MIT License
+ * @link      https://github.com/Falseclock/dbd-php
  */
 
 declare(strict_types=1);
 
-
 namespace DBD\Tests\Odata;
-
 
 use DBD\Common\DBDException;
 
@@ -20,6 +18,7 @@ class OdataUnsupportedTest extends OdataTest
 {
     /**
      * @throws DBDException
+     * @covers \DBD\Odata::_begin
      */
     public function testBegin()
     {

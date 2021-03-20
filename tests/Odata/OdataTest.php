@@ -10,69 +10,62 @@
 
 declare(strict_types=1);
 
-namespace DBD\Tests;
+namespace DBD\Tests\OData;
 
 use DBD\Base\Config;
 use DBD\Base\Options;
+use DBD\Cache\MemCache;
 use DBD\Common\DBDException;
-use DBD\Pg;
-use DBD\Utils\OData\Metadata;
-use DBD\YellowERP;
-use DOMDocument;
-use Exception;
-use LSS\XML2Array;
+use DBD\OData;
 use PHPUnit\Framework\TestCase;
-use SimpleXMLElement;
-use XMLReader;
 
-class OdataTest extends TestCase
+abstract class OdataTest extends TestCase
 {
     /** @var Options */
-    private $options;
+    protected $options;
     /** @var Config */
-    private $config;
-    /** @var Pg */
-    private $db;
+    protected $config;
+    /** @var OData */
+    protected $db;
+    /**  @var MemCache */
+    protected $memcache;
+
+    /**
+     * @param int $length
+     * @return false|string
+     */
+    protected function randomCacheString($length = 10): string {
+        return substr(str_shuffle(str_repeat($x='0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ', intval(ceil($length/strlen($x)) ) )),1,$length);
+    }
 
     /**
      * OdataTest constructor.
      * @param string|null $name
      * @param array $data
      * @param string $dataName
-     * @throws DBDException
      */
     public function __construct(?string $name = null, array $data = [], $dataName = '')
     {
         parent::__construct($name, $data, $dataName);
 
-        $this->config = new Config("", 111, "database", "user", "password");
+        $host = getenv('ODHOST') ?: 'https://url/odata/standard.odata/';
+        $user = getenv('ODUSER') ?: 'User';
+        $password = getenv('ODPASSWORD') ?: 'password';
+
+        $this->memcache = new MemCache([[MemCache::HOST => '127.0.0.1', MemCache::PORT => 11211]]);
+        $this->memcache->connect();
+
+        $this->config = new Config($host, null, null, $user, $password);
+        $this->config->setCacheDriver($this->memcache);
 
         $this->options = new Options();
-        $this->db = new YellowERP($this->config, $this->options);
-        $this->db->connect();
+        $this->db = new OData($this->config, $this->options);
     }
-
-    /**
-     * @throws Exception
-     */
-    public function testMetadataV3()
-    {
-        $fileContents= file_get_contents("./tests/fixtures/metadata-v4.xml");
-
-        $xml = simplexml_load_string($fileContents);
-        $body = $xml->xpath("//edmx:Edmx/edmx:DataServices/*");
-        $schema = json_decode(json_encode($body[0]));
-
-        $schema = new Metadata($schema);
-
-        return;
-    }
-
 
     /**
      * @throws DBDException
      */
-    public function testJoin()
+    public function notestJoin()
     {
         $sth = $this->db->prepare("
             SELECT
