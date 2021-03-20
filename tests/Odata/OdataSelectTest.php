@@ -237,9 +237,9 @@ class OdataSelectTest extends OdataTest
                  Document_ПлатежноеПоручениеВходящее 
             WHERE
                 DeletionMark = false and
-                substringof('?',Комментарий) = false and
-                substringof('?',Комментарий) = false and
-                substringof('?',Комментарий) = false
+                substringof(?,Комментарий) = false and
+                substringof(?,Комментарий) = false and
+                substringof(?,Комментарий) = false
             
             ORDER BY 
                 Date desc, 
@@ -248,6 +248,12 @@ class OdataSelectTest extends OdataTest
         ");
         $sth->execute('?', '$', '&');
 
+        $rows = $sth->fetchRowSet();
+
+        self::assertCount(10, $rows);
         self::assertGreaterThan(0, $sth->rows());
+        self::assertSame(10, $sth->rows());
     }
 }
+
+// TODO: test fetchRowSet with key

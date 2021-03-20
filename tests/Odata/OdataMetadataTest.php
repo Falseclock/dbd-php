@@ -20,7 +20,7 @@ class OdataMetadataTest extends OdataTest
     /**
      * @throws Exception
      */
-    public function testMetadataV3()
+    public function testMetadataV4()
     {
         $fileContents = file_get_contents("./tests/fixtures/metadata-v4.xml");
 
@@ -30,6 +30,6 @@ class OdataMetadataTest extends OdataTest
 
         $schema = new Metadata($schema);
 
-        return;
+        self::assertNotNull($schema);
     }
 }

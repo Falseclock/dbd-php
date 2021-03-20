@@ -259,7 +259,7 @@ class Pg extends DBD
      * @return mixed|null
      * @inheritDoc
      */
-    protected function _execute($uniqueName, $arguments)
+    protected function _executeNamed($uniqueName, $arguments)
     {
         try {
             $return = pg_execute($this->resourceLink, (string)$uniqueName, $arguments);
@@ -297,13 +297,13 @@ class Pg extends DBD
      * @param $statement
      *
      * @return bool|null
-     * @see MSSQL::_prepare
-     * @see MySQL::_prepare
-     * @see OData::_prepare
-     * @see Pg::_prepare
+     * @see MSSQL::_prepareNamed
+     * @see MySQL::_prepareNamed
+     * @see OData::_prepareNamed
+     * @see Pg::_prepareNamed
      * @inheritDoc
      */
-    protected function _prepare(string $uniqueName, string $statement): bool
+    protected function _prepareNamed(string $uniqueName, string $statement): bool
     {
         $return = false;
         try {
@@ -349,6 +349,12 @@ class Pg extends DBD
         }
     }
 
+    /**
+     * @param $name
+     * @param $value
+     * @param $subject
+     * @return string|string[]|null
+     */
     private function _replaceBind($name, $value, $subject)
     {
         return preg_replace('~' . $name . '(::\w+)?(\s|\t|]|\))~', "{$value}$1$2", $subject);

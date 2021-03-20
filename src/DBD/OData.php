@@ -18,6 +18,7 @@ use DBD\Base\Helper;
 use DBD\Common\DBDException;
 use DBD\Entity\Common\EntityException;
 use DBD\Entity\Entity;
+use DBD\Entity\Primitive;
 use DBD\Utils\OData\Metadata;
 
 class OData extends DBD
@@ -314,13 +315,6 @@ class OData extends DBD
         return $this->metadata;
     }
 
-    public function setDataKey($dataKey)
-    {
-        $this->dataKey = $dataKey;
-
-        return $this;
-    }
-
     public function update(): DBD
     {
         $binds = 0;
@@ -364,33 +358,6 @@ class OData extends DBD
 
         //return json_decode($this->body, true);
         return $this;
-    }
-
-    protected function doReplacements($data)
-    {
-        if (isset($this->replacements) && count($this->replacements) && $data != null) {
-            foreach ($data as &$value) {
-                foreach ($value as $key => $val) {
-                    if (array_key_exists($key, $this->replacements)) {
-                        $value[$this->replacements[$key]] = $val;
-                        unset($value[$key]);
-                    }
-                }
-            }
-        }
-
-        return $data;
-    }
-
-    protected function findComplexTypeByName($array, $name)
-    {
-        foreach ($array['edmx:Edmx']['edmx:DataServices']['Schema']['ComplexType'] as $ComplexType) {
-            if ($ComplexType['@attributes']['Name'] == $name) {
-                return $ComplexType;
-            }
-        }
-
-        return null;
     }
 
     /**
@@ -443,24 +410,16 @@ class OData extends DBD
 
     /**
      * @inheritDoc
+     * @throws DBDException
      */
     protected function _dump(string $preparedQuery, string $fileName, string $delimiter, string $nullString, bool $showHeader, string $tmpPath): string
     {
-
+        throw new DBDException("OData doesn't not data dumping");
     }
 
     protected function _errorMessage(): string
     {
 
-    }
-
-    /**
-     * @param mixed $string
-     * @return string
-     */
-    protected function _escape($string): string
-    {
-        return urlencode($string);
     }
 
     /**
@@ -471,160 +430,9 @@ class OData extends DBD
      * @throws DBDException
      * @inheritDoc
      */
-    protected function _execute($uniqueName, $arguments)
+    protected function _executeNamed($uniqueName, $arguments)
     {
-        $this->prepareRequestUrl(func_get_args());
-
-        // just initiate connect with prepared URL and HEADERS
-        $this->setupRequest($this->Config->getHost() . $this->requestUrl);
-        // and make request
-        $this->_connect();
-
-        // Will return NULL in case of failure
-        return json_decode($this->body, true);
-
-    }
-
-    /**
-     * @param $ARGS
-     * @return $this
-     * @throws DBDException
-     */
-    protected function prepareRequestUrl(array $ARGS = []): self
-    {
-        // Check and prepare args
-        $binds = substr_count($this->query, $this->Options->getPlaceHolder());
-        $args = Helper::parseArgs($ARGS);
-        $numberOfArguments = count($args);
-
-        if ($binds != $numberOfArguments) {
-            throw new DBDException("Query failed: called with $numberOfArguments bind variables when $binds are needed", $this->query);
-        }
-
-        // Make url and put arguments
-        //return $this->buildUrlFromQuery($this->query,$args);
-        //protected function buildUrlFromQuery($query,$args)
-
-        // Replace placeholders with values
-        if (count($args)) {
-            $request = str_split($this->query);
-
-            foreach ($request as $ind => $str) {
-                if ($str == $this->Options->getPlaceHolder()) {
-                    $request[$ind] = "'" . array_shift($args) . "'";
-                }
-            }
-            $this->query = implode("", $request);
-        }
-
-        // keep initial quert unchanged
-        $query = $this->query;
-
-        // make one string for REGEXP
-        $query = preg_replace('/\t/', " ", $query);
-        $query = preg_replace('/\r/', "", $query);
-        $query = preg_replace('/\n/', " ", $query);
-        $query = preg_replace('/\s+/', " ", $query);
-        $query = trim($query);
-
-        // split whole query by special words
-        $pieces = preg_split('/(?=(SELECT|FROM|WHERE|ORDER BY|LIMIT|EXPAND|JOIN).+?)/u', $query);
-        $struct = [];
-
-        foreach ($pieces as $piece) {
-            preg_match('/(SELECT|FROM|WHERE|ORDER BY|LIMIT|EXPAND|JOIN)(.+)/u', $piece, $matches);
-            if (count($matches)) {
-                $rule = strtoupper(trim($matches[1]));
-                if ($rule == 'JOIN')
-                    $struct[$rule][] = trim($matches[2]);
-                else
-                    $struct[$rule] = trim($matches[2]);
-            }
-        }
-
-        // Start URL build
-        $this->requestUrl = "{$struct['FROM']}?\$format=application/json;odata=nometadata&";
-
-        // Let's identify we want to select some columns with diff names
-        $fields = explode(",", $struct['SELECT']);
-
-        if (count($fields) && $fields[0] != '*') {
-            $this->replacements = [];
-
-            foreach ($fields as &$field) {
-                $keywords = preg_split("/AS/i", $field);
-                if (isset($keywords[1])) {
-                    $this->replacements[trim($keywords[0])] = trim($keywords[1]);
-                    $field = trim($keywords[0]);
-                }
-                $field = trim($field);
-            }
-            $this->requestUrl .= '$select=' . implode(",", $fields) . '&';
-        }
-
-        if (isset($struct['EXPAND'])) {
-            $this->requestUrl .= '$expand=' . $struct['EXPAND'] . '&';
-        }
-
-        if (isset($struct['JOIN'])) {
-            $expands = [];
-            foreach ($struct['JOIN'] as $expand) {
-                preg_match('/(.+?)\s/', $expand, $matches);
-                $expands[] = $matches[1];
-            }
-            $this->requestUrl .= '$expand=' . implode(',', $expands) . '&';
-        }
-
-        // TODO: change AND and OR case
-        if (isset($struct['WHERE'])) {
-
-            $where = $struct['WHERE'];
-            $paramId = 1;
-            $params = [];
-            preg_replace_callback("('.+?')",
-                function ($matches) use (&$where, &$paramId, &$params) {
-                    foreach ($matches as $match) {
-                        $params[sprintf(":param%d", $paramId)] = urlencode($match);
-                        $position = strpos($where, $match);
-
-                        if ($position !== false)
-                            $where = substr_replace($where, sprintf(":param%d", $paramId), $position, strlen($match));
-
-                        $paramId++;
-                    }
-                },
-                $where
-            );
-
-            $where = str_replace(['<>', '>=', '<=', '>', '<', '='], ['ne', 'ge', 'le', 'gt', 'lt', 'eq'], $where);
-            $where = str_replace(array_keys($params), array_values($params), $where);
-
-            $this->requestUrl .= '$filter=' . $where . '&';
-        }
-
-        if (isset($struct['ORDER BY'])) {
-
-            $struct['ORDER BY'] = implode(",",
-                array_map(function ($order) {
-                    return preg_replace_callback("/(\s+(asc|desc)\s*)$/i",
-                        function ($matches) {
-                            return strtolower($matches[1]);
-                        },
-                        $order
-                    );
-                },
-                    explode(",", $struct['ORDER BY'])
-                )
-            );
-
-            $this->requestUrl .= '$orderby=' . $struct['ORDER BY'] . '&';
-        }
-
-        if (isset($struct['LIMIT'])) {
-            $this->requestUrl .= '$top=' . $struct['LIMIT'] . '&';
-        }
-
-        return $this;
+        throw new DBDException("OData doesn't not support named query execution");
     }
 
     /**
@@ -661,24 +469,23 @@ class OData extends DBD
      * @param $uniqueName
      * @param $statement
      *
-     * @return mixed
-     * @see MSSQL::_prepare
-     * @see MySQL::_prepare
-     * @see OData::_prepare
-     * @see Pg::_prepare
+     * @inheritDoc
+     * @return bool
+     * @throws DBDException
      */
-    protected function _prepare(string $uniqueName, string $statement): bool
+    protected function _prepareNamed(string $uniqueName, string $statement): bool
     {
-        // TODO: Implement _prepare() method.
+        throw new DBDException("OData doesn't not support named prepared queries");
     }
 
     /**
      * @param $statement
-     * @return mixed|null
+     * @return array|null
      * @throws DBDException
      */
     protected function _query($statement)
     {
+        $this->initialAffectedRows = null;
         $this->query = $statement;
         $this->prepareRequestUrl();
 
@@ -688,16 +495,163 @@ class OData extends DBD
         $this->_connect();
 
         // Will return NULL in case of failure
-        return json_decode($this->body, true);
+        $this->result = json_decode($this->body, true);
+
+        // Count rows in advance
+        $this->_rows();
+
+        return $this->result;
     }
 
     /**
-     * @return bool
+     * @param $ARGS
+     * @return $this
      * @throws DBDException
      */
-    protected function _rollback(): bool
+    protected function prepareRequestUrl(array $ARGS = []): self
     {
-        throw new DBDException("OData doesn't not support transactions");
+        // Check and prepare args
+        $binds = substr_count($this->query, $this->Options->getPlaceHolder());
+        $args = Helper::parseArgs($ARGS);
+        $numberOfArguments = count($args);
+
+        if ($binds != $numberOfArguments)
+            throw new DBDException("Query failed: called with $numberOfArguments bind variables when $binds are needed", $this->query);
+
+        // Make url and put arguments
+        //return $this->buildUrlFromQuery($this->query,$args);
+        //protected function buildUrlFromQuery($query,$args)
+
+        // Replace placeholders with values
+        if (count($args)) {
+            $request = str_split($this->query);
+
+            foreach ($request as $ind => $str) {
+                if ($str == $this->Options->getPlaceHolder())
+                    $request[$ind] = "'" . array_shift($args) . "'";
+            }
+            $this->query = implode("", $request);
+        }
+
+        // keep initial quert unchanged
+        $query = $this->query;
+
+        // make one string for REGEXP
+        $query = preg_replace('/\t/', " ", $query);
+        $query = preg_replace('/\r/', "", $query);
+        $query = preg_replace('/\n/', " ", $query);
+        $query = preg_replace('/\s+/', " ", $query);
+        $query = trim($query);
+
+        // split whole query by special words
+        $pieces = preg_split('/(?=(SELECT|FROM|WHERE|ORDER BY|LIMIT|EXPAND|JOIN).+?)/u', $query);
+        $struct = [];
+
+        foreach ($pieces as $piece) {
+            preg_match('/(SELECT|FROM|WHERE|ORDER BY|LIMIT|EXPAND|JOIN)(.+)/u', $piece, $matches);
+            if (count($matches)) {
+                $rule = strtoupper(trim($matches[1]));
+                if ($rule == 'JOIN')
+                    $struct[$rule][] = trim($matches[2]);
+                else
+                    $struct[$rule] = trim($matches[2]);
+            }
+        }
+
+        // Start URL build
+        $this->requestUrl = "{$struct['FROM']}?\$format=application/json&";
+
+        // Let's identify we want to select some columns with diff names
+        $fields = explode(",", $struct['SELECT']);
+
+        if (count($fields) && $fields[0] != '*') {
+            $this->replacements = [];
+
+            foreach ($fields as &$field) {
+                $keywords = preg_split("/AS/i", $field);
+                if (isset($keywords[1])) {
+                    $this->replacements[trim($keywords[0])] = trim($keywords[1]);
+                    $field = trim($keywords[0]);
+                }
+                $field = trim($field);
+            }
+            $this->requestUrl .= '$select=' . implode(",", $fields) . '&';
+        }
+
+        $expandEntities = [];
+        if (isset($struct['EXPAND'])) {
+            $expandEntities[] = $struct['EXPAND'];
+        }
+
+        if (isset($struct['JOIN'])) {
+            foreach ($struct['JOIN'] as $expand) {
+                preg_match('/(.+?)\s/', $expand, $matches);
+                $expandEntities[] = $matches[1];
+            }
+        }
+
+        if (count($expandEntities) > 0) {
+            $this->requestUrl .= '$expand=' . implode(',', $expandEntities) . '&';
+        }
+
+        // TODO: change AND and OR case
+        if (isset($struct['WHERE'])) {
+
+            $where = $struct['WHERE'];
+            $paramId = 1;
+            $params = [];
+            preg_replace_callback("('.+?')",
+                function ($matches) use (&$where, &$paramId, &$params) {
+                    foreach ($matches as $match) {
+                        $params[sprintf(":param%d", $paramId)] = $this->_urlEncode($match);
+                        $position = strpos($where, $match);
+
+                        if ($position !== false)
+                            $where = substr_replace($where, sprintf(":param%d", $paramId), $position, strlen($match));
+
+                        $paramId++;
+                    }
+                },
+                $where
+            );
+
+            $where = str_replace(['<>', '>=', '<=', '>', '<', '='], ['ne', 'ge', 'le', 'gt', 'lt', 'eq'], $where);
+            $where = str_replace(array_keys($params), array_values($params), $where);
+
+            $this->requestUrl .= '$filter=' . $where . '&';
+        }
+
+        if (isset($struct['ORDER BY'])) {
+
+            $struct['ORDER BY'] = implode(",",
+                array_map(function ($order) {
+                    return preg_replace_callback("/(\s+(asc|desc)\s*)$/i",
+                        function ($matches) {
+                            return strtolower($matches[1]);
+                        },
+                        $order
+                    );
+                },
+                    explode(",", $struct['ORDER BY'])
+                )
+            );
+
+            $this->requestUrl .= '$orderby=' . $struct['ORDER BY'] . '&';
+        }
+
+        if (isset($struct['LIMIT']))
+            $this->requestUrl .= '$top=' . $struct['LIMIT'] . '&';
+
+        return $this;
+    }
+
+    /**
+     * @param $string
+     * @return string
+     */
+    protected function _urlEncode($string): string
+    {
+        return urlencode($string);
     }
 
     /**
@@ -718,8 +672,39 @@ class OData extends DBD
         return $this->initialAffectedRows;
     }
 
+    /**
+     * @return bool
+     * @throws DBDException
+     */
+    protected function _rollback(): bool
+    {
+        throw new DBDException("OData doesn't not support transactions");
+    }
+
+    /**
+     * @param string $preparedQuery
+     * @param Bind $bind
+     */
     protected function replaceBind(string &$preparedQuery, Bind $bind): void
     {
-        // TODO: Implement replaceBind() method.
+        switch ($bind->type) {
+            case Primitive::Guid:
+                $preparedQuery = str_replace($bind->name, sprintf("%s'%s'", strtolower($bind->type), $bind->value), $preparedQuery);
+                break;
+            case Primitive::String:
+            default:
+                $preparedQuery = str_replace($bind->name, sprintf("'%s'", $bind->value), $preparedQuery);
+                break;
+        }
+    }
+
+    /**
+     * @param mixed $string
+     * @return string
+     * @inheritDoc
+     */
+    protected function _escape($string): string
+    {
+        return sprintf("'%s'", $this->_urlEncode($string));
     }
 }

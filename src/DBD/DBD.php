@@ -278,10 +278,10 @@ abstract class DBD
                 if (!isset(self::$preparedStatements[$uniqueName])) {
                     self::$preparedStatements[$uniqueName] = $preparedQuery;
 
-                    if (!$this->_prepare((string)$uniqueName, $preparedQuery))
+                    if (!$this->_prepareNamed((string)$uniqueName, $preparedQuery))
                         throw new DBDException ($this->_errorMessage(), $preparedQuery);
                 }
-                $this->result = $this->_execute($uniqueName, Helper::parseArgs($executeArguments));
+                $this->result = $this->_executeNamed($uniqueName, Helper::parseArgs($executeArguments));
                 self::$executedStatements[] = $preparedQuery;
             } else {
                 // Execute query to the database
@@ -424,16 +424,18 @@ abstract class DBD
     abstract protected function _connect(): void;
 
     /**
+     * Prepare named query
+     *
      * @param string $uniqueName
      * @param string $statement
      *
      * @return bool|null
-     * @see MSSQL::_prepare
-     * @see MySQL::_prepare
-     * @see OData::_prepare
-     * @see Pg::_prepare
+     * @see MSSQL::_prepareNamed
+     * @see MySQL::_prepareNamed
+     * @see OData::_prepareNamed
+     * @see Pg::_prepareNamed
      */
-    abstract protected function _prepare(string $uniqueName, string $statement): ?bool;
+    abstract protected function _prepareNamed(string $uniqueName, string $statement): ?bool;
 
     /**
      * @return string
@@ -445,17 +447,18 @@ abstract class DBD
     abstract protected function _errorMessage(): string;
 
     /**
+     * Executes prepared named question
      * @param $uniqueName
      * @param $arguments
      *
      * @return mixed
-     * @see MSSQL::_execute()
-     * @see MySQL::_execute()
-     * @see OData::_execute()
-     * @see Pg::_execute()
+     * @see MSSQL::_executeNamed()
+     * @see MySQL::_executeNamed()
+     * @see OData::_executeNamed()
+     * @see Pg::_executeNamed()
      * @see DBD::execute()
      */
-    abstract protected function _execute($uniqueName, $arguments);
+    abstract protected function _executeNamed($uniqueName, $arguments);
 
     /**
      * Executes the query on the specified database connection.
@@ -463,11 +466,11 @@ abstract class DBD
      * @param $statement
      *
      * @return mixed|null
+     * @see Pg::_query
      * @see MSSQL::_query
      * @see MySQL::_query
      * @see OData::_query
      * @see execute
-     * @see Pg::_query
      */
     abstract protected function _query($statement);
 

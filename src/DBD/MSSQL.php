@@ -156,12 +156,12 @@ class MSSQL extends DBD
      * @param $arguments
      *
      * @return mixed
-     * @see MSSQL::_execute
-     * @see MySQL::_execute
-     * @see OData::_execute
-     * @see Pg::_execute
+     * @see MSSQL::_executeNamed
+     * @see MySQL::_executeNamed
+     * @see OData::_executeNamed
+     * @see Pg::_executeNamed
      */
-    protected function _execute($uniqueName, $arguments)
+    protected function _executeNamed($uniqueName, $arguments)
     {
         // TODO: Implement _execute() method.
     }
@@ -200,12 +200,12 @@ class MSSQL extends DBD
      * @param $statement
      *
      * @return mixed
-     * @see MSSQL::_prepare
-     * @see MySQL::_prepare
-     * @see OData::_prepare
-     * @see Pg::_prepare
+     * @see MSSQL::_prepareNamed
+     * @see MySQL::_prepareNamed
+     * @see OData::_prepareNamed
+     * @see Pg::_prepareNamed
      */
-    protected function _prepare(string $uniqueName, string $statement): bool
+    protected function _prepareNamed(string $uniqueName, string $statement): bool
     {
         // TODO: Implement _prepare() method.
     }

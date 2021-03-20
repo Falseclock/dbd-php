@@ -34,7 +34,7 @@ class PgTest extends TestCase
     /** @var Config */
     private $config;
     /** @var Pg */
-    private $db;
+    protected $db;
     /**  @var MemCache */
     private $memcache;
     /** @var Options */
