@@ -49,4 +49,33 @@ class OdataBindTest extends OdataTest
 
         self::assertIsArray($rows);
     }
+
+    /**
+     * @throws DBDException
+     * @noinspection SqlResolve
+     * @noinspection SqlRedundantOrderingDirection
+     */
+    public function testMultiSpecialCharsBind() {
+        $sth = $this->db->prepare("
+            SELECT 
+                   * 
+            FROM 
+                 Document_ПлатежноеПоручениеВходящее 
+            JOIN Контрагент ON TRUE
+            JOIN СчетКонтрагента  ON TRUE
+            JOIN ВалютаДокумента  ON TRUE
+            WHERE
+                substringof(:comment, Комментарий) = true
+            ORDER BY 
+                Date desc, 
+                Number asc
+            LIMIT 10
+        ");
+        $sth->bind(':comment', '##');
+        $sth->execute();
+
+        $rows = $sth->fetchRowSet();
+
+        self::assertIsArray($rows);
+    }
 }
