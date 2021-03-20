@@ -31,7 +31,6 @@ class OData extends DBD
     const METHOD_DELETE = "DELETE";
     const METHOD_PUT = "PUT";
     protected $body = null;
-    protected $dataKey = null;
     protected $header = null;
     protected $httpCode = null;
     protected $metadata = null;
