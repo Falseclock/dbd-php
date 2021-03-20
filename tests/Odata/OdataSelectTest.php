@@ -239,6 +239,7 @@ class OdataSelectTest extends OdataTest
                 DeletionMark = false and
                 substringof(?,Комментарий) = false and
                 substringof(?,Комментарий) = false and
+                substringof(?,Комментарий) = false and
                 substringof(?,Комментарий) = false
             
             ORDER BY 
@@ -246,7 +247,7 @@ class OdataSelectTest extends OdataTest
                 Number asc
             LIMIT 10
         ");
-        $sth->execute('?', '$', '&');
+        $sth->execute('???', '$$$', '&&&', '###');
 
         $rows = $sth->fetchRowSet();
 
