@@ -603,7 +603,7 @@ class OData extends DBD
             preg_replace_callback("('.+?')",
                 function ($matches) use (&$where, &$paramId, &$params) {
                     foreach ($matches as $match) {
-                        $params[sprintf(":param%d", $paramId)] = $this->_urlEncode($match);
+                        $params[sprintf(":param%d", $paramId)] = $this->_escapeEncode($match);
                         $position = strpos($where, $match);
 
                         if ($position !== false)
@@ -647,11 +647,15 @@ class OData extends DBD
 
     /**
      * @param $string
+     *
      * @return string
      */
-    protected function _urlEncode($string): string
-    {
-        return urlencode($string);
+    protected function _escapeEncode($string): string {
+
+        $replace = [ '!', '*', '\'', '(', ')', ';', ':', '@', '&', '=', '+', '$', ',', '/', '?', '#', '[', ']' ];
+        $search = [ '%21', '%23', '%24', '%26', '%27', '%28', '%29', '%2A', '%2B', '%2C', '%2F', '%3A', '%3B', '%3D', '%3F', '%40', '%5B', '%5D' ];
+
+        return str_replace($search, $replace, $string);
     }
 
     /**
@@ -705,6 +709,6 @@ class OData extends DBD
      */
     protected function _escape($string): string
     {
-        return sprintf("'%s'", $this->_urlEncode($string));
+        return sprintf("'%s'", $this->_escapeEncode($string));
     }
 }
