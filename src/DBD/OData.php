@@ -614,36 +614,12 @@ class OData extends DBD
     }
 
     /**
-     * @param $ARGS
      * @return $this
      * @throws DBDException
      */
-    protected function prepareRequestUrl(array $ARGS = []): self
+    protected function prepareRequestUrl(): self
     {
-        // Check and prepare args
-        $binds = substr_count($this->query, $this->Options->getPlaceHolder());
-        $args = Helper::parseArgs($ARGS);
-        $numberOfArguments = count($args);
-
-        if ($binds != $numberOfArguments)
-            throw new DBDException("Query failed: called with $numberOfArguments bind variables when $binds are needed", $this->query);
-
-        // Make url and put arguments
-        //return $this->buildUrlFromQuery($this->query,$args);
-        //protected function buildUrlFromQuery($query,$args)
-
-        // Replace placeholders with values
-        if (count($args)) {
-            $request = str_split($this->query);
-
-            foreach ($request as $ind => $str) {
-                if ($str == $this->Options->getPlaceHolder())
-                    $request[$ind] = "'" . array_shift($args) . "'";
-            }
-            $this->query = implode("", $request);
-        }
-
-        // keep initial quert unchanged
+        // keep initial query unchanged
         $query = $this->query;
 
         // make one string for REGEXP
