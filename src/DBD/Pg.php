@@ -345,7 +345,12 @@ class Pg extends DBD
                 $preparedQuery = $this->_replaceBind($bind->name, "'{$binary}'", $preparedQuery);
                 break;
             default:
-                $preparedQuery = $this->_replaceBind($bind->name, $this->_escape($bind->value), $preparedQuery);
+                if (is_array($bind->value)) {
+                    $value = array_map(array($this, '_escape'), $bind->value);
+                    $preparedQuery = $this->_replaceBind($bind->name, implode(',', $value), $preparedQuery);
+                } else {
+                    $preparedQuery = $this->_replaceBind($bind->name, $this->_escape($bind->value), $preparedQuery);
+                }
         }
     }
 
