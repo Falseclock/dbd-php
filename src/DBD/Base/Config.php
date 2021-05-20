@@ -32,16 +32,16 @@ final class Config
 	/** @var string */
 	private $username;
 
-	/**
-	 * Config constructor.
-	 *
-	 * @param $host
-	 * @param $port
-	 * @param $database
-	 * @param $username
-	 * @param $password
-	 */
-	public function __construct(string $host, ?int $port, ?string $database, string $username, string $password) {
+    /**
+     * Config constructor.
+     *
+     * @param string $host
+     * @param int|null $port
+     * @param string|null $database
+     * @param string|null $username
+     * @param string|null $password
+     */
+	public function __construct(string $host, ?int $port, ?string $database, ?string $username, ?string $password) {
 		$this->host = $host;
 		$this->port = $port;
 		$this->database = $database;
