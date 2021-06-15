@@ -1088,10 +1088,13 @@ abstract class DBD implements CRUD
         $sth->execute($execute);
 
         if (!$sth->rows()) {
-            if ($exceptionIfNoRecord)
+            if ($exceptionIfNoRecord) {
                 throw new DBDException(sprintf("No data found for entity %s with ", get_class($entity)));
-            else
+            } else {
+                $entity = null;
+
                 return null;
+            }
         }
         /** @var Entity $class */
         $class = get_class($entity);
