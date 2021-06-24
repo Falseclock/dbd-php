@@ -1287,4 +1287,12 @@ abstract class DBD implements CRUD
      * @see commit
      */
     abstract protected function _commit(): bool;
+
+    /**
+     * @return bool
+     */
+    public function inTransaction(): bool
+    {
+        return $this->inTransaction;
+    }
 }
