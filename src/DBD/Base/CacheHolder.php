@@ -19,7 +19,7 @@ class CacheHolder
 	/** @var string */
 	public $key = null;
 	/** @var mixed */
-	public $result = false;
+	public $result = null;
 
 	/**
 	 * CacheHolder constructor.

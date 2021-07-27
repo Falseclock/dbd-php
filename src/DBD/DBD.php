@@ -254,7 +254,7 @@ abstract class DBD implements CRUD
             }
 
             // Cache not empty?
-            if ($this->CacheHolder->result !== false) {
+            if (!is_null($this->CacheHolder->result)) {
                 $cost = Debug::me()->endTimer();
                 // To avoid errors as result by default is NULL
                 $this->result = self::GOT_FROM_CACHE;
@@ -283,12 +283,11 @@ abstract class DBD implements CRUD
                         throw new DBDException ($this->_errorMessage(), $preparedQuery);
                 }
                 $this->result = $this->_executeNamed($uniqueName, Helper::parseArgs($executeArguments));
-                self::$executedStatements[] = $preparedQuery;
             } else {
                 // Execute query to the database
                 $this->result = $this->_query($preparedQuery);
-                self::$executedStatements[] = $preparedQuery;
             }
+            self::$executedStatements[] = $preparedQuery;
 
             $cost = Debug::me()->endTimer();
 
@@ -314,7 +313,7 @@ abstract class DBD implements CRUD
         }
 
         if ($this->Options->isUseDebug()) {
-            $cost = isset($cost) ? $cost : 0;
+            $cost = $cost ?? 0;
 
             $driver = $this->storage == self::STORAGE_CACHE ? self::STORAGE_CACHE : (new ReflectionClass($this))->getShortName();
             $caller = Helper::caller($this);
@@ -343,7 +342,7 @@ abstract class DBD implements CRUD
      * @return string
      * @throws DBDException
      */
-    private function getPreparedQuery($ARGS, $overrideOption = false): string
+    private function getPreparedQuery($ARGS, bool $overrideOption = false): string
     {
         $placeHolder = $this->Options->getPlaceHolder();
         $isPrepareExecute = $this->Options->isPrepareExecute();
@@ -629,10 +628,10 @@ abstract class DBD implements CRUD
      * @param string $type
      * @param bool $utf8
      *
-     * @return mixed
+     * @return void
      * @throws DBDException
      */
-    public function dump(?array $executeArguments = [], $fileName = "dump", $delimiter = "\\t", $nullString = "", $header = true, $tmpPath = "/tmp", $type = "csv", $utf8 = true)
+    public function dump(?array $executeArguments = [], string $fileName = "dump", string $delimiter = "\\t", string $nullString = "", bool $header = true, string $tmpPath = "/tmp", string $type = "csv", bool $utf8 = true)
     {
         $BOM = b"\xEF\xBB\xBF";
         $preparedQuery = $this->getPreparedQuery($executeArguments);
@@ -938,9 +937,9 @@ abstract class DBD implements CRUD
         $affected = $sth->rows();
 
         if ($affected > 1)
-            throw new DBDException(sprintf("More then one records updated with query. Transaction rolled back!"));
+            throw new DBDException("More then one records updated with query. Transaction rolled back!");
         else if ($affected == 0)
-            throw new DBDException(sprintf("No any records updated."));
+            throw new DBDException("No any records updated.");
 
         /** @var Entity $class */
         $class = get_class($entity);

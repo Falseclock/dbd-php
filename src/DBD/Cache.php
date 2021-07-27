@@ -26,7 +26,7 @@ abstract class Cache implements CacheInterface
     public $useCompression = false;
     /** @var int $defaultTtl */
     public $defaultTtl = self::DEFAULT_TTL;
-    /** @var mixed[] Server list with variable options */
+    /** @var array Server list with variable options */
     public $servers = null;
 
     /**
@@ -36,7 +36,7 @@ abstract class Cache implements CacheInterface
      *
      * @return $this
      */
-    public function __construct(array $servers, $useCompression = false, $defaultTtl = self::DEFAULT_TTL)
+    public function __construct(array $servers, bool $useCompression = false, int $defaultTtl = self::DEFAULT_TTL)
     {
         $this->servers = $servers;
         $this->useCompression = $useCompression;

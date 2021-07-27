@@ -421,7 +421,7 @@ class OData extends DBD
         // Let's get from cache
         if (isset($this->Config->CacheDriver)) {
             $metadata = $this->Config->CacheDriver->get($this->Config->getHost() . ':metadata');
-            if ($metadata !== false) {
+            if (!is_null($metadata)) {
                 $this->metadata = $metadata;
                 return $this->metadata;
             }
