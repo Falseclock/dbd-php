@@ -1028,27 +1028,48 @@ abstract class DBD implements CRUD
      */
     public function update(): DBD
     {
-        $binds = 0;
+        $placeholdersCount = 0;
         $where = null;
         $return = null;
         $ARGS = func_get_args();
         $table = $ARGS[0];
         $values = $ARGS[1];
+        $numberOfArguments = func_num_args();
 
         $params = Helper::compileUpdateArgs($values, $this);
 
-        if (func_num_args() > 2) {
+        if ($numberOfArguments > 2) {
             $where = $ARGS[2];
-            $binds = substr_count($where, $this->Options->getPlaceHolder());
+            $placeholdersCount = substr_count($where, $this->Options->getPlaceHolder());
         }
 
-        // If we set $where with placeholders or we set $return
-        if (func_num_args() > 3) {
-            for ($i = 3; $i < $binds + 3; $i++) {
-                $params['ARGS'][] = $ARGS[$i];
+        // If we set $where with placeholders, or we set $return
+        if ($numberOfArguments > 3) {
+            // Because we can pass execution arguments as an array, we have to count arguments not by count of passed parameters,
+            // but should check what actually inside,
+            // for example: ->update('table', [a => 'foo', b => 'var'], 'column1 = ? and column2 = ? and column3 = ?', [1,2], 3, "*")
+            $lastCheckedArgument = 3;
+            while ($placeholdersCount != 0) {
+                for ($lastCheckedArgument = 3; $lastCheckedArgument <= $numberOfArguments; $lastCheckedArgument++) {
+                    if ($placeholdersCount == 0)
+                        break;
+                    if (is_array($ARGS[$lastCheckedArgument])) {
+                        foreach ($ARGS[$lastCheckedArgument] as $argument) {
+                            if (!is_scalar($argument)) {
+                                throw new DBDException("Execute arguments for WHERE condition is not scalar");
+                            }
+                            $params['ARGS'][] = $argument;
+                            $placeholdersCount--;
+                        }
+                    } else {
+                        $params['ARGS'][] = $ARGS[$lastCheckedArgument];
+                        $placeholdersCount--;
+                    }
+                }
             }
-            if (func_num_args() > $binds + 3) {
-                $return = $ARGS[func_num_args() - 1];
+            // Now we have to check do we have
+            if ($lastCheckedArgument < $numberOfArguments) {
+                $return = $ARGS[$numberOfArguments - 1];
             }
         }
 
