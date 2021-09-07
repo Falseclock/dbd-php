@@ -45,13 +45,16 @@ class Bind
             case Primitive::Int16:
             case Primitive::Int32:
             case Primitive::Int64:
-                if (!is_int($this->value) && !is_array($this->value))
-                    throw new DBDException("Bound parameter '{$name}' is not integer type");
-
+                if (!is_int($this->value) && !is_array($this->value) && !is_null($this->value)) {
+                    throw new DBDException("Bound parameter '$name' is not integer type");
+                }
                 if (is_array($this->value)) {
-                    foreach ($this->value as $item)
-                        if (!is_int($item))
-                            throw new DBDException("One of value for bound parameter '{$name}' is not integer type");
+                    foreach ($this->value as $item) {
+                        // check is integer
+                        if (!is_int($item) && !is_null($item)) {
+                            throw new DBDException("One of value for bound parameter '$name' is not integer type");
+                        }
+                    }
                 }
         }
     }
