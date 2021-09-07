@@ -336,20 +336,20 @@ class Pg extends DBD
             case Primitive::Int32:
             case Primitive::Int64:
                 if (is_array($bind->value))
-                    $preparedQuery = $this->_replaceBind($bind->name, implode(',', $bind->value), $preparedQuery);
+                    $preparedQuery = $this->_replaceBind($bind->name, implode(',', $bind->value ?? 'NULL'), $preparedQuery);
                 else
-                    $preparedQuery = $this->_replaceBind($bind->name, $bind->value, $preparedQuery);
+                    $preparedQuery = $this->_replaceBind($bind->name, $bind->value ?? 'NULL', $preparedQuery);
                 break;
             case Primitive::Binary:
                 $binary = $this->_escapeBinary($bind->value);
-                $preparedQuery = $this->_replaceBind($bind->name, "'{$binary}'", $preparedQuery);
+                $preparedQuery = $this->_replaceBind($bind->name, $binary ? "'$binary'" : 'NULL', $preparedQuery);
                 break;
             default:
                 if (is_array($bind->value)) {
                     $value = array_map(array($this, '_escape'), $bind->value);
                     $preparedQuery = $this->_replaceBind($bind->name, implode(',', $value), $preparedQuery);
                 } else {
-                    $preparedQuery = $this->_replaceBind($bind->name, $this->_escape($bind->value), $preparedQuery);
+                    $preparedQuery = $this->_replaceBind($bind->name, $bind->value ? $this->_escape($bind->value) : 'NULL', $preparedQuery);
                 }
         }
     }
@@ -387,7 +387,7 @@ class Pg extends DBD
      */
     protected function _escape($string): string
     {
-        if (!isset($string))
+        if (is_null($string))
             return "NULL";
 
         if (is_bool($string))

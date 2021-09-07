@@ -363,7 +363,7 @@ abstract class DBD implements CRUD
             foreach ($query as $ind => $str) {
                 if ($str == $placeHolder) {
                     if ($isPrepareExecute and !$overrideOption) {
-                        $query[$ind] = "\${$placeholderPosition}";
+                        $query[$ind] = "\$$placeholderPosition";
                         $placeholderPosition++;
                     } else {
                         $query[$ind] = $this->_escape(array_shift($executeArguments));
@@ -490,7 +490,7 @@ abstract class DBD implements CRUD
                     if (!isset($array[$row[$uniqueKey]]))
                         $array[$row[$uniqueKey]] = $row;
                     else
-                        throw new DBDException("Key '{$row[$uniqueKey]}' not unique");
+                        throw new DBDException("Key '$row[$uniqueKey]' not unique");
                 } else {
                     $array[] = $row;
                 }
@@ -501,7 +501,7 @@ abstract class DBD implements CRUD
                     if (!isset($array[$row[$uniqueKey]]))
                         $array[$row[$uniqueKey]] = $row;
                     else
-                        throw new DBDException("Key '{$row[$uniqueKey]}' not unique");
+                        throw new DBDException("Key '$row[$uniqueKey]' not unique");
                 }
             } else {
                 $array = $this->CacheHolder->result;
@@ -741,7 +741,7 @@ abstract class DBD implements CRUD
                     throw new DBDException(sprintf("Value of %s->%s, which is primary key column, is null", get_class($entity), $keyName));
 
                 $execute[] = $entity->$keyName;
-                $columns[] = "{$column->name} = {$placeHolder}";
+                $columns[] = "$column->name = $placeHolder";
             }
 
             return [$execute, $columns];
@@ -805,17 +805,14 @@ abstract class DBD implements CRUD
                         throw new DBDException(sprintf("Property '%s' of %s can't be null according to Mapper annotation", $propertyName, get_class($entity)));
 
                     if ($column->isAuto === false) {
-                        // Finally add column to record if it is set
-                        if (isset($entity->$propertyName))
-                            $finalValue = $entity->$propertyName;
-                        else
-                            $finalValue = $column->defaultValue;
+                        // Finally, add column to record if it is set
+                        $finalValue = $entity->$propertyName ?? $column->defaultValue;
 
                         $record[$originName] = $column->type->getValue() == Primitive::Binary ? $this->_escapeBinary($finalValue) : $finalValue;
                     }
                 }
             } else {
-                // Finally add column to record if it is set
+                // Finally, add column to record if it is set
                 if (isset($entity->$propertyName)) {
                     $record[$originName] = ($column->type->getValue() == Primitive::Binary) ? $this->_escapeBinary($entity->$propertyName) : $entity->$propertyName;
                 } else {
@@ -925,7 +922,7 @@ abstract class DBD implements CRUD
                                 if (isset($entity->$constraintName->$foreignProperty)) {
                                     $record[$column->name] = $entity->$constraintName->$foreignProperty;
                                 }
-                                // Otherwise it seems we do not want update reference value
+                                // Otherwise, it seems we do not want update reference value
                             }
                         }
                     }

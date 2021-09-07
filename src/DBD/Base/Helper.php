@@ -39,7 +39,7 @@ final class Helper
 
 			$child = (new ReflectionClass($context))->getShortName();
 
-			foreach($debug as $ind => $call) {
+			foreach($debug as $call) {
 				// our filename
 				if(isset($call['file'])) {
 					$call['file'] = str_replace(DIRECTORY_SEPARATOR, "/", $call['file']);
@@ -72,29 +72,29 @@ final class Helper
 
 		foreach($array as $idx => $line) {
 			//$array[$idx] = trim($array[$idx], "\s\t\n\r");
-			if(!$array[$idx] || preg_match('/^[\s\t]*?$/u', $array[$idx])) {
+			if(!$line || preg_match('/^[\s\t]*?$/u', $line)) {
 				unset($array[$idx]);
 				continue;
 			}
-			if(preg_match('/^\s*?(UNION|CREATE|DELETE|UPDATE|SELECT|FROM|WHERE|JOIN|LIMIT|OFFSET|ORDER|GROUP)/i', $array[$idx])) {
-				$array[$idx] = ltrim($array[$idx]);
+			if(preg_match('/^\s*?(UNION|CREATE|DELETE|UPDATE|SELECT|FROM|WHERE|JOIN|LIMIT|OFFSET|ORDER|GROUP)/i', $line)) {
+				$array[$idx] = ltrim($line);
 			}
 			else {
-				$array[$idx] = "    " . ltrim($array[$idx]);
+				$array[$idx] = "    " . ltrim($line);
 			}
 		}
 
 		return implode("\n", $array);
 	}
 
-	/**
-	 * @param            $data
-	 * @param DBD        $driver
-	 * @param Options    $options
-	 *
-	 * @return array
-	 * @throws DBDException
-	 */
+    /**
+     * @param array $data
+     * @param DBD $driver
+     * @param Options $options
+     *
+     * @return array
+     * @throws DBDException
+     */
 	final public static function compileInsertArgs(array $data, DBD $driver, Options $options): array {
 
 		$className = get_class($driver);
@@ -106,7 +106,7 @@ final class Helper
 		$defaultFormat = $options->getPlaceHolder();
 		$format = null;
 
-		if(defined("{$className}::CAST_FORMAT_INSERT")) {
+		if(defined("$className::CAST_FORMAT_INSERT")) {
 			/** @noinspection PhpPossiblePolymorphicInvocationInspection */
 			$format = $driver::CAST_FORMAT_INSERT;
 		}
@@ -145,21 +145,21 @@ final class Helper
 		];
 	}
 
-	/**
-	 * Parses array of values for update
-	 *
-	 * @param          $data
-	 * @param DBD      $driver
-	 *
-	 * @return array
-	 * @throws DBDException
-	 */
+    /**
+     * Parses array of values for update
+     *
+     * @param array $data
+     * @param DBD $driver
+     *
+     * @return array
+     * @throws DBDException
+     */
 	final public static function compileUpdateArgs(array $data, DBD $driver): array {
 		$className = get_class($driver);
 		$defaultFormat = "%s = ?";
 		$format = null;
 
-		if(defined("{$className}::CAST_FORMAT_UPDATE")) {
+		if(defined("$className::CAST_FORMAT_UPDATE")) {
 			/** @noinspection PhpPossiblePolymorphicInvocationInspection */
 			$format = $driver::CAST_FORMAT_UPDATE;
 		}
@@ -175,7 +175,7 @@ final class Helper
 						$args[] = $columnValue[0];
 						break;
 					case 2:
-						$columns[] = sprintf($format ? $format : $defaultFormat, $columnName, $columnValue[1]);
+						$columns[] = sprintf($format ?: $defaultFormat, $columnName, $columnValue[1]);
 						$args[] = $columnValue[0];
 						break;
 					default:
@@ -304,7 +304,7 @@ final class Helper
             case CRUD::DELETE:
                 return CRUD::DELETE;
             default:
-                throw new DBDException("non SQL query: {$query}");
+                throw new DBDException("non SQL query: $query");
         }
     }
 }
