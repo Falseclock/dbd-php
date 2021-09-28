@@ -26,6 +26,7 @@ use DBD\Entity\Common\EntityException;
 use DBD\Entity\Constraint;
 use DBD\Entity\Entity;
 use DBD\Entity\Primitive;
+use DBD\Tests\Pg\PgRowsTest;
 use DBD\Tests\Pg\PgTransactionTest;
 use Exception;
 use Psr\SimpleCache\InvalidArgumentException;
@@ -598,9 +599,11 @@ abstract class DBD implements CRUD
     }
 
     /**
-     * Returns the number of rows in the result
+     * Returns the number of selected of affected rows in the result.
+     * Number of rows stay initial even after fetchRow of fetchRowSet
      *
      * @return int
+     * @see PgRowsTest
      */
     final public function rows(): int
     {

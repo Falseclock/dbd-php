@@ -14,39 +14,133 @@ namespace DBD\Tests\Pg;
 
 use DBD\Common\DBDException;
 use DBD\Pg;
-use DBD\Tests\PgTest;
 
-class PgRowsTest extends PgTest
+/**
+ * @see Pg::rows()
+ * @see Pg::_rows()
+ */
+class PgRowsTest extends PgAbstractTest
 {
     /**
      * @throws DBDException
+     * @noinspection SqlResolve
      */
-    public function testRowsCountAfterFetchRow()
+    public function testRowsCountAfterFetch()
     {
-        $this->db->do("DROP TABLE IF EXISTS test_rows_count");
+        $check = 3;
         // Test regular
-        self::assertInstanceOf(Pg::class, $this->db->query("CREATE TABLE test_rows_count (id serial, test int)"));
-        self::assertInstanceOf(Pg::class, $this->db->query("INSERT INTO test_rows_count (test) VALUES (1)"));
-        self::assertInstanceOf(Pg::class, $this->db->query("INSERT INTO test_rows_count (test) VALUES (2)"));
-        self::assertInstanceOf(Pg::class, $this->db->query("INSERT INTO test_rows_count (test) VALUES (3)"));
+        self::assertInstanceOf(Pg::class, $this->db->query("CREATE TEMPORARY TABLE test_rows_count (id serial, test int)"));
+        for ($i = 1; $i <= $check; $i++) {
+            self::assertInstanceOf(Pg::class, $this->db->query("INSERT INTO test_rows_count (test) VALUES (?)", $i));
+        }
 
+        // Check through fetchRow()
         $sth = $this->db->prepare("SELECT * FROM test_rows_count");
         $sth->execute();
 
-        $rows = $sth->rows();
+        for ($i = 1; $i <= $check; $i++) {
+            $sth->fetchRow();
+            self::assertSame($check, $sth->rows());
+        }
 
-        self::assertSame(3, $rows);
+        // Check through fetchRowSet()
+        $sth->execute();
+        self::assertSame($check, $sth->rows());
+        self::assertCount($check, $sth->fetchRowSet());
+        self::assertSame($check, $sth->rows());
 
-        $sth->fetchRow();
+        // Check through fetch()
+        $sth->execute();
+        while ($sth->fetch()) {
+            self::assertSame($check, $sth->rows());
+        }
+    }
 
-        $rows = $sth->rows();
 
-        self::assertSame(3, $rows);
+    /**
+     * @throws DBDException
+     * @noinspection SqlResolve
+     * @noinspection SqlWithoutWhere
+     */
+    public function testRows()
+    {
+        $sth = $this->db->query("SELECT 1 UNION SELECT 2 UNION SELECT 3");
+        self::assertSame(3, $sth->rows());
 
-        $sth->fetchRowSet();
+        $sth = $this->db->query("SELECT 1");
+        self::assertSame(1, $sth->rows());
 
-        $rows = $sth->rows();
+        $sth = $this->db->query("DROP TABLE IF EXISTS fake_table");
+        self::assertSame(0, $sth->rows());
 
-        self::assertSame(3, $rows);
+        $sth = $this->db->prepare("SELECT 1 UNION SELECT 2 UNION SELECT 3");
+        $sth->execute();
+        self::assertSame(3, $sth->rows());
+
+        $sth = $this->db->prepare("SELECT 1");
+        $sth->execute();
+        self::assertSame(1, $sth->rows());
+
+        $sth = $this->db->prepare("DROP TABLE IF EXISTS fake_table");
+        $sth->execute();
+        self::assertSame(0, $sth->rows());
+
+        // Test through prepare
+        $sth = $this->db->prepare("CREATE TEMPORARY TABLE test_rows AS SELECT test, MD5(random()::text) from generate_series(1,10) test");
+        $sth->execute();
+        self::assertSame(10, $sth->rows());
+        self::assertSame(0, $this->db->do("DROP TABLE test_rows"));
+
+        // Test through do
+        self::assertSame(10, $this->db->do("CREATE TEMPORARY TABLE test_rows AS SELECT test, MD5(random()::text) from generate_series(1,10) test"));
+        self::assertSame(0, $this->db->do("DROP TABLE test_rows"));
+
+        // Test through query
+        $sth = $this->db->query("CREATE TEMPORARY TABLE test_rows AS SELECT test, MD5(random()::text) from generate_series(1,10) test");
+        self::assertSame(10, $sth->rows());
+
+        // Test through prepare
+        $sth = $this->db->prepare("SELECT * FROM test_rows");
+        $sth->execute();
+        self::assertSame(10, $sth->rows());
+
+        // Test through do
+        self::assertSame(10, $this->db->do("SELECT * FROM test_rows"));
+
+        // Test through query
+        $sth = $this->db->query("SELECT * FROM test_rows");
+        self::assertSame(10, $sth->rows());
+
+        // -------------- UPDATE --------------
+
+        // Test through prepare
+        $sth = $this->db->prepare("UPDATE test_rows SET test = null");
+        $sth->execute();
+        self::assertSame(10, $sth->rows());
+
+        // Test through do
+        self::assertSame(10, $this->db->do("UPDATE test_rows SET test = null"));
+
+        // Test through query
+        $sth = $this->db->query("UPDATE test_rows SET test = null");
+        self::assertSame(10, $sth->rows());
+
+        // -------------- DELETION --------------
+
+        // Test through prepare
+        $sth = $this->db->prepare("DELETE FROM test_rows");
+        $sth->execute();
+        self::assertSame(10, $sth->rows());
+
+        // Test through do
+        self::assertSame(10, $this->db->do("INSERT INTO test_rows (test, md5) SELECT test, MD5(random()::text) from generate_series(1,10) test"));
+        self::assertSame(10, $this->db->do("DELETE FROM test_rows"));
+
+        // Test through query
+        self::assertSame(10, $this->db->do("INSERT INTO test_rows (test, md5) SELECT test, MD5(random()::text) from generate_series(1,10) test"));
+        $sth = $this->db->query("DELETE FROM test_rows");
+        self::assertSame(10, $sth->rows());
+
+        self::assertSame(0, $this->db->do("DROP TABLE test_rows"));
     }
 }

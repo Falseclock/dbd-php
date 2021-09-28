@@ -19,7 +19,7 @@ use DBD\Common\DBDException;
 use DBD\Pg;
 use DBD\Tests\CommonTest;
 
-abstract class PgBaseTest extends CommonTest
+abstract class PgAbstractTest extends CommonTest
 {
     /** @var Pg */
     protected $db;

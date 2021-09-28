@@ -196,9 +196,10 @@ class Pg extends DBD
     }
 
     /**
-     * returns the number of tuples (instances/records/rows) affected by INSERT, UPDATE, and DELETE queries.
+     * Returns the number of tuples (instances/records/rows) affected by INSERT, UPDATE, and DELETE queries.
      *
      * @return int
+     * @see PgRowsTest
      */
     protected function _rows(): int
     {

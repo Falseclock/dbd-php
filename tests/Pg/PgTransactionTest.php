@@ -16,7 +16,7 @@ namespace DBD\Tests\Pg;
 use DBD\Common\DBDException;
 use DBD\Pg;
 
-class PgTransactionTest extends PgBaseTest
+class PgTransactionTest extends PgAbstractTest
 {
     /**
      * @throws DBDException
