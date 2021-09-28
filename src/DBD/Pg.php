@@ -68,13 +68,33 @@ class Pg extends DBD
     }
 
     /**
-     * returns the number of tuples (instances/records/rows) affected by INSERT, UPDATE, and DELETE queries.
+     * @return bool
+     * @throws DBDException
+     * @see PgTransactionTest::testInTransaction()
+     */
+    protected function _inTransaction(): bool
+    {
+        switch ($this->getTransactionState()) {
+            case PGSQL_TRANSACTION_IDLE:
+                return false;
+            case PGSQL_TRANSACTION_INTRANS:
+            case PGSQL_TRANSACTION_INERROR:
+            case PGSQL_TRANSACTION_ACTIVE:
+                return true;
+            case PGSQL_TRANSACTION_UNKNOWN:
+            default:
+                throw new DBDException ("Transaction state is unknown");
+        }
+    }
+
+    /**
+     * Returns current transaction status
      *
      * @return int
      */
-    protected function _rows(): int
+    private function getTransactionState(): int
     {
-        return pg_affected_rows($this->result);
+        return pg_transaction_status($this->resourceLink);
     }
 
     /**
@@ -87,7 +107,7 @@ class Pg extends DBD
      */
     protected function _begin(): bool
     {
-        switch (pg_transaction_status($this->resourceLink)) {
+        switch ($this->getTransactionState()) {
             case PGSQL_TRANSACTION_IDLE:
                 return $this->_query("BEGIN") != null;
             case PGSQL_TRANSACTION_INTRANS:
@@ -98,10 +118,11 @@ class Pg extends DBD
             case PGSQL_TRANSACTION_ACTIVE:
                 throw new DBDException ("Transaction command is in progress and not yet completed");
             case PGSQL_TRANSACTION_UNKNOWN:
+            default:
                 throw new DBDException ("Transaction state is unknown");
+            // @codeCoverageIgnoreEnd
         }
     }
-    // @codeCoverageIgnoreEnd
 
     /**
      *
@@ -126,10 +147,62 @@ class Pg extends DBD
      * Sends COMMIT; command
      *
      * @return bool
+     * @throws DBDException
+     * @see PgTransactionTest::testCommit()
      */
     protected function _commit(): bool
     {
-        return $this->_query("COMMIT") !== null;
+        switch ($this->getTransactionState()) {
+            case PGSQL_TRANSACTION_INTRANS:
+                return $this->_query("COMMIT") !== null;
+            case PGSQL_TRANSACTION_INERROR:
+                throw new DBDException ("Commit not possible, in a failed transaction block");
+            // @codeCoverageIgnoreStart
+            case PGSQL_TRANSACTION_IDLE:
+                throw new DBDException ("No transaction to commit");
+            case PGSQL_TRANSACTION_ACTIVE:
+                throw new DBDException ("Transaction command is in progress and not yet completed");
+            case PGSQL_TRANSACTION_UNKNOWN:
+            default:
+                throw new DBDException ("Transaction state is unknown");
+            // @codeCoverageIgnoreEnd
+        }
+    }
+
+    /**
+     * Sends ROLLBACK; command
+     *
+     * @return bool
+     * @throws DBDException
+     * @see PgTransactionTest::testRollback()
+     */
+    protected function _rollback(): bool
+    {
+        switch ($this->getTransactionState()) {
+            case PGSQL_TRANSACTION_INERROR:
+            case PGSQL_TRANSACTION_INTRANS:
+                return $this->_query("ROLLBACK") !== null;
+            case PGSQL_TRANSACTION_IDLE:
+                throw new DBDException ("There is no transaction in progress");
+            // @codeCoverageIgnoreStart
+            case PGSQL_TRANSACTION_ACTIVE:
+                throw new DBDException ("Transaction command is in progress and not yet completed");
+            case PGSQL_TRANSACTION_UNKNOWN:
+            default:
+                throw new DBDException ("Transaction state is unknown");
+            // @codeCoverageIgnoreEnd
+        }
+
+    }
+
+    /**
+     * returns the number of tuples (instances/records/rows) affected by INSERT, UPDATE, and DELETE queries.
+     *
+     * @return int
+     */
+    protected function _rows(): int
+    {
+        return pg_affected_rows($this->result);
     }
 
     /**
@@ -329,16 +402,6 @@ class Pg extends DBD
         }
 
         return $return !== false;
-    }
-
-    /**
-     * Sends ROLLBACK; command
-     *
-     * @return bool
-     */
-    protected function _rollback(): bool
-    {
-        return $this->_query("ROLLBACK") !== null;
     }
 
     /**

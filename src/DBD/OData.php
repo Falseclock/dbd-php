@@ -842,4 +842,9 @@ class OData extends DBD
 
         }
     }
+
+    protected function _inTransaction(): bool
+    {
+        // TODO: Implement inTransaction() method.
+    }
 }

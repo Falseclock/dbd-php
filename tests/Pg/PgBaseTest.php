@@ -25,10 +25,6 @@ abstract class PgBaseTest extends CommonTest
     protected $db;
     /**  @var MemCache */
     protected $memcache;
-    /** @var Options */
-    protected $options;
-    /** @var Config */
-    private $config;
 
     /**
      * @throws DBDException

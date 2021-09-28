@@ -66,8 +66,6 @@ abstract class DBD implements CRUD
     protected $binds = [];
     /** @var mixed $fetch */
     private $fetch = self::UNDEFINED;
-    /** @var bool $inTransaction Stores current transaction state */
-    private $inTransaction = false;
 
     /**
      * DBD constructor.
@@ -128,10 +126,10 @@ abstract class DBD implements CRUD
      * ```
      *
      * @return $this
-     * @see MSSQL::connect
-     * @see MySQL::connect
-     * @see OData::connect
-     * @see Pg::connect
+     * @see MSSQL::connect()
+     * @see MySQL::connect()
+     * @see OData::connect()
+     * @see Pg::connect()
      */
     abstract public function connect(): DBD;
 
@@ -144,7 +142,7 @@ abstract class DBD implements CRUD
     public function disconnect(): DBD
     {
         if ($this->isConnected()) {
-            if ($this->inTransaction) {
+            if ($this->_inTransaction()) {
                 throw new DBDException("Uncommitted transaction state");
             }
             $this->_disconnect();
@@ -165,6 +163,16 @@ abstract class DBD implements CRUD
     }
 
     /**
+     * @return bool
+     * @see Pg::_inTransaction()
+     * @see MSSQL::_inTransaction()
+     * @see MySQL::_inTransaction()
+     * @see OData::_inTransaction()
+     * @see DBD::inTransaction()
+     */
+    abstract protected function _inTransaction(): bool;
+
+    /**
      * @return bool true on successful disconnection
      * @see Pg::_disconnect
      * @see MSSQL::_disconnect
@@ -173,6 +181,38 @@ abstract class DBD implements CRUD
      * @see disconnect
      */
     abstract protected function _disconnect(): bool;
+
+    /**
+     * @return bool
+     * @see DBD::_inTransaction()
+     */
+    public function inTransaction(): bool
+    {
+        $this->connectionPreCheck();
+        return $this->_inTransaction();
+    }
+
+    /**
+     * Check connection existence and does connection if not
+     *
+     * @return void
+     */
+    private function connectionPreCheck()
+    {
+        if (!$this->isConnected()) {
+            $this->_connect();
+        }
+    }
+
+    /**
+     * @return void
+     * @see Pg::_connect()
+     * @see MSSQL::_connect()
+     * @see MySQL::_connect()
+     * @see OData::_connect()
+     * @see DBD::connectionPreCheck()
+     */
+    abstract protected function _connect(): void;
 
     /**
      * Just executes query and returns affected rows with the query
@@ -404,27 +444,6 @@ abstract class DBD implements CRUD
     abstract protected function replaceBind(string &$preparedQuery, Bind $bind): void;
 
     /**
-     * Check connection existence and does connection if not
-     *
-     * @return void
-     */
-    private function connectionPreCheck()
-    {
-        if (!$this->isConnected())
-            $this->_connect();
-    }
-
-    /**
-     * @return void
-     * @see Pg::_connect
-     * @see MSSQL::_connect
-     * @see MySQL::_connect
-     * @see OData::_connect
-     * @see connectionPreCheck
-     */
-    abstract protected function _connect(): void;
-
-    /**
      * Prepare named query
      *
      * @param string $uniqueName
@@ -573,7 +592,6 @@ abstract class DBD implements CRUD
         $class = new $className($this->Config, $this->Options);
 
         $class->resourceLink = &$this->resourceLink;
-        $class->inTransaction = &$this->inTransaction;
         $class->query = $statement;
 
         return $class;
@@ -1214,30 +1232,23 @@ abstract class DBD implements CRUD
      * Starts database transaction
      *
      * @return bool
-     * @throws DBDException
+     * @see DBD::_begin()
      */
     public function begin(): bool
     {
-        if ($this->inTransaction == true)
-            throw new DBDException("Already in transaction");
-
         $this->connectionPreCheck();
         $this->result = $this->_begin();
-        if ($this->result === false)
-            throw new DBDException("Can't start transaction: " . $this->_errorMessage());
 
-        $this->inTransaction = true;
-
-        return true;
+        return $this->result === true;
     }
 
     /**
      * @return bool true on success begin
-     * @see Pg::_begin
-     * @see MSSQL::_begin
-     * @see MySQL::_begin
-     * @see OData::_begin
-     * @see begin
+     * @see Pg::_begin()
+     * @see MSSQL::_begin()
+     * @see MySQL::_begin()
+     * @see OData::_begin()
+     * @see DBD::begin()
      */
     abstract protected function _begin(): bool;
 
@@ -1245,31 +1256,23 @@ abstract class DBD implements CRUD
      * Rolls back a transaction that was begun
      *
      * @return bool
-     * @throws DBDException
+     * @see DBD::_rollback()
      */
     public function rollback(): bool
     {
-        if ($this->inTransaction) {
-            $this->connectionPreCheck();
-            $this->result = $this->_rollback();
-            if ($this->result === false) {
-                throw new DBDException("Can not end transaction: " . $this->_errorMessage());
-            }
-        } else {
-            throw new DBDException("No transaction to rollback");
-        }
-        $this->inTransaction = false;
+        $this->connectionPreCheck();
+        $this->result = $this->_rollback();
 
-        return true;
+        return $this->result === true;
     }
 
     /**
      * @return bool true on successful rollback
-     * @see Pg::_rollback
-     * @see MSSQL::_rollback
-     * @see MySQL::_rollback
-     * @see OData::_rollback
-     * @see rollback
+     * @see Pg::_rollback()
+     * @see MSSQL::_rollback()
+     * @see MySQL::_rollback()
+     * @see OData::_rollback()
+     * @see DBD::rollback()
      */
     abstract protected function _rollback(): bool;
 
@@ -1286,33 +1289,19 @@ abstract class DBD implements CRUD
         if (!$this->isConnected()) {
             throw new DBDException("No connection established yet");
         }
-        if ($this->inTransaction) {
-            $this->result = $this->_commit();
-            if ($this->result === false)
-                throw new DBDException("Can not commit transaction: " . $this->_errorMessage());
-        } else {
-            throw new DBDException("No transaction to commit");
-        }
-        $this->inTransaction = false;
 
-        return true;
+        $this->result = $this->_commit();
+
+        return $this->result == true;
     }
 
     /**
      * @return bool true on success commit
-     * @see Pg::_commit
-     * @see MSSQL::_commit
-     * @see MySQL::_commit
-     * @see OData::_commit
-     * @see commit
+     * @see Pg::_commit()
+     * @see MSSQL::_commit()
+     * @see MySQL::_commit()
+     * @see OData::_commit()
+     * @see DBD::commit()
      */
     abstract protected function _commit(): bool;
-
-    /**
-     * @return bool
-     */
-    public function inTransaction(): bool
-    {
-        return $this->inTransaction;
-    }
 }

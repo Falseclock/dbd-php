@@ -1,5 +1,6 @@
 <?php
 /**
+ * PgTransactionTest
  * @note Tests of transactions
  *
  * @author    Nurlan Mukhanov <nurike@gmail.com>
@@ -59,28 +60,39 @@ class PgTransactionTest extends PgBaseTest
 
     /**
      * @throws DBDException
+     * @see Pg::commit()
+     * @see Pg::_commit()
      */
-    public function testCommitWithoutConnection()
+    public function testCommit()
     {
+        // Test commit without begin
         $this->db->disconnect();
-        self::expectException(DBDException::class);
-        $this->db->commit();
+        $this->assertException(DBDException::class, function () {
+            $this->db->commit();
+        }, "No connection established yet");
+
+        // Test normal case
+        $this->db->do("ROLLBACK");
+        self::assertTrue($this->db->begin());
+        self::assertTrue($this->db->commit());
+
+        // Test transaction fail state
+        self::assertTrue($this->db->begin());
+        $this->assertException(DBDException::class, function () {
+            /** @noinspection SqlResolve */
+            $this->db->do("SELECT * FROM unknown_table");
+        });
+        $this->assertException(DBDException::class, function () {
+            $this->db->commit();
+        }, "Commit not possible, in a failed transaction block");
+        $this->db->rollback();
+
     }
 
     /**
      * @throws DBDException
-     */
-    public function testCommitWithoutTransaction()
-    {
-        $this->options->setOnDemand(false);
-        $this->db->connect();
-        self::expectException(DBDException::class);
-        $this->db->commit();
-    }
-
-
-    /**
-     * @throws DBDException
+     * @see Pg::rollback()
+     * @see Pg::_rollback()
      */
     public function testRollback()
     {
@@ -100,16 +112,41 @@ class PgTransactionTest extends PgBaseTest
         self::assertTrue($this->db->rollback());
 
         // check table not exist
-        self::expectException(DBDException::class);
-        $this->db->do("SELECT 'test_rollback'::regclass");
+        $this->assertException(DBDException::class, function () {
+            $this->db->do("SELECT 'test_rollback'::regclass");
+        });
+
+        // Test normal case
+        self::assertTrue($this->db->begin());
+        self::assertTrue($this->db->rollback());
+
+        // Test transaction fail state
+        self::assertTrue($this->db->begin());
+        $this->db->do("ROLLBACK;");
+
+        $this->assertException(DBDException::class, function () {
+            $this->db->rollback();
+        }, "There is no transaction in progress");
     }
 
     /**
      * @throws DBDException
+     * @see Pg::_inTransaction()
+     * @see Pg::inTransaction()
      */
-    public function testRollbackWithoutBegin()
+    public function testInTransaction()
     {
-        self::expectException(DBDException::class);
+        self::assertFalse($this->db->inTransaction());
+        $this->db->begin();
+        self::assertTrue($this->db->inTransaction());
         $this->db->rollback();
+
+        self::assertFalse($this->db->inTransaction());
+
+        $this->db->begin();
+        self::assertTrue($this->db->inTransaction());
+        $this->db->commit();
+        self::assertFalse($this->db->inTransaction());
+
     }
 }

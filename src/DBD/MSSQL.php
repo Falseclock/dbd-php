@@ -252,4 +252,9 @@ class MSSQL extends DBD
     {
         // TODO: Implement replaceBind() method.
     }
+
+    protected function _inTransaction(): bool
+    {
+        // TODO: Implement inTransaction() method.
+    }
 }
