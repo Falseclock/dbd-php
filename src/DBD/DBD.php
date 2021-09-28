@@ -12,7 +12,6 @@ declare(strict_types=1);
 
 namespace DBD;
 
-use DateInterval;
 use DBD\Base\Bind;
 use DBD\Base\CacheHolder;
 use DBD\Base\Config;
@@ -98,11 +97,12 @@ abstract class DBD implements CRUD
      * ```
      *
      * @param string $key
-     * @param int|float|DateInterval|string $ttl
+     * @param null $ttl
      *
+     * @return DBD
      * @throws DBDException
      */
-    public function cache(string $key, $ttl = null)
+    public function cache(string $key, $ttl = null): DBD
     {
         if (isset($this->Config->cacheDriver)) {
 
@@ -119,6 +119,8 @@ abstract class DBD implements CRUD
                 throw new DBDException("Caching setup failed, current query is not of SELECT type");
             }
         }
+
+        return $this;
     }
 
     /**
@@ -227,9 +229,9 @@ abstract class DBD implements CRUD
         if (!func_num_args())
             throw new DBDException("query failed: statement is not set or empty");
 
-        [$statement, $args] = Helper::prepareArgs(func_get_args());
+        $prepare = Helper::prepareArguments(func_get_args());
 
-        $sth = $this->query($statement, $args);
+        $sth = $this->query($prepare->statement, $prepare->arguments);
         $this->result = $sth->result;
 
         return $sth->rows();
@@ -258,11 +260,11 @@ abstract class DBD implements CRUD
     public function query(): DBD
     {
         if (!func_num_args())
-            throw new DBDException("query failed: statement is not set or empty");
+            throw new DBDException("query statement is not set or empty");
 
-        [$statement, $args] = Helper::prepareArgs(func_get_args());
+        $prepare = Helper::prepareArguments(func_get_args());
 
-        return $this->prepare($statement)->execute($args);
+        return $this->prepare($prepare->statement)->execute($prepare->arguments);
     }
 
     /**
@@ -325,7 +327,7 @@ abstract class DBD implements CRUD
                     if (!$this->_prepareNamed((string)$uniqueName, $preparedQuery))
                         throw new DBDException ($this->_errorMessage(), $preparedQuery);
                 }
-                $this->result = $this->_executeNamed($uniqueName, Helper::parseArgs($executeArguments));
+                $this->result = $this->_executeNamed($uniqueName, Helper::parseArguments($executeArguments));
             } else {
                 // Execute query to the database
                 $this->result = $this->_query($preparedQuery);
@@ -335,7 +337,7 @@ abstract class DBD implements CRUD
             $cost = Debug::me()->endTimer();
 
             if (is_null($this->result))
-                throw new DBDException ($this->_errorMessage(), $preparedQuery, $this->Options->isPrepareExecute() ? Helper::parseArgs($executeArguments) : null);
+                throw new DBDException ($this->_errorMessage(), $preparedQuery, $this->Options->isPrepareExecute() ? Helper::parseArguments($executeArguments) : null);
 
             $this->storage = self::STORAGE_DATABASE;
 
@@ -349,7 +351,7 @@ abstract class DBD implements CRUD
                 // Setting up our cache
                 try {
                     $this->Config->cacheDriver->set($this->CacheHolder->key, $this->CacheHolder->result, $this->CacheHolder->expire);
-                } catch (Exception | InvalidArgumentException | Throwable $e) {
+                } catch (InvalidArgumentException | Throwable $e) {
                     throw new DBDException("Failed to store in cache: {$e->getMessage()}", $preparedQuery);
                 }
             }
@@ -392,7 +394,7 @@ abstract class DBD implements CRUD
 
         $preparedQuery = $this->query;
         $binds = substr_count($this->query, $placeHolder);
-        $executeArguments = Helper::parseArgs($ARGS);
+        $executeArguments = Helper::parseArguments($ARGS);
 
         $numberOfArgs = count($executeArguments);
 

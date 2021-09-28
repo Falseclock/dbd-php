@@ -13,6 +13,7 @@ namespace DBD\Base;
 
 use DBD\Common\DBDException;
 use DBD\DBD;
+use DBD\Utils\PrepareArguments;
 use DBD\Utils\UpdateArguments;
 use Exception;
 use ReflectionClass;
@@ -227,9 +228,9 @@ final class Helper
     /**
      * @param array $ARGS
      *
-     * @return array
+     * @return PrepareArguments
      */
-    final public static function prepareArgs(array $ARGS): array
+    final public static function prepareArguments(array $ARGS): PrepareArguments
     {
         if (count($ARGS) == 1 and is_array($ARGS[0])) {
             $ARGS = $ARGS[0];
@@ -237,12 +238,9 @@ final class Helper
         // Shift query from passed arguments. Query is always first
         $statement = array_shift($ARGS);
         // Build array of arguments
-        $args = self::parseArgs($ARGS);
+        $args = self::parseArguments($ARGS);
 
-        return [
-            $statement,
-            $args,
-        ];
+        return new PrepareArguments($statement, $args);
     }
 
     /**
@@ -250,7 +248,7 @@ final class Helper
      *
      * @return array
      */
-    final public static function parseArgs(array $ARGS): array
+    final public static function parseArguments(array $ARGS): array
     {
         $args = [];
 

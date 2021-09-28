@@ -56,7 +56,6 @@ class PgRowsTest extends PgAbstractTest
         }
     }
 
-
     /**
      * @throws DBDException
      * @noinspection SqlResolve
@@ -66,28 +65,32 @@ class PgRowsTest extends PgAbstractTest
     {
         $sth = $this->db->query("SELECT 1 UNION SELECT 2 UNION SELECT 3");
         self::assertSame(3, $sth->rows());
+        $sth->cache(__METHOD__ . __LINE__)->execute();
+        self::assertSame(3, $sth->rows());
 
         $sth = $this->db->query("SELECT 1");
+        self::assertSame(1, $sth->rows());
+        $sth->cache(__METHOD__ . __LINE__)->execute();
         self::assertSame(1, $sth->rows());
 
         $sth = $this->db->query("DROP TABLE IF EXISTS fake_table");
         self::assertSame(0, $sth->rows());
 
-        $sth = $this->db->prepare("SELECT 1 UNION SELECT 2 UNION SELECT 3");
-        $sth->execute();
+        $sth = $this->db->prepare("SELECT 1 UNION SELECT 2 UNION SELECT 3")->execute();
+        self::assertSame(3, $sth->rows());
+        $sth->cache(__METHOD__ . __LINE__)->execute();
         self::assertSame(3, $sth->rows());
 
-        $sth = $this->db->prepare("SELECT 1");
-        $sth->execute();
+        $sth = $this->db->prepare("SELECT 1")->execute();
+        self::assertSame(1, $sth->rows());
+        $sth->cache(__METHOD__ . __LINE__)->execute();
         self::assertSame(1, $sth->rows());
 
-        $sth = $this->db->prepare("DROP TABLE IF EXISTS fake_table");
-        $sth->execute();
+        $sth = $this->db->prepare("DROP TABLE IF EXISTS fake_table")->execute();
         self::assertSame(0, $sth->rows());
 
         // Test through prepare
-        $sth = $this->db->prepare("CREATE TEMPORARY TABLE test_rows AS SELECT test, MD5(random()::text) from generate_series(1,10) test");
-        $sth->execute();
+        $sth = $this->db->prepare("CREATE TEMPORARY TABLE test_rows AS SELECT test, MD5(random()::text) from generate_series(1,10) test")->execute();
         self::assertSame(10, $sth->rows());
         self::assertSame(0, $this->db->do("DROP TABLE test_rows"));
 
@@ -100,8 +103,9 @@ class PgRowsTest extends PgAbstractTest
         self::assertSame(10, $sth->rows());
 
         // Test through prepare
-        $sth = $this->db->prepare("SELECT * FROM test_rows");
-        $sth->execute();
+        $sth = $this->db->prepare("SELECT * FROM test_rows")->execute();
+        self::assertSame(10, $sth->rows());
+        $sth->cache(__METHOD__ . __LINE__)->execute();
         self::assertSame(10, $sth->rows());
 
         // Test through do
@@ -109,6 +113,8 @@ class PgRowsTest extends PgAbstractTest
 
         // Test through query
         $sth = $this->db->query("SELECT * FROM test_rows");
+        self::assertSame(10, $sth->rows());
+        $sth->cache(__METHOD__ . __LINE__)->execute();
         self::assertSame(10, $sth->rows());
 
         // -------------- UPDATE --------------
