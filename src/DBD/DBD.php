@@ -28,6 +28,7 @@ use DBD\Entity\Entity;
 use DBD\Entity\Primitive;
 use DBD\Tests\Pg\PgRowsTest;
 use DBD\Tests\Pg\PgTransactionTest;
+use DBD\Utils\UpdateArguments;
 use Exception;
 use Psr\SimpleCache\InvalidArgumentException;
 use ReflectionClass;
@@ -1055,7 +1056,7 @@ abstract class DBD implements CRUD
         $values = $ARGS[1];
         $numberOfArguments = func_num_args();
 
-        $params = Helper::compileUpdateArgs($values, $this);
+        $updateArguments = Helper::compileUpdateArgs($values, $this);
 
         if ($numberOfArguments > 2) {
             $where = $ARGS[2];
@@ -1077,11 +1078,11 @@ abstract class DBD implements CRUD
                             if (!is_scalar($argument)) {
                                 throw new DBDException("Execute arguments for WHERE condition is not scalar");
                             }
-                            $params['ARGS'][] = $argument;
+                            $updateArguments->arguments[] = $argument;
                             $placeholdersCount--;
                         }
                     } else {
-                        $params['ARGS'][] = $ARGS[$lastCheckedArgument];
+                        $updateArguments->arguments[] = $ARGS[$lastCheckedArgument];
                         $placeholdersCount--;
                     }
                 }
@@ -1092,13 +1093,13 @@ abstract class DBD implements CRUD
             }
         }
 
-        return $this->query($this->_compileUpdate($table, $params, $where, $return), $params['ARGS']);
+        return $this->query($this->_compileUpdate($table, $updateArguments, $where, $return), $updateArguments->arguments);
     }
 
     /**
      * @param string $table
-     * @param array $params
-     * @param string $where
+     * @param UpdateArguments $updateArguments
+     * @param string|null $where
      * @param string|null $return
      *
      * @return mixed
@@ -1108,7 +1109,7 @@ abstract class DBD implements CRUD
      * @see MySQL::_compileUpdate
      * @see OData::_compileUpdate
      */
-    abstract protected function _compileUpdate(string $table, array $params, string $where, ?string $return = ""): string;
+    abstract protected function _compileUpdate(string $table, UpdateArguments $updateArguments, ?string $where, ?string $return = null): string;
 
     /**
      * Common usage when you have an Entity object with filled primary key only and want to fetch all available data

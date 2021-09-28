@@ -21,6 +21,7 @@ use DBD\Entity\Common\EntityException;
 use DBD\Entity\Entity;
 use DBD\Entity\Primitive;
 use DBD\Utils\OData\Metadata;
+use DBD\Utils\UpdateArguments;
 use Throwable;
 
 class OData extends DBD
@@ -515,7 +516,7 @@ class OData extends DBD
         throw new DBDException("OData doesn't not support transactions");
     }
 
-    protected function _compileUpdate(string $table, array $params, string $where, ?string $return = ""): string
+    protected function _compileUpdate(string $table, UpdateArguments $updateArguments, ?string $where = null, ?string $return = null): string
     {
 
     }

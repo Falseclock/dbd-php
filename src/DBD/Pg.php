@@ -18,6 +18,7 @@ use DBD\Common\DBDException;
 use DBD\Entity\Primitive;
 use DBD\Tests\Pg\PgQueryTest;
 use DBD\Tests\Pg\PgTransactionTest;
+use DBD\Utils\UpdateArguments;
 use Exception;
 use Throwable;
 
@@ -216,25 +217,26 @@ class Pg extends DBD
      *
      * @return string
      */
-    protected function _compileInsert(string $table, array $params, ?string $return = ""): string
+    protected function _compileInsert(string $table, array $params, ?string $return = null): string
     {
-        return "INSERT INTO $table ({$params['COLUMNS']}) VALUES ({$params['VALUES']})" . ($return ? " RETURNING {$return}" : "");
+        return sprintf("INSERT INTO %s (%s) VALUES (%s)", $table, $params['COLUMNS'], $params['VALUES']) . ($return ?? sprintf(" RETURNING %s", $return));
     }
 
     /**
      * Compiles UPDATE query
      *
      * @param string $table
-     * @param array $params
-     * @param string $where
+     * @param UpdateArguments $updateArguments
+     * @param string|null $where
      * @param string|null $return
      *
      * @return string
+     * @inheritdoc
+     * @noinspection SqlWithoutWhere
      */
-    protected function _compileUpdate(string $table, array $params, string $where, ?string $return = ""): string
+    protected function _compileUpdate(string $table, UpdateArguments $updateArguments, ?string $where = null, ?string $return = null): string
     {
-        /** @noinspection SqlWithoutWhere */
-        return "UPDATE $table SET {$params['COLUMNS']}" . ($where ? " WHERE $where" : "") . ($return ? " RETURNING {$return}" : "");
+        return "UPDATE " . $table . " SET " . $updateArguments->columns . ($where ?? sprintf(" WHERE %s", $where)) . ($return ?? sprintf(" RETURNING %s", $return));
     }
 
     /**
@@ -326,7 +328,7 @@ class Pg extends DBD
 
         $showHeader = $showHeader ? 'true' : 'false';
 
-        if ($this->_query("COPY ($preparedQuery) TO '{$file}' (FORMAT csv, DELIMITER  E'{$delimiter}', NULL  E'$nullString', HEADER {$showHeader})") === false)
+        if ($this->_query("COPY ($preparedQuery) TO '$file' (FORMAT csv, DELIMITER  E'$delimiter', NULL  E'$nullString', HEADER $showHeader)") === false)
             throw new DBDException ($this->_errorMessage(), $preparedQuery);
 
         return $file;
@@ -349,18 +351,18 @@ class Pg extends DBD
      * @param $uniqueName
      * @param $arguments
      *
-     * @return mixed|null
+     * @return resource|null
      * @inheritDoc
      */
     protected function _executeNamed($uniqueName, $arguments)
     {
         try {
-            $return = pg_execute($this->resourceLink, (string)$uniqueName, $arguments);
+            $resource = pg_execute($this->resourceLink, (string) $uniqueName, $arguments);
         } catch (Exception $e) {
             return null;
         }
 
-        return $return ?: null;
+        return $resource ?: null;
     }
 
     /**
@@ -371,7 +373,7 @@ class Pg extends DBD
      */
     protected function _fetchArray()
     {
-        return pg_fetch_array($this->result, 0, PGSQL_NUM);
+        return pg_fetch_array($this->result, 0, PGSQL_NUM) ?: false;
     }
 
     /**
@@ -382,7 +384,7 @@ class Pg extends DBD
      */
     protected function _fetchAssoc()
     {
-        return pg_fetch_assoc($this->result);
+        return pg_fetch_assoc($this->result) ?: false;
     }
 
     /**
@@ -445,7 +447,7 @@ class Pg extends DBD
      */
     private function _replaceBind($name, $value, $subject)
     {
-        return preg_replace('~' . $name . '(::\w+)?(\s|\t|]|\))~', "{$value}$1$2", $subject);
+        return preg_replace('~' . $name . '(::\w+)?(\s|\t|]|\))~', sprintf("%s$1$2",$value), $subject);
     }
 
     /**
@@ -462,7 +464,7 @@ class Pg extends DBD
     }
 
     /**
-     * Escapes a string for querying the database.
+     * Escapes a string for query
      *
      * @param mixed $string
      * @inheritDoc

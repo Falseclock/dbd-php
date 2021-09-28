@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace DBD;
 
 use DBD\Base\Bind;
+use DBD\Utils\UpdateArguments;
 
 /**
  * Class MySQL
@@ -56,9 +57,9 @@ class MySQL extends DBD
         return "INSERT INTO $table ({$params['COLUMNS']}) VALUES ({$params['VALUES']})";
     }
 
-    protected function _compileUpdate(string $table, array $params, string $where, ?string $return = ""): string
+    protected function _compileUpdate(string $table, UpdateArguments $updateArguments, ?string $where = null, ?string $return = null): string
     {
-        return "UPDATE $table SET {$params['COLUMNS']}" . ($where ? " WHERE $where" : "");
+        return "UPDATE $table SET {$updateArguments['COLUMNS']}" . ($where ? " WHERE $where" : "");
     }
 
     protected function _connect(): void

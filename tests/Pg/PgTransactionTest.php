@@ -26,6 +26,8 @@ class PgTransactionTest extends PgAbstractTest
     public function testBegin()
     {
         // Test successful begin
+        if ($this->db->inTransaction())
+            $this->db->rollback();
         $this->db->disconnect();
 
         self::assertTrue($this->db->begin());

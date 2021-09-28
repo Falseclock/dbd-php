@@ -15,6 +15,7 @@ namespace DBD;
 
 use DBD\Base\Bind;
 use DBD\Common\DBDException as Exception;
+use DBD\Utils\UpdateArguments;
 
 /**
  * Class MSSQL
@@ -106,9 +107,9 @@ class MSSQL extends DBD
         return "INSERT INTO $table ({$params['COLUMNS']}) VALUES ({$params['VALUES']})";
     }
 
-    protected function _compileUpdate(string $table, array $params, string $where, ?string $return = ""): string
+    protected function _compileUpdate(string $table, UpdateArguments $updateArguments, ?string $where = null, ?string $return = null): string
     {
-        return "UPDATE $table SET {$params['COLUMNS']}" . ($where ? " WHERE $where" : "");
+        return "UPDATE $table SET {$updateArguments['COLUMNS']}" . ($where ? " WHERE $where" : "");
     }
 
     protected function _convertTypes(&$data): void
