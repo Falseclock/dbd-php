@@ -26,6 +26,7 @@ use DBD\Entity\Common\EntityException;
 use DBD\Entity\Constraint;
 use DBD\Entity\Entity;
 use DBD\Entity\Primitive;
+use DBD\Tests\Pg\PgTransactionTest;
 use Exception;
 use Psr\SimpleCache\InvalidArgumentException;
 use ReflectionClass;
@@ -1277,6 +1278,8 @@ abstract class DBD implements CRUD
      *
      * @return bool
      * @throws DBDException
+     * @see PgTransactionTest::testCommitWithoutConnection()
+     * @see PgTransactionTest::testCommitWithoutTransaction()
      */
     public function commit(): bool
     {

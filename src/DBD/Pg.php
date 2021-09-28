@@ -16,6 +16,7 @@ namespace DBD;
 use DBD\Base\Bind;
 use DBD\Common\DBDException;
 use DBD\Entity\Primitive;
+use DBD\Tests\Pg\PgTransactionTest;
 use Exception;
 
 /**
@@ -80,11 +81,27 @@ class Pg extends DBD
      * Sends BEGIN; command
      *
      * @return bool
+     * @throws DBDException
+     * @inheritdoc
+     * @see PgTransactionTest::testBegin()
      */
     protected function _begin(): bool
     {
-        return $this->_query("BEGIN") != null;
+        switch (pg_transaction_status($this->resourceLink)) {
+            case PGSQL_TRANSACTION_IDLE:
+                return $this->_query("BEGIN") != null;
+            case PGSQL_TRANSACTION_INTRANS:
+                throw new DBDException ("Connection is idle, in a valid transaction block");
+            case PGSQL_TRANSACTION_INERROR:
+                throw new DBDException ("Connection is idle, in a failed transaction block");
+            // @codeCoverageIgnoreStart
+            case PGSQL_TRANSACTION_ACTIVE:
+                throw new DBDException ("Transaction command is in progress and not yet completed");
+            case PGSQL_TRANSACTION_UNKNOWN:
+                throw new DBDException ("Transaction state is unknown");
+        }
     }
+    // @codeCoverageIgnoreEnd
 
     /**
      *

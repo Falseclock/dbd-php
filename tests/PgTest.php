@@ -96,21 +96,7 @@ class PgTest extends TestCase
         $this->db->query("SELECT * FROM unknown_TABLE");
     }
 
-    /**
-     * @throws DBDException
-     */
-    public function testBegin()
-    {
-        self::assertTrue($this->db->begin());
-        $sth = $this->db->prepare("SELECT version()");
-        $sth->execute();
-        self::assertTrue($this->db->commit());
 
-        self::assertTrue($this->db->begin());
-        self::expectException(DBDException::class);
-
-        $this->db->begin();
-    }
 
     /**
      * @throws DBDException
@@ -149,26 +135,7 @@ class PgTest extends TestCase
         $sth->cache(__METHOD__);
     }
 
-    /**
-     * @throws DBDException
-     */
-    public function testCommitWithoutConnection()
-    {
-        $this->db->disconnect();
-        self::expectException(DBDException::class);
-        $this->db->commit();
-    }
 
-    /**
-     * @throws DBDException
-     */
-    public function testCommitWithoutTransaction()
-    {
-        $this->options->setOnDemand(false);
-        $this->db->connect();
-        self::expectException(DBDException::class);
-        $this->db->commit();
-    }
 
     /**
      * @throws DBDException
@@ -1048,39 +1015,6 @@ class PgTest extends TestCase
         $this->db->query();
     }
 
-    /**
-     * @throws DBDException
-     */
-    public function testRollback()
-    {
-        // starting transaction
-        self::assertTrue($this->db->begin());
-
-        // create table
-        self::assertSame(0, $this->db->do("CREATE TABLE test_rollback (id INT)"));
-
-        // check table is created
-        $sth = $this->db->prepare("SELECT 'public.test_rollback'::regclass");
-        self::assertInstanceOf(Pg::class, $sth);
-        self::assertIsResource($sth->execute());
-        self::assertSame("test_rollback", $sth->fetch());
-
-        // rollback
-        self::assertTrue($this->db->rollback());
-
-        // check table not exist
-        self::expectException(DBDException::class);
-        $this->db->do("SELECT 'public.test_rollback'::regclass");
-    }
-
-    /**
-     * @throws DBDException
-     */
-    public function testRollbackWithoutBegin()
-    {
-        self::expectException(DBDException::class);
-        $this->db->rollback();
-    }
 
     /**
      * @throws DBDException
