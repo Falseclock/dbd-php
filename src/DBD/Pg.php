@@ -22,11 +22,6 @@ use DBD\Utils\UpdateArguments;
 use Exception;
 use Throwable;
 
-/**
- * Class Pg
- *
- * @package DBD
- */
 class Pg extends DBD
 {
     const CAST_FORMAT_INSERT = "?::%s";

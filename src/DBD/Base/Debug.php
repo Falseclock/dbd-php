@@ -14,11 +14,6 @@ namespace DBD\Base;
 use DBD\Common\Instantiatable;
 use DBD\Common\Singleton;
 
-/**
- * Class Debug
- *
- * @package DBD\Base
- */
 final class Debug extends Singleton
 {
 	/** @var float $maxExecutionTime in milliseconds */

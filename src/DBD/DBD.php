@@ -33,11 +33,6 @@ use Psr\SimpleCache\InvalidArgumentException;
 use ReflectionClass;
 use Throwable;
 
-/**
- * Class DBD
- *
- * @package DBD
- */
 abstract class DBD implements CRUD
 {
     const CSV_EXTENSION = "csv";

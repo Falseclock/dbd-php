@@ -21,11 +21,6 @@ use DBD\Entity\Key;
 use DBD\Entity\Primitive;
 use DBD\Entity\Table;
 
-/**
- * Class PgUtils
- *
- * @package DBD\Common
- */
 class PgUtils extends Utils
 {
 	/** @var DBD $db */

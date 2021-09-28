@@ -15,10 +15,6 @@ namespace DBD;
 use DateInterval;
 use Psr\SimpleCache\CacheInterface;
 
-/**
- * Class Cache
- * @package DBD
- */
 abstract class Cache implements CacheInterface
 {
     const DEFAULT_TTL = 10;

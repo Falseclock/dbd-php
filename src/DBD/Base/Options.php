@@ -12,11 +12,6 @@ declare(strict_types = 1);
 
 namespace DBD\Base;
 
-/**
- * Class Options
- *
- * @package DBD\Base
- */
 final class Options
 {
 	/** @var null $applicationName connection identity */

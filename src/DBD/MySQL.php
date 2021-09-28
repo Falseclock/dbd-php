@@ -16,11 +16,6 @@ namespace DBD;
 use DBD\Base\Bind;
 use DBD\Utils\UpdateArguments;
 
-/**
- * Class MySQL
- *
- * @package DBD
- */
 class MySQL extends DBD
 {
     /**

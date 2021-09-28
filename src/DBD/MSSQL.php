@@ -17,11 +17,6 @@ use DBD\Base\Bind;
 use DBD\Common\DBDException as Exception;
 use DBD\Utils\UpdateArguments;
 
-/**
- * Class MSSQL
- *
- * @package DBD
- */
 class MSSQL extends DBD
 {
     const SQLSRV_CURSOR_CLIENT_BUFFERED = 'buffered';

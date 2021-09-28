@@ -12,11 +12,6 @@ declare(strict_types = 1);
 
 namespace DBD\Base;
 
-/**
- * Class Query
- *
- * @package DBD\Base
- */
 final class Query
 {
 	/**
