@@ -16,8 +16,10 @@ namespace DBD;
 use DBD\Base\Bind;
 use DBD\Common\DBDException;
 use DBD\Entity\Primitive;
+use DBD\Tests\Pg\PgQueryTest;
 use DBD\Tests\Pg\PgTransactionTest;
 use Exception;
+use Throwable;
 
 /**
  * Class Pg
@@ -125,21 +127,18 @@ class Pg extends DBD
     }
 
     /**
-     *
-     * @inheritDoc
      * @param $statement
      *
      * @return resource|null
+     * @inheritDoc
+     * @see PgQueryTest
      */
     protected function _query($statement)
     {
-        $return = null;
-
         try {
-            $return = pg_query($this->resourceLink, $statement);
-        } catch (Exception $e) {
-        } finally {
-            return $return ?: null;
+            return pg_query($this->resourceLink, $statement);
+        } catch (Throwable $e) {
+            return null;
         }
     }
 

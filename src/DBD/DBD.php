@@ -487,11 +487,11 @@ abstract class DBD implements CRUD
      * @param $statement
      *
      * @return mixed|null
-     * @see Pg::_query
-     * @see MSSQL::_query
-     * @see MySQL::_query
-     * @see OData::_query
-     * @see execute
+     * @see Pg::_query()
+     * @see MSSQL::_query()
+     * @see MySQL::_query()
+     * @see OData::_query()
+     * @see DBD::execute()
      */
     abstract protected function _query($statement);
 
