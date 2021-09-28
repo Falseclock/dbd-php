@@ -60,13 +60,15 @@ class Pg extends DBD
      *
      * @return void
      * @throws DBDException
+     * @see PgConnectionTest
      */
     protected function _connect(): void
     {
-        $this->resourceLink = pg_connect($this->Config->getDsn());
-
-        if (!$this->resourceLink)
-            throw new DBDException("Can not connect to PostgreSQL server! ");
+        try {
+            $this->resourceLink = pg_connect($this->Config->getDsn());
+        } catch (Throwable $t) {
+            throw new DBDException($t->getMessage());
+        }
     }
 
     /**
@@ -304,6 +306,7 @@ class Pg extends DBD
      * Closes the non-persistent connection to a PostgreSQL database associated with the given connection resource
      *
      * @return bool
+     * @see PgConnectionTest
      */
     protected function _disconnect(): bool
     {

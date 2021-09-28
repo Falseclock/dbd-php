@@ -137,18 +137,6 @@ class PgTest extends TestCase
 
 
 
-    /**
-     * @throws DBDException
-     */
-    public function testConnect()
-    {
-        $this->db->disconnect();
-        self::assertInstanceOf(Pg::class, $this->db->connect());
-        $this->db->disconnect();
-
-        $this->db->getOptions()->setOnDemand(!$this->db->getOptions()->isOnDemand());
-        self::assertInstanceOf(Pg::class, $this->db->connect());
-    }
 
     public function testConstructWithoutOptions()
     {
@@ -156,18 +144,6 @@ class PgTest extends TestCase
         self::assertNotNull($db->getOptions());
     }
 
-    /**
-     * @throws DBDException
-     */
-    public function testDisconnect()
-    {
-        $this->db->do("SELECT 1");
-        self::assertInstanceOf(Pg::class, $this->db->disconnect());
-        self::assertInstanceOf(Pg::class, $this->db->disconnect());
-        $this->db->begin();
-        self::expectException(DBDException::class);
-        $this->db->disconnect();
-    }
 
     /**
      * @throws DBDException
