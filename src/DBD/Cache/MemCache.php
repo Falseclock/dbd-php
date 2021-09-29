@@ -155,7 +155,7 @@ class MemCache extends Cache
      */
     public function set($key, $value, $ttl = null): bool
     {
-        return $this->link->set($key, $value, $this->useCompression, $this->getTtl($ttl));
+        return $this->link->set($key, $value, $this->useCompression ? MEMCACHE_COMPRESSED : 0, $this->getTtl($ttl));
     }
 
     /**

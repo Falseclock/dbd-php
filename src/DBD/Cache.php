@@ -18,11 +18,11 @@ use Psr\SimpleCache\CacheInterface;
 abstract class Cache implements CacheInterface
 {
     const DEFAULT_TTL = 10;
-    /** @var bool $useCompression if caching server supports compression */
+    /** @var bool If caching server supports compression */
     public $useCompression = false;
-    /** @var int $defaultTtl */
+    /** @var int */
     public $defaultTtl = self::DEFAULT_TTL;
-    /** @var array Server list with variable options */
+    /** @var array Servers list with variable options */
     public $servers = null;
 
     /**
