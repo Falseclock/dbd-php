@@ -8,25 +8,26 @@
  * @link      https://github.com/Falseclock/dbd-php
  */
 
-declare(strict_types = 1);
+declare(strict_types=1);
 
 namespace DBD\Base;
 
 class CacheHolder
 {
-	/** @var mixed */
-	public $expire = null;
-	/** @var string */
-	public $key = null;
-	/** @var mixed */
-	public $result = null;
+    /** @var mixed */
+    public $expire = null;
+    /** @var string */
+    public $key = null;
+    /** @var mixed */
+    public $result = null;
 
-	/**
-	 * CacheHolder constructor.
-	 *
-	 * @param string $key
-	 */
-	public function __construct(string $key) {
-		$this->key = $key;
-	}
+    /**
+     * CacheHolder constructor.
+     *
+     * @param string $key
+     */
+    public function __construct(string $key)
+    {
+        $this->key = $key;
+    }
 }

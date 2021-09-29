@@ -1,34 +1,21 @@
-<?php /** @noinspection PhpComposerExtensionStubsInspection */
+<?php
+/**
+ * MemCache
+ *
+ * @noinspection PhpComposerExtensionStubsInspection
+ * @author    Nurlan Mukhanov <nurike@gmail.com>
+ * @copyright 2020 Nurlan Mukhanov
+ * @license   https://en.wikipedia.org/wiki/MIT_License MIT License
+ * @link      https://github.com/Falseclock/dbd-php
+ */
 
-/*************************************************************************************
- *   MIT License                                                                     *
- *                                                                                   *
- *   Copyright (C) 2009-2019 by Nurlan Mukhanov <nurike@gmail.com>                   *
- *                                                                                   *
- *   Permission is hereby granted, free of charge, to any person obtaining a copy    *
- *   of this software and associated documentation files (the "Software"), to deal   *
- *   in the Software without restriction, including without limitation the rights    *
- *   to use, copy, modify, merge, publish, distribute, sublicense, and/or sell       *
- *   copies of the Software, and to permit persons to whom the Software is           *
- *   furnished to do so, subject to the following conditions:                        *
- *                                                                                   *
- *   The above copyright notice and this permission notice shall be included in all  *
- *   copies or substantial portions of the Software.                                 *
- *                                                                                   *
- *   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR      *
- *   IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,        *
- *   FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT. IN NO EVENT SHALL THE    *
- *   AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER          *
- *   LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,   *
- *   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE   *
- *   SOFTWARE.                                                                       *
- ************************************************************************************/
+declare(strict_types=1);
 
 namespace DBD\Cache;
 
 use DateInterval;
 use DBD\Cache;
-use Exception;
+use DBD\Common\DBDException;
 
 class MemCache extends Cache
 {
@@ -81,11 +68,11 @@ class MemCache extends Cache
      * @param iterable $keys A list of string-based keys to be deleted.
      *
      * @return void True if the items were successfully removed. False if there was an error.
-     * @throws Exception
+     * @throws DBDException
      */
     public function deleteMultiple($keys)
     {
-        throw new Exception("Not supported method");
+        throw new DBDException("Not supported method");
     }
 
     /**
@@ -132,11 +119,11 @@ class MemCache extends Cache
      * @param mixed $default Default value to return for keys that do not exist.
      *
      * @return void A list of key => value pairs. Cache keys that do not exist or are stale will have $default as value.
-     * @throws Exception
+     * @throws DBDException
      */
     public function getMultiple($keys, $default = null)
     {
-        throw new Exception("Not supported method");
+        throw new DBDException("Not supported method");
     }
 
     /**
@@ -180,10 +167,10 @@ class MemCache extends Cache
      *                                       for it or let the driver take care of that.
      *
      * @return void True on success and false on failure.
-     * @throws Exception
+     * @throws DBDException
      */
     public function setMultiple($values, $ttl = null)
     {
-        throw new Exception("Not supported method");
+        throw new DBDException("Not supported method");
     }
 }

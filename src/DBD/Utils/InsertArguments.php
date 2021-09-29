@@ -14,11 +14,11 @@ namespace DBD\Utils;
 
 final class InsertArguments
 {
-    /** @var array  */
+    /** @var array */
     public $columns;
-    /** @var array  */
+    /** @var array */
     public $values;
-    /** @var array  */
+    /** @var array */
     public $arguments;
 
     public function __construct(array $columns, array $values, array $arguments)

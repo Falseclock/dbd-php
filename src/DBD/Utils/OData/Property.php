@@ -20,7 +20,8 @@ class Property
     public $type;
     public $nullable = true;
 
-    public function __construct(stdClass $property) {
+    public function __construct(stdClass $property)
+    {
 
         $this->name = $property->{'@attributes'}->Name;
         $this->type = $property->{'@attributes'}->Type;

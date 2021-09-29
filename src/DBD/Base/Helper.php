@@ -9,6 +9,8 @@
  * @noinspection PhpComposerExtensionStubsInspection
  */
 
+declare(strict_types=1);
+
 namespace DBD\Base;
 
 use DBD\Common\DBDException;

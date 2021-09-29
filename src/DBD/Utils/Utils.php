@@ -8,7 +8,7 @@
  * @link      https://github.com/Falseclock/dbd-php
  */
 
-declare(strict_types = 1);
+declare(strict_types=1);
 
 namespace DBD\Utils;
 
@@ -17,33 +17,34 @@ use DBD\Entity\Table;
 
 abstract class Utils implements UtilsInterface
 {
-	/**
-	 * Returns structure of table
-	 *
-	 * @param string $tableName
-	 * @param string $schemeName
-	 *
-	 * @return Table
-	 * @throws DBDException
-	 */
-	public abstract function tableStructure(string $tableName, string $schemeName): Table;
+    /**
+     * Returns structure of table
+     *
+     * @param string $tableName
+     * @param string $schemeName
+     *
+     * @return Table
+     * @throws DBDException
+     */
+    public abstract function tableStructure(string $tableName, string $schemeName): Table;
 
-	/**
-	 * Converts to Camel Case
-	 *
-	 * @param       $string
-	 * @param bool  $capitalizeFirstCharacter
-	 * @param array $search
-	 *
-	 * @return string
-	 */
-	public static function toCamelCase($string, $capitalizeFirstCharacter = false, array $search = [ '_' ]) {
-		$str = str_replace($search, '', ucwords($string, implode("", $search)));
+    /**
+     * Converts to Camel Case
+     *
+     * @param       $string
+     * @param bool $capitalizeFirstCharacter
+     * @param array $search
+     *
+     * @return string
+     */
+    public static function toCamelCase($string, $capitalizeFirstCharacter = false, array $search = ['_'])
+    {
+        $str = str_replace($search, '', ucwords($string, implode("", $search)));
 
-		if(!$capitalizeFirstCharacter) {
-			$str = lcfirst($str);
-		}
+        if (!$capitalizeFirstCharacter) {
+            $str = lcfirst($str);
+        }
 
-		return $str;
-	}
+        return $str;
+    }
 }

@@ -8,7 +8,7 @@
  * @link      https://github.com/Falseclock/dbd-php
  */
 
-declare(strict_types = 1);
+declare(strict_types=1);
 
 namespace DBD\Common;
 
@@ -17,85 +17,89 @@ use Throwable;
 
 class DBDException extends Exception
 {
-	/** @var array $arguments */
-	protected $arguments;
-	/** @var int $code */
-	protected $code;
-	/** @var string $file */
-	protected $file;
-	/** @var array $fullTrace */
-	protected $fullTrace;
-	/** @var int $line */
-	protected $line;
-	/** @var string $message */
-	protected $message;
-	/** @var string $query */
-	protected $query;
-	/** @var array $shortTrace */
-	protected $shortTrace;
-	/** @var array $trace */
-	protected $trace;
+    /** @var array $arguments */
+    protected $arguments;
+    /** @var int $code */
+    protected $code;
+    /** @var string $file */
+    protected $file;
+    /** @var array $fullTrace */
+    protected $fullTrace;
+    /** @var int $line */
+    protected $line;
+    /** @var string $message */
+    protected $message;
+    /** @var string $query */
+    protected $query;
+    /** @var array $shortTrace */
+    protected $shortTrace;
+    /** @var array $trace */
+    protected $trace;
 
-	/**
-	 * DBDException constructor.
-	 *
-	 * @param string         $message
-	 * @param string|null    $query
-	 * @param null           $arguments
-	 * @param Throwable|null $previous
-	 */
-	public function __construct(string $message = "", string $query = null, $arguments = null, Throwable $previous = null) {
+    /**
+     * DBDException constructor.
+     *
+     * @param string $message
+     * @param string|null $query
+     * @param null $arguments
+     * @param Throwable|null $previous
+     */
+    public function __construct(string $message = "", string $query = null, $arguments = null, Throwable $previous = null)
+    {
         parent::__construct($message, E_ERROR, $previous);
 
-		$this->query = $query;
-		$this->message = $message;
-		$this->arguments = $arguments;
+        $this->query = $query;
+        $this->message = $message;
+        $this->arguments = $arguments;
 
-		$backTrace = parent::getTrace();
-		$this->fullTrace = $backTrace;
+        $backTrace = parent::getTrace();
+        $this->fullTrace = $backTrace;
 
-		foreach($backTrace as $trace) {
-			if(isset($trace['file'])) {
-				$pathInfo = pathinfo($trace['file']);
-				if($pathInfo['basename'] == "DBD.php") {
-					array_shift($backTrace);
+        foreach ($backTrace as $trace) {
+            if (isset($trace['file'])) {
+                $pathInfo = pathinfo($trace['file']);
+                if ($pathInfo['basename'] == "DBD.php") {
+                    array_shift($backTrace);
+                } else {
+                    break;
                 }
-				else {
-					break;
-				}
-			}
-		}
-		$this->file = $backTrace[0]['file'];
-		$this->line = $backTrace[0]['line'];
+            }
+        }
+        $this->file = $backTrace[0]['file'];
+        $this->line = $backTrace[0]['line'];
 
-		$this->shortTrace = $backTrace;
-	}
+        $this->shortTrace = $backTrace;
+    }
 
-	/**
-	 * @return array|null
-	 */
-	public function getArguments(): ?array {
-		return $this->arguments;
-	}
+    /**
+     * @return array|null
+     */
+    public function getArguments(): ?array
+    {
+        return $this->arguments;
+    }
 
-	/**
-	 * @return array
-	 */
-	public function getFullTrace(): array {
-		return $this->fullTrace;
-	}
+    /**
+     * @return array
+     */
+    public function getFullTrace(): array
+    {
+        return $this->fullTrace;
+    }
 
-	/**
-	 * @return string|null
-	 */
-	public function getQuery(): ?string {
-		return $this->query;
-	}
+    /**
+     * @return string|null
+     */
+    public function getQuery(): ?string
+    {
+        return $this->query;
+    }
 
-	/**
-	 * @return array
-	 */
-	public function getShortTrace(): array {
-		return $this->shortTrace;
-	}
+    /**
+     * @return array
+     */
+    public function getShortTrace(): array
+    {
+        return $this->shortTrace;
+    }
 }

@@ -14,9 +14,9 @@ namespace DBD\Utils;
 
 final class PrepareArguments
 {
-    /** @var string  */
+    /** @var string */
     public $statement;
-    /** @var array  */
+    /** @var array */
     public $arguments;
 
     public function __construct(string $statement, array $arguments)

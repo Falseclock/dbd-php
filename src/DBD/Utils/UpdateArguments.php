@@ -14,9 +14,9 @@ namespace DBD\Utils;
 
 final class UpdateArguments
 {
-    /** @var array  */
+    /** @var array */
     public $columns;
-    /** @var array  */
+    /** @var array */
     public $arguments;
 
     public function __construct(array $columns, array $arguments)

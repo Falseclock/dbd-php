@@ -39,7 +39,6 @@ abstract class DBD implements CRUD
 {
     public const CAST_FORMAT_INSERT = null;
     public const CAST_FORMAT_UPDATE = null;
-    protected const CSV_EXTENSION = "csv";
     private const STORAGE_CACHE = "Cache";
     private const STORAGE_DATABASE = "database";
     private const UNDEFINED = "UNDEF";
@@ -677,7 +676,7 @@ abstract class DBD implements CRUD
     {
         $temporaryFile = tempnam(sys_get_temp_dir(), 'DBD');
 
-        register_shutdown_function(function() use($temporaryFile) {
+        register_shutdown_function(function () use ($temporaryFile) {
             @unlink($temporaryFile);
         });
 
@@ -688,10 +687,12 @@ abstract class DBD implements CRUD
         $preparedQuery = $this->getPreparedQuery($executeArguments);
         $this->_dump($preparedQuery, $temporaryFile, $delimiter, $nullString, $header);
 
-        return ($utf8 ? $BOM : null ) . file_get_contents($temporaryFile);
+        return ($utf8 ? $BOM : null) . file_get_contents($temporaryFile);
     }
 
     /**
+     * This function should write data to file
+     *
      * @param string $preparedQuery
      * @param string $filePath
      * @param string $delimiter

@@ -8,7 +8,7 @@
  * @link      https://github.com/Falseclock/dbd-php
  */
 
-declare(strict_types = 1);
+declare(strict_types=1);
 
 namespace DBD\Utils;
 
@@ -23,28 +23,30 @@ use DBD\Entity\Table;
 
 class PgUtils extends Utils
 {
-	/** @var DBD $db */
-	private $db;
+    /** @var DBD $db */
+    private $db;
 
-	/**
-	 * PgUtils constructor.
-	 *
-	 * @param DBD $dbDriver
-	 */
-	public function __construct(DBD $dbDriver) {
-		$this->db = $dbDriver;
-	}
+    /**
+     * PgUtils constructor.
+     *
+     * @param DBD $dbDriver
+     */
+    public function __construct(DBD $dbDriver)
+    {
+        $this->db = $dbDriver;
+    }
 
-	/**
-	 * @param Table $table
-	 *
-	 * @return Constraint[]
-	 * @throws DBDException
-	 * @throws EntityException
-	 */
-	public function getTableConstraints(Table $table): array {
-		$constraints = [];
-		$sth = $this->db->prepare("
+    /**
+     * @param Table $table
+     *
+     * @return Constraint[]
+     * @throws DBDException
+     * @throws EntityException
+     */
+    public function getTableConstraints(Table $table): array
+    {
+        $constraints = [];
+        $sth = $this->db->prepare("
 			SELECT
 				kcu.column_name,
 				ccu.table_schema AS foreign_table_schema,
@@ -63,46 +65,46 @@ class PgUtils extends Utils
 				tc.table_name = ? AND
 				tc.table_schema = ?
 		"
-		);
-		$sth->execute($table->name, $table->scheme);
+        );
+        $sth->execute($table->name, $table->scheme);
 
-		if($sth->rows()) {
-			while($row = $sth->fetchRow()) {
-				$constraint = new Constraint();
-				$constraint->localColumn = $this->getColumnByName($table->columns, $row['column_name']);
-				// If table refers itself
-				if($table->name == $row['foreign_table_name'] and $table->scheme == $row['foreign_table_schema']) {
-					$constraint->foreignTable = $table;
-				}
-				else {
-					$constraint->foreignTable = $this->tableStructure($row['foreign_table_name'], $row['foreign_table_schema']);
-				}
-				$constraint->foreignColumn = $this->getColumnByName($constraint->foreignTable->columns, $row['foreign_column_name']);
+        if ($sth->rows()) {
+            while ($row = $sth->fetchRow()) {
+                $constraint = new Constraint();
+                $constraint->localColumn = $this->getColumnByName($table->columns, $row['column_name']);
+                // If table refers itself
+                if ($table->name == $row['foreign_table_name'] and $table->scheme == $row['foreign_table_schema']) {
+                    $constraint->foreignTable = $table;
+                } else {
+                    $constraint->foreignTable = $this->tableStructure($row['foreign_table_name'], $row['foreign_table_schema']);
+                }
+                $constraint->foreignColumn = $this->getColumnByName($constraint->foreignTable->columns, $row['foreign_column_name']);
 
-				$constraints[] = $constraint;
-			}
-		}
+                $constraints[] = $constraint;
+            }
+        }
 
-		return $constraints;
-	}
+        return $constraints;
+    }
 
-	/**
-	 * @param string $tableName
-	 * @param string $schemeName
-	 *
-	 * @return Table
-	 * @throws DBDException
-	 * @throws EntityException
-	 */
-	public function tableStructure(string $tableName, string $schemeName): Table {
+    /**
+     * @param string $tableName
+     * @param string $schemeName
+     *
+     * @return Table
+     * @throws DBDException
+     * @throws EntityException
+     */
+    public function tableStructure(string $tableName, string $schemeName): Table
+    {
 
-		$table = new Table();
-		$table->name = $tableName;
-		$table->scheme = $schemeName;
+        $table = new Table();
+        $table->name = $tableName;
+        $table->scheme = $schemeName;
 
-		$table->annotation = $this->db->select("SELECT obj_description(CONCAT(?::text, '.', ?::text)::REGCLASS)", $table->scheme, $table->name);
+        $table->annotation = $this->db->select("SELECT obj_description(CONCAT(?::text, '.', ?::text)::REGCLASS)", $table->scheme, $table->name);
 
-		$sth = $this->db->prepare("
+        $sth = $this->db->prepare("
 			SELECT
 				CASE WHEN ordinal_position = ANY (i.indkey) THEN TRUE ELSE FALSE END                     AS is_primary,
 				ordinal_position,
@@ -125,78 +127,78 @@ class PgUtils extends Utils
 			ORDER BY
 				ordinal_position
 		"
-		);
-		$sth->execute($table->name, $table->scheme);
-		$columns = [];
+        );
+        $sth->execute($table->name, $table->scheme);
+        $columns = [];
 
-		if($sth->rows()) {
-			while($row = $sth->fetchRow()) {
-				$column = new Column($row['column_name']);
+        if ($sth->rows()) {
+            while ($row = $sth->fetchRow()) {
+                $column = new Column($row['column_name']);
 
-				if(isset($row['is_nullable'])) {
-					if($row['is_nullable'] == 'f' || $row['is_nullable'] == false)
-						$column->nullable = false;
-					else
-						$column->nullable = false;
-				}
+                if (isset($row['is_nullable'])) {
+                    if ($row['is_nullable'] == 'f' || $row['is_nullable'] == false)
+                        $column->nullable = false;
+                    else
+                        $column->nullable = false;
+                }
 
-				if(isset($row['character_maximum_length']))
-					$column->maxLength = $row['character_maximum_length'];
+                if (isset($row['character_maximum_length']))
+                    $column->maxLength = $row['character_maximum_length'];
 
-				if(isset($row['numeric_precision']))
-					$column->precision = $row['numeric_precision'];
+                if (isset($row['numeric_precision']))
+                    $column->precision = $row['numeric_precision'];
 
-				if(isset($row['numeric_scale']))
-					$column->scale = $row['numeric_scale'];
+                if (isset($row['numeric_scale']))
+                    $column->scale = $row['numeric_scale'];
 
-				if(isset($row['datetime_precision']))
-					$column->precision = $row['datetime_precision'];
+                if (isset($row['datetime_precision']))
+                    $column->precision = $row['datetime_precision'];
 
-				if(isset($row['column_default']))
-					$column->defaultValue = $row['column_default'];
+                if (isset($row['column_default']))
+                    $column->defaultValue = $row['column_default'];
 
-				if(isset($row['column_comment']))
-					$column->annotation = $row['column_comment'];
+                if (isset($row['column_comment']))
+                    $column->annotation = $row['column_comment'];
 
-				$column->type = Primitive::fromType($row['udt_name']);
-				$column->originType = $row['udt_name'];
+                $column->type = Primitive::fromType($row['udt_name']);
+                $column->originType = $row['udt_name'];
 
-				if(in_array($column->type->getValue(), [ Primitive::Int16, Primitive::Int32(), Primitive::Int64 ])) {
-					$column->scale = null;
-					$column->precision = null;
-				}
+                if (in_array($column->type->getValue(), [Primitive::Int16, Primitive::Int32(), Primitive::Int64])) {
+                    $column->scale = null;
+                    $column->precision = null;
+                }
 
-				if(isset($row['is_primary'])) {
-					$column->key = false;
-				}
-				else {
-					$column->key = true;
-					$table->keys[] = new Key($column);
-				}
-				$columns[] = $column;
-			}
-		}
+                if (isset($row['is_primary'])) {
+                    $column->key = false;
+                } else {
+                    $column->key = true;
+                    $table->keys[] = new Key($column);
+                }
+                $columns[] = $column;
+            }
+        }
 
-		$table->columns = $columns;
+        $table->columns = $columns;
 
-		$table->constraints = $this->getTableConstraints($table);
+        $table->constraints = $this->getTableConstraints($table);
 
-		return $table;
-	}
+        return $table;
+    }
 
-	/**
-	 * @param Column[] $columns
-	 * @param          $name
-	 *
-	 * @return Column
-	 * @throws DBDException
-	 */
-	private function getColumnByName(iterable $columns, $name): Column {
-		foreach($columns as $column) {
-			if($column->name == $name) {
-				return $column;
-			}
-		}
-		throw  new DBDException("Unknown column {$name}");
-	}
+    /**
+     * @param Column[] $columns
+     * @param          $name
+     *
+     * @return Column
+     * @throws DBDException
+     */
+    private function getColumnByName(iterable $columns, $name): Column
+    {
+        foreach ($columns as $column) {
+            if ($column->name == $name) {
+                return $column;
+            }
+        }
+        throw  new DBDException("Unknown column {$name}");
+    }
 }
