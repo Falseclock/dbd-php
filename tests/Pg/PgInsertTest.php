@@ -3,7 +3,7 @@
  * PgInsertTest
  *
  * @author    Nurlan Mukhanov <nurike@gmail.com>
- * @copyright 2020 Nurlan Mukhanov
+ * @copyright 2021 Nurlan Mukhanov
  * @license   https://en.wikipedia.org/wiki/MIT_License MIT License
  * @link      https://github.com/Falseclock/dbd-php
  * @noinspection PhpComposerExtensionStubsInspection
@@ -52,7 +52,5 @@ class PgInsertTest extends PgAbstractTest
         self::assertNotSame(false, $row);
         self::assertSame(1, intval($row['id']));
         self::assertSame($record['test'], $row['test']);
-
-        return;
     }
 }

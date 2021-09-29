@@ -1083,7 +1083,7 @@ abstract class DBD implements CRUD
 
         $updateArguments = Helper::compileUpdateArgs($values, $this);
 
-        if ($numberOfArguments > 2) {
+        if ($numberOfArguments > 2 && !is_null($ARGS[2])) {
             $where = $ARGS[2];
             $placeholdersCount = substr_count($where, $this->Options->getPlaceHolder());
         }

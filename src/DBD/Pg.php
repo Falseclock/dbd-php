@@ -237,17 +237,21 @@ class Pg extends DBD
      * @return string
      * @inheritdoc
      * @noinspection SqlWithoutWhere
+     * @see PgUpdateTest
      */
     protected function _compileUpdate(string $table, UpdateArguments $updateArguments, ?string $where = null, ?string $return = null): string
     {
-        return "UPDATE " . $table . " SET " . $updateArguments->columns . ($where ?? sprintf(" WHERE %s", $where)) . ($return ?? sprintf(" RETURNING %s", $return));
+        $return = $return ? sprintf(" RETURNING %s", $return) : null;
+        $where = $where ? sprintf(" WHERE %s", $where) : null;
+
+        return "UPDATE " . $table . " SET " . implode(", ", $updateArguments->columns) . $where . $return;
     }
 
     /**
      * Converts integer, double, float and boolean values to corresponding PHP types. By default Postgres returns them as string
      *
      * @param $data
-     *
+     * @inheritdoc
      * TODO: in case of fetchRowSet do not get each time and use static variable
      */
     protected function _convertTypes(&$data): void
@@ -298,9 +302,9 @@ class Pg extends DBD
                 }
                 if ($this->Options->isConvertBoolean()) {
                     if ($fieldType == 'bool') {
-                        if ($value == 't')
+                        if ($value === 't')
                             $value = true;
-                        else if ($value == 'f')
+                        else if ($value === 'f')
                             $value = false;
                     }
                 }

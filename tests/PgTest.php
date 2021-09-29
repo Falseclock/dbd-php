@@ -31,10 +31,10 @@ use Psr\SimpleCache\InvalidArgumentException;
 
 class PgTest extends TestCase
 {
-    /** @var Config */
-    private $config;
     /** @var Pg */
     protected $db;
+    /** @var Config */
+    private $config;
     /**  @var MemCache */
     private $memcache;
     /** @var Options */
@@ -97,7 +97,6 @@ class PgTest extends TestCase
     }
 
 
-
     /**
      * @throws DBDException
      */
@@ -135,15 +134,11 @@ class PgTest extends TestCase
         $sth->cache(__METHOD__);
     }
 
-
-
-
     public function testConstructWithoutOptions()
     {
         $db = new Pg($this->config);
         self::assertNotNull($db->getOptions());
     }
-
 
     /**
      * @throws DBDException
@@ -306,11 +301,6 @@ class PgTest extends TestCase
         $sth->execute();
 
         self::assertCount(10, $sth->fetchRowSet());
-    }
-
-    public function testEscape()
-    {
-        self::assertSame("''''", $this->db->escape("'"));
     }
 
     /**

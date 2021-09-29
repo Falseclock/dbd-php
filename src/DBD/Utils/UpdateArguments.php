@@ -14,12 +14,12 @@ namespace DBD\Utils;
 
 final class UpdateArguments
 {
-    /** @var string  */
+    /** @var array  */
     public $columns;
     /** @var array  */
     public $arguments;
 
-    public function __construct(string $columns, array $arguments)
+    public function __construct(array $columns, array $arguments)
     {
         $this->columns = $columns;
         $this->arguments = $arguments;

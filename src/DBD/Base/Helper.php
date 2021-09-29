@@ -183,7 +183,7 @@ final class Helper
             }
         }
 
-        return new UpdateArguments(implode(", ", $columns), $args);
+        return new UpdateArguments($columns, $args);
     }
 
     /**
