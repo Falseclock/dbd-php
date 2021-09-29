@@ -341,6 +341,7 @@ class Pg extends DBD
      *
      * @return bool
      * @see PgConnectionTest
+     * @inheritdoc
      */
     protected function _disconnect(): bool
     {
@@ -373,10 +374,13 @@ class Pg extends DBD
      */
     protected function _errorMessage(): string
     {
-        if ($this->resourceLink)
+        if ($this->resourceLink) {
             return pg_last_error($this->resourceLink);
-        else
+        } else {
+            // @codeCoverageIgnoreStart
             return pg_last_error();
+            // @codeCoverageIgnoreEnd
+        }
     }
 
     /**

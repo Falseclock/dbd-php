@@ -37,37 +37,37 @@ use Throwable;
 
 abstract class DBD implements CRUD
 {
-    const CAST_FORMAT_INSERT = null;
-    const CAST_FORMAT_UPDATE = null;
-    const CSV_EXTENSION = "csv";
-    const STORAGE_CACHE = "Cache";
-    const STORAGE_DATABASE = "database";
-    const UNDEFINED = "UNDEF";
-    const GOT_FROM_CACHE = "GOT_FROM_CACHE";
-    /** @var array $preparedStatements */
+    public const CAST_FORMAT_INSERT = null;
+    public const CAST_FORMAT_UPDATE = null;
+    protected const CSV_EXTENSION = "csv";
+    private const STORAGE_CACHE = "Cache";
+    private const STORAGE_DATABASE = "database";
+    private const UNDEFINED = "UNDEF";
+    private const GOT_FROM_CACHE = "GOT_FROM_CACHE";
+    /** @var array */
     public static $preparedStatements = [];
-    /** @var array $executedStatements queries that's really executed in database */
+    /** @var array queries that's really executed in database */
     public static $executedStatements = [];
-    /** @var Config $Config */
+    /** @var Config */
     protected $Config;
-    /** @var Options $Options */
+    /** @var Options */
     protected $Options;
-    /** @var string $query SQL query */
+    /** @var string SQL query */
     protected $query;
-    /** @var resource $resourceLink Database or curl connection resource */
+    /** @var resource Database or curl connection resource */
     protected $resourceLink;
-    /** @var resource $result Query result data */
+    /** @var resource Query result data */
     protected $result;
     /** @var CacheHolder */
     protected $CacheHolder = null;
-    /** @var string $storage This param is used for identifying where data taken from */
+    /** @var string This param is used for identifying where data taken from */
     protected $storage;
-    /** @var Bind[] $binds */
+    /** @var Bind[] */
     protected $binds = [];
-    /** @var mixed $fetch */
-    private $fetch = self::UNDEFINED;
     /** @var ConversionMap */
     protected $conversionMap;
+    /** @var mixed */
+    private $fetch = self::UNDEFINED;
 
     /**
      * DBD constructor.
@@ -137,20 +137,23 @@ abstract class DBD implements CRUD
     /**
      * Closes a database connection
      *
-     * @return $this
+     * @return bool
      * @throws DBDException
      */
-    public function disconnect(): DBD
+    public function disconnect(): bool
     {
+        $result = false;
+
         if ($this->isConnected()) {
             if ($this->_inTransaction()) {
                 throw new DBDException("Uncommitted transaction state");
             }
-            $this->_disconnect();
-            $this->resourceLink = null;
+            $result = $this->_disconnect();
+            if ($result)
+                $this->resourceLink = null;
         }
 
-        return $this;
+        return $result;
     }
 
     /**
@@ -175,11 +178,11 @@ abstract class DBD implements CRUD
 
     /**
      * @return bool true on successful disconnection
-     * @see Pg::_disconnect
-     * @see MSSQL::_disconnect
-     * @see MySQL::_disconnect
-     * @see OData::_disconnect
-     * @see disconnect
+     * @see Pg::_disconnect()
+     * @see MSSQL::_disconnect()
+     * @see MySQL::_disconnect()
+     * @see OData::_disconnect()
+     * @see DBD::disconnect()
      */
     abstract protected function _disconnect(): bool;
 
@@ -387,6 +390,9 @@ abstract class DBD implements CRUD
      */
     private function getPreparedQuery($ARGS, bool $overrideOption = false): string
     {
+        if (is_null($this->query))
+            throw new DBDException("No query prepared for execution");
+
         $placeHolder = $this->Options->getPlaceHolder();
         $isPrepareExecute = $this->Options->isPrepareExecute();
 

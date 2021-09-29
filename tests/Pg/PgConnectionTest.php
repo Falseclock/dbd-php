@@ -46,10 +46,18 @@ class PgConnectionTest extends PgAbstractTest
     public function testDisconnect()
     {
         $this->db->do("SELECT 1");
-        self::assertInstanceOf(Pg::class, $this->db->disconnect());
-        self::assertInstanceOf(Pg::class, $this->db->disconnect());
+        self::assertTrue($this->db->disconnect());
         $this->db->begin();
-        self::expectException(DBDException::class);
-        $this->db->disconnect();
+        $this->assertException(DBDException::class, function () {
+            $this->db->disconnect();
+        }, "Uncommitted transaction state");
+        $this->db->rollback();
+
+        $this->assertException(DBDException::class, function () {
+            /** @noinspection SqlResolve */
+            $this->db->query("SELECT FROM disconnest_test");
+        });
+
+        self::assertTrue($this->db->disconnect());
     }
 }
