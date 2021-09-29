@@ -15,6 +15,7 @@ namespace DBD;
 
 use DBD\Base\Bind;
 use DBD\Common\DBDException as Exception;
+use DBD\Utils\InsertArguments;
 use DBD\Utils\UpdateArguments;
 
 class MSSQL extends DBD
@@ -97,9 +98,9 @@ class MSSQL extends DBD
         return sqlsrv_commit($this->resourceLink);
     }
 
-    protected function _compileInsert(string $table, array $params, ?string $return = ""): string
+    protected function _compileInsert(string $table, InsertArguments $insert, ?string $return = null): string
     {
-        return "INSERT INTO $table ({$params['COLUMNS']}) VALUES ({$params['VALUES']})";
+        return sprintf("INSERT INTO %s (%s) VALUES (%s)", $table, implode(", ", $insert->columns), implode(", ", $insert->values));
     }
 
     protected function _compileUpdate(string $table, UpdateArguments $updateArguments, ?string $where = null, ?string $return = null): string
@@ -117,13 +118,13 @@ class MSSQL extends DBD
         return sqlsrv_close($this->resourceLink);
     }
 
-    protected function _escape($string): string
+    protected function _escape($value): string
     {
-        if (!isset($string))
+        if (!isset($value))
             return "NULL";
 
-        if (is_numeric($string))
-            return $string;
+        if (is_numeric($value))
+            return $value;
 
         $nonDisplayAble = [
             '/%0[0-8bcef]/',
@@ -140,11 +141,11 @@ class MSSQL extends DBD
             // 14-31
         ];
         foreach ($nonDisplayAble as $regex)
-            $string = preg_replace($regex, '', $string);
+            $value = preg_replace($regex, '', $value);
 
-        $string = str_replace("'", "''", $string);
+        $value = str_replace("'", "''", $value);
 
-        return "'$string'";
+        return "'$value'";
     }
 
     /**

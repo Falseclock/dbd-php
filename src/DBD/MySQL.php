@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace DBD;
 
 use DBD\Base\Bind;
+use DBD\Utils\InsertArguments;
 use DBD\Utils\UpdateArguments;
 
 class MySQL extends DBD
@@ -32,6 +33,21 @@ class MySQL extends DBD
         return $this;
     }
 
+    protected function _connect(): void
+    {
+        $this->resourceLink = mysqli_connect($this->Config->getHost(),
+            $this->Config->getUsername(),
+            $this->Config->getPassword(),
+            $this->Config->getDatabase(),
+            $this->Config->getPort()
+        );
+
+        if (!$this->resourceLink)
+            trigger_error("Can not connect to MySQL server: " . mysqli_connect_error(), E_USER_ERROR);
+
+        mysqli_autocommit($this->resourceLink, false);
+    }
+
     protected function _rows(): int
     {
         return mysqli_affected_rows($this->result);
@@ -47,29 +63,14 @@ class MySQL extends DBD
         return mysqli_commit($this->resourceLink);
     }
 
-    protected function _compileInsert(string $table, array $params, ?string $return = ""): string
+    protected function _compileInsert(string $table, InsertArguments $insert, ?string $return = null): string
     {
-        return "INSERT INTO $table ({$params['COLUMNS']}) VALUES ({$params['VALUES']})";
+        return sprintf("INSERT INTO %s (%s) VALUES (%s)", $table, implode(", ", $insert->columns), implode(", ", $insert->values));
     }
 
     protected function _compileUpdate(string $table, UpdateArguments $updateArguments, ?string $where = null, ?string $return = null): string
     {
         return "UPDATE $table SET {$updateArguments['COLUMNS']}" . ($where ? " WHERE $where" : "");
-    }
-
-    protected function _connect(): void
-    {
-        $this->resourceLink = mysqli_connect($this->Config->getHost(),
-            $this->Config->getUsername(),
-            $this->Config->getPassword(),
-            $this->Config->getDatabase(),
-            $this->Config->getPort()
-        );
-
-        if (!$this->resourceLink)
-            trigger_error("Can not connect to MySQL server: " . mysqli_connect_error(), E_USER_ERROR);
-
-        mysqli_autocommit($this->resourceLink, false);
     }
 
     protected function _convertTypes(&$data): void
@@ -87,28 +88,29 @@ class MySQL extends DBD
         return mysqli_error($this->resourceLink);
     }
 
-    protected function _escape($string): string
+    protected function _escape($value): string
     {
-        if (!isset($string))
+        if (!isset($value))
             return "NULL";
 
-        $str = mysqli_real_escape_string($this->resourceLink, $string);
+        $str = mysqli_real_escape_string($this->resourceLink, $value);
 
         return "'$str'";
     }
 
     /**
      * @param $uniqueName
-	 * @param $arguments
-	 *
-	 * @return mixed
-	 * @see MSSQL::_executeNamed
-	 * @see MySQL::_executeNamed
-	 * @see OData::_executeNamed
-	 * @see Pg::_executeNamed
-	 */
-	protected function _executeNamed($uniqueName, $arguments) {
-		// TODO: Implement _execute() method.
+     * @param $arguments
+     *
+     * @return mixed
+     * @see MSSQL::_executeNamed
+     * @see MySQL::_executeNamed
+     * @see OData::_executeNamed
+     * @see Pg::_executeNamed
+     */
+    protected function _executeNamed($uniqueName, $arguments)
+    {
+        // TODO: Implement _execute() method.
     }
 
     /**

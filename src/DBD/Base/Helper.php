@@ -13,6 +13,7 @@ namespace DBD\Base;
 
 use DBD\Common\DBDException;
 use DBD\DBD;
+use DBD\Utils\InsertArguments;
 use DBD\Utils\PrepareArguments;
 use DBD\Utils\UpdateArguments;
 use Exception;
@@ -92,27 +93,17 @@ final class Helper
     /**
      * @param array $data
      * @param DBD $driver
-     * @param Options $options
-     *
-     * @return array
+     * @return InsertArguments
      * @throws DBDException
      */
-    final public static function compileInsertArgs(array $data, DBD $driver, Options $options): array
+    final public static function compileInsertArgs(array $data, DBD $driver): InsertArguments
     {
-
-        $className = get_class($driver);
-
         $columns = [];
         $values = [];
-        $args = [];
+        $arguments = [];
 
-        $defaultFormat = $options->getPlaceHolder();
-        $format = null;
-
-        if (defined("$className::CAST_FORMAT_INSERT")) {
-            /** @noinspection PhpPossiblePolymorphicInvocationInspection */
-            $format = $driver::CAST_FORMAT_INSERT;
-        }
+        $placeHolder = $driver->getOptions()->getPlaceHolder();
+        $format = $driver::CAST_FORMAT_INSERT;
 
         foreach ($data as $columnName => $columnValue) {
             $columns[] = $columnName;
@@ -121,30 +112,26 @@ final class Helper
             if (is_array($columnValue)) {
                 switch (count($columnValue)) {
                     case 1:
-                        $values[] = $defaultFormat;
+                        $values[] = $placeHolder;
                         self::booleanToString($columnValue[0]);
-                        $args[] = $columnValue[0];
+                        $arguments[] = $columnValue[0];
                         break;
                     case 2:
                         self::booleanToString($columnValue[0]);
-                        $values[] = isset($format) ? sprintf($format, $columnValue[1]) : $defaultFormat;
-                        $args[] = $columnValue[0];
+                        $values[] = isset($format) ? sprintf($format, $columnValue[1]) : $placeHolder;
+                        $arguments[] = $columnValue[0];
                         break;
                     default:
                         throw new DBDException("Unknown format of record for insert");
                 }
             } else {
                 self::booleanToString($columnValue);
-                $args[] = $columnValue;
-                $values[] = $defaultFormat;
+                $arguments[] = $columnValue;
+                $values[] = $placeHolder;
             }
         }
 
-        return [
-            'COLUMNS' => implode(", ", $columns),
-            'VALUES' => implode(", ", $values),
-            'ARGS' => $args,
-        ];
+        return new InsertArguments($columns, $values, $arguments);
     }
 
     /**
@@ -170,14 +157,8 @@ final class Helper
      */
     final public static function compileUpdateArgs(array $data, DBD $driver): UpdateArguments
     {
-        $className = get_class($driver);
         $defaultFormat = "%s = ?";
-        $format = null;
-
-        if (defined("$className::CAST_FORMAT_UPDATE")) {
-            /** @noinspection PhpPossiblePolymorphicInvocationInspection */
-            $format = $driver::CAST_FORMAT_UPDATE;
-        }
+        $format = $driver::CAST_FORMAT_UPDATE;
 
         $columns = [];
         $args = [];

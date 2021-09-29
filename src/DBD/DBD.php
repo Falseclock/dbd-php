@@ -27,6 +27,7 @@ use DBD\Entity\Entity;
 use DBD\Entity\Primitive;
 use DBD\Tests\Pg\PgRowsTest;
 use DBD\Tests\Pg\PgTransactionTest;
+use DBD\Utils\InsertArguments;
 use DBD\Utils\UpdateArguments;
 use Exception;
 use Psr\SimpleCache\InvalidArgumentException;
@@ -35,6 +36,8 @@ use Throwable;
 
 abstract class DBD implements CRUD
 {
+    const CAST_FORMAT_INSERT = null;
+    const CAST_FORMAT_UPDATE = null;
     const CSV_EXTENSION = "csv";
     const STORAGE_CACHE = "Cache";
     const STORAGE_DATABASE = "database";
@@ -73,14 +76,10 @@ abstract class DBD implements CRUD
      * @param Config $config
      * @param Options|null $options
      */
-    final public function __construct(Config $config, Options $options = null)
+    final public function __construct(Config $config, ?Options $options = null)
     {
         $this->Config = $config;
-
-        if (!is_null($options))
-            $this->Options = $options;
-        else
-            $this->Options = new Options();
+        $this->Options = $options ?? new Options();
     }
 
     /**
@@ -233,7 +232,7 @@ abstract class DBD implements CRUD
     }
 
     /**
-     * Like doit method, but return self instance
+     * Like do method, but return self instance
      *
      * Example 1:
      * ```
@@ -406,7 +405,7 @@ abstract class DBD implements CRUD
                         $query[$ind] = "\$$placeholderPosition";
                         $placeholderPosition++;
                     } else {
-                        $query[$ind] = $this->_escape(array_shift($executeArguments));
+                        $query[$ind] = $this->escape(array_shift($executeArguments));
                     }
                 }
             }
@@ -420,16 +419,33 @@ abstract class DBD implements CRUD
     }
 
     /**
-     * @param mixed $string
+     * @param mixed|null $value
+     * @return string
+     * @throws DBDException
+     * @see DBD::_escape()
+     */
+    public function escape($value): string
+    {
+        if (is_object($value))
+            throw new DBDException("Object can't be escaped");
+
+        if (is_array($value))
+            throw new DBDException("Array can't be escaped");
+
+        return $this->_escape($value);
+    }
+
+    /**
+     * @param mixed $value
      *
      * @return mixed
-     * @see MSSQL::_escape
-     * @see MySQL::_escape
-     * @see OData::_escape
-     * @see Pg::_escape
-     * @see getPreparedQuery
+     * @see MSSQL::_escape()
+     * @see MySQL::_escape()
+     * @see OData::_escape()
+     * @see Pg::_escape()
+     * @see DBD::escape()
      */
-    abstract protected function _escape($string): string;
+    abstract protected function _escape($value): string;
 
     /**
      * @param string $preparedQuery
@@ -828,13 +844,13 @@ abstract class DBD implements CRUD
                         // Finally, add column to record if it is set
                         $finalValue = $entity->$propertyName ?? $column->defaultValue;
 
-                        $record[$originName] = $column->type->getValue() == Primitive::Binary ? $this->_escapeBinary($finalValue) : $finalValue;
+                        $record[$originName] = $column->type->getValue() == Primitive::Binary ? $this->escapeBinary($finalValue) : $finalValue;
                     }
                 }
             } else {
                 // Finally, add column to record if it is set
                 if (isset($entity->$propertyName)) {
-                    $record[$originName] = ($column->type->getValue() == Primitive::Binary) ? $this->_escapeBinary($entity->$propertyName) : $entity->$propertyName;
+                    $record[$originName] = ($column->type->getValue() == Primitive::Binary) ? $this->escapeBinary($entity->$propertyName) : $entity->$propertyName;
                 } else {
                     // If value not set and we have some default value, let's define also
                     if ($column->isAuto === false and isset($column->defaultValue))
@@ -847,14 +863,26 @@ abstract class DBD implements CRUD
 
     /**
      * @param string|null $binaryString
+     * @return string|null
+     */
+    public function escapeBinary(?string $binaryString): ?string
+    {
+        if (is_null($binaryString))
+            return null;
+
+        return $this->_escapeBinary($binaryString);
+    }
+
+    /**
+     * @param string|null $binaryString
      *
      * @return string|null
      * @see entityInsert
-     * @see Pg::_escapeBinary
-     * @see MSSQL::_escapeBinary
-     * @see MySQL::_escapeBinary
-     * @see OData::_escapeBinary
-     * @see execute
+     * @see Pg::_escapeBinary()
+     * @see MSSQL::_escapeBinary()
+     * @see MySQL::_escapeBinary()
+     * @see OData::_escapeBinary()
+     * @see DBD::escapeBinary()
      */
     abstract protected function _escapeBinary(?string $binaryString): ?string;
 
@@ -862,34 +890,34 @@ abstract class DBD implements CRUD
      * Easy insert operation
      *
      * @param string $table
-     * @param array $args
+     * @param array $arguments
      * @param string|null $return
      *
      * @return DBD
      * @throws DBDException
      */
-    public function insert(string $table, array $args, string $return = null): DBD
+    public function insert(string $table, array $arguments, string $return = null): DBD
     {
-        $params = Helper::compileInsertArgs($args, $this, $this->Options);
+        $insert = Helper::compileInsertArgs($arguments, $this);
 
-        $sth = $this->prepare($this->_compileInsert($table, $params, $return));
+        $sth = $this->prepare($this->_compileInsert($table, $insert, $return));
 
-        return $sth->execute($params['ARGS']);
+        return $sth->execute($insert->arguments);
     }
 
     /**
      * @param string $table
-     * @param array $params
+     * @param InsertArguments $insert
      * @param string|null $return
      *
-     * @return mixed
-     * @see OData::_compileInsert
-     * @see Pg::_compileInsert
-     * @see MSSQL::_compileInsert
-     * @see MySQL::_compileInsert
-     * @see insert
+     * @return string
+     * @see OData::_compileInsert()
+     * @see Pg::_compileInsert()
+     * @see MSSQL::_compileInsert()
+     * @see MySQL::_compileInsert()
+     * @see DBD::insert()
      */
-    abstract protected function _compileInsert(string $table, array $params, ?string $return = ""): string;
+    abstract protected function _compileInsert(string $table, InsertArguments $insert, ?string $return = null): string;
 
     /**
      *
@@ -1139,24 +1167,6 @@ abstract class DBD implements CRUD
         $entity = new $class($sth->fetchRow());
 
         return $entity;
-    }
-
-    /**
-     * @param string|null $string
-     * @return string
-     */
-    public function escape(?string $string): string
-    {
-        return $this->_escape($string);
-    }
-
-    /**
-     * @param string|null $string
-     * @return string
-     */
-    public function escapeBinary(?string $string): string
-    {
-        return $this->_escapeBinary($string);
     }
 
     /**

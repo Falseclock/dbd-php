@@ -18,6 +18,7 @@ use DBD\Common\DBDException;
 use DBD\Entity\Primitive;
 use DBD\Tests\Pg\PgQueryTest;
 use DBD\Tests\Pg\PgTransactionTest;
+use DBD\Utils\InsertArguments;
 use DBD\Utils\UpdateArguments;
 use Exception;
 use Throwable;
@@ -78,12 +79,16 @@ class Pg extends DBD
             case PGSQL_TRANSACTION_IDLE:
                 return false;
             case PGSQL_TRANSACTION_INTRANS:
+                // @codeCoverageIgnoreStart
             case PGSQL_TRANSACTION_INERROR:
             case PGSQL_TRANSACTION_ACTIVE:
+                // @codeCoverageIgnoreEnd
                 return true;
+            // @codeCoverageIgnoreStart
             case PGSQL_TRANSACTION_UNKNOWN:
             default:
                 throw new DBDException ("Transaction state is unknown");
+            // @codeCoverageIgnoreEnd
         }
     }
 
@@ -207,14 +212,18 @@ class Pg extends DBD
      * Compiles INSERT query
      *
      * @param string $table
-     * @param array $params
+     * @param InsertArguments $insert
      * @param string|null $return
      *
      * @return string
+     * @inheritdoc
+     * @see PgInsertTest::testInsert()
      */
-    protected function _compileInsert(string $table, array $params, ?string $return = null): string
+    protected function _compileInsert(string $table, InsertArguments $insert, ?string $return = null): string
     {
-        return sprintf("INSERT INTO %s (%s) VALUES (%s)", $table, $params['COLUMNS'], $params['VALUES']) . ($return ?? sprintf(" RETURNING %s", $return));
+        $return = $return ? sprintf(" RETURNING %s", $return) : null;
+
+        return "INSERT INTO " . $table . " (" . implode(", ", $insert->columns) . ") VALUES (" . implode(", ", $insert->values) . ") " . $return;
     }
 
     /**
@@ -352,7 +361,7 @@ class Pg extends DBD
     protected function _executeNamed($uniqueName, $arguments)
     {
         try {
-            $resource = pg_execute($this->resourceLink, (string) $uniqueName, $arguments);
+            $resource = pg_execute($this->resourceLink, (string)$uniqueName, $arguments);
         } catch (Exception $e) {
             return null;
         }
@@ -408,6 +417,7 @@ class Pg extends DBD
      * @param string $preparedQuery
      * @param Bind $bind
      * @inheritDoc
+     * @throws DBDException
      */
     protected function replaceBind(string &$preparedQuery, Bind $bind): void
     {
@@ -421,15 +431,15 @@ class Pg extends DBD
                     $preparedQuery = $this->_replaceBind($bind->name, $bind->value ?? 'NULL', $preparedQuery);
                 break;
             case Primitive::Binary:
-                $binary = $this->_escapeBinary($bind->value);
+                $binary = $this->escapeBinary($bind->value);
                 $preparedQuery = $this->_replaceBind($bind->name, $binary ? "'$binary'" : 'NULL', $preparedQuery);
                 break;
             default:
                 if (is_array($bind->value)) {
-                    $value = array_map(array($this, '_escape'), $bind->value);
+                    $value = array_map(array($this, 'escape'), $bind->value);
                     $preparedQuery = $this->_replaceBind($bind->name, implode(',', $value), $preparedQuery);
                 } else {
-                    $preparedQuery = $this->_replaceBind($bind->name, $bind->value ? $this->_escape($bind->value) : 'NULL', $preparedQuery);
+                    $preparedQuery = $this->_replaceBind($bind->name, $bind->value ? $this->escape($bind->value) : 'NULL', $preparedQuery);
                 }
         }
     }
@@ -442,13 +452,15 @@ class Pg extends DBD
      */
     private function _replaceBind($name, $value, $subject)
     {
-        return preg_replace('~' . $name . '(::\w+)?(\s|\t|]|\))~', sprintf("%s$1$2",$value), $subject);
+        return preg_replace('~' . $name . '(::\w+)?(\s|\t|]|\))~', sprintf("%s$1$2", $value), $subject);
     }
 
     /**
      * @param string|null $binaryString
      *
      * @return string|null
+     * @inheritdoc
+     * @see PgEscapeTest
      */
     protected function _escapeBinary(?string $binaryString): ?string
     {
@@ -461,20 +473,21 @@ class Pg extends DBD
     /**
      * Escapes a string for query
      *
-     * @param mixed $string
-     * @inheritDoc
+     * @param mixed $value
      * @return string
+     * @inheritDoc
+     * @see PgEscapeTest
      */
-    protected function _escape($string): string
+    protected function _escape($value): string
     {
-        if (is_null($string))
+        if (is_null($value))
             return "NULL";
 
-        if (is_bool($string))
-            return ($string) ? "TRUE" : "FALSE";
+        if (is_bool($value))
+            return ($value) ? "TRUE" : "FALSE";
 
-        $string = pg_escape_string((string)$string);
+        $value = pg_escape_string((string)$value);
 
-        return "'$string'";
+        return "'$value'";
     }
 }

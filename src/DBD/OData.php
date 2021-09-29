@@ -20,6 +20,7 @@ use DBD\Common\DBDException;
 use DBD\Entity\Common\EntityException;
 use DBD\Entity\Entity;
 use DBD\Entity\Primitive;
+use DBD\Utils\InsertArguments;
 use DBD\Utils\OData\Metadata;
 use DBD\Utils\UpdateArguments;
 use Throwable;
@@ -145,7 +146,7 @@ class OData extends DBD
         try {
             $record = $this->createInsertRecord($entity);
 
-            $params = Helper::compileInsertArgs($record, $this, $this->Options);
+            $params = Helper::compileInsertArgs($record, $this);
 
             // ONLY FOR EMULATION
             $this->query = $this->_compileInsert($entity::TABLE, $params);
@@ -180,30 +181,33 @@ class OData extends DBD
     /**
      * That's a fictive function, just to emulate query
      * @param string $table
-     * @param array $params
+     * @param InsertArguments $insert
      * @param string|null $return
      * @return string
+     * @throws DBDException
      * @inheritDoc
      */
-    protected function _compileInsert(string $table, array $params, ?string $return = ""): string
+    protected function _compileInsert(string $table, InsertArguments $insert, ?string $return = null): string
     {
         $values = array_map(function ($value) {
-            return $this->_escape($value);
-        }, $params['ARGS']);
+            return $this->escape($value);
+        }, $insert->arguments);
 
         $values = implode(",", $values);
 
-        return "INSERT INTO $table ({$params['COLUMNS']}) VALUES ({$values})" . ($return ? " RETURNING {$return}" : "");
+        $return = $return ? sprintf(" RETURNING %s", $return) : null;
+
+        return sprintf("INSERT INTO %s (%s) VALUES (%s)", $table, implode(", ", $insert->columns), $values) . $return;
     }
 
     /**
-     * @param mixed $string
+     * @param mixed $value
      * @return string
      * @inheritDoc
      */
-    protected function _escape($string): string
+    protected function _escape($value): string
     {
-        return sprintf("'%s'", $this->_escapeEncode($string));
+        return sprintf("'%s'", $this->_escapeEncode($value));
     }
 
     /**

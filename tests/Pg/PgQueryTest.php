@@ -43,6 +43,9 @@ class PgQueryTest extends PgAbstractTest
         // Test placeholder
         self::assertInstanceOf(Pg::class, $this->db->query("INSERT INTO test_query (test) VALUES (?)", 1));
         self::assertInstanceOf(Pg::class, $this->db->query("INSERT INTO test_query (test) VALUES (?),(?),(?)", 1, 1, 1));
+        self::assertInstanceOf(Pg::class, $this->db->query("INSERT INTO test_query (test) VALUES (?),(?),(?)", [2, 2, 2]));
+        self::assertInstanceOf(Pg::class, $this->db->query("INSERT INTO test_query (test) VALUES (?),(?),(?)", [3, 3], 3));
+        self::assertInstanceOf(Pg::class, $this->db->query("INSERT INTO test_query (test) VALUES (?),(?),(?),(?)", [4, 4], [4, 4]));
         self::assertInstanceOf(Pg::class, $this->db->query("SELECT * FROM test_query"));
         self::assertInstanceOf(Pg::class, $this->db->query("UPDATE test_query SET test = ?", 2));
         self::assertInstanceOf(Pg::class, $this->db->query("SELECT * FROM test_query WHERE test = 2"));
