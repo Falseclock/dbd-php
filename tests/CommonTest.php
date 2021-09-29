@@ -15,6 +15,7 @@ namespace DBD\Tests;
 use DBD\Base\Config;
 use DBD\Base\Options;
 use DBD\DBD;
+use Exception;
 use PHPUnit\Framework\TestCase;
 use Throwable;
 
@@ -33,8 +34,9 @@ abstract class CommonTest extends TestCase
      * @param string $expectClass
      * @param callable $callback
      * @param string|null $expectMessage
+     * @return Exception|Throwable|void
      */
-    protected function assertException(string $expectClass, callable $callback, string $expectMessage = null)
+    protected function assertException(string $expectClass, callable $callback, string $expectMessage = null): Throwable
     {
         try {
             $callback();
@@ -43,7 +45,7 @@ abstract class CommonTest extends TestCase
             if (!is_null($expectMessage))
                 self::assertSame($expectMessage, $exception->getMessage());
 
-            return;
+            return $exception;
         }
 
         $this->fail('No exception was thrown');

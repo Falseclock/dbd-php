@@ -1,6 +1,6 @@
 <?php
 /**
- * Pg
+ * PostgreSQL driver
  *
  * @author    Nurlan Mukhanov <nurike@gmail.com>
  * @copyright 2020 Nurlan Mukhanov
@@ -26,8 +26,8 @@ use Throwable;
 
 class Pg extends DBD
 {
-    const CAST_FORMAT_INSERT = "?::%s";
-    const CAST_FORMAT_UPDATE = "%s = ?::%s";
+    public const CAST_FORMAT_INSERT = "?::%s";
+    public const CAST_FORMAT_UPDATE = "%s = ?::%s";
 
     /**
      * Setup connection to the resource
@@ -133,16 +133,17 @@ class Pg extends DBD
     /**
      * @param $statement
      *
-     * @return resource|null
+     * @return false|resource
      * @inheritDoc
      * @see PgQueryTest
+     * @noinspection PhpMissingReturnTypeInspection
      */
     protected function _query($statement)
     {
         try {
             return pg_query($this->resourceLink, $statement);
         } catch (Throwable $e) {
-            return null;
+            return false;
         }
     }
 
@@ -195,7 +196,6 @@ class Pg extends DBD
                 throw new DBDException ("Transaction state is unknown");
             // @codeCoverageIgnoreEnd
         }
-
     }
 
     /**
@@ -349,22 +349,22 @@ class Pg extends DBD
     }
 
     /**
-     * @inheritDoc
+     * @param string $preparedQuery
+     * @param resource $temporaryFile
+     * @param string $delimiter
+     * @param string $nullString
+     * @param bool $showHeader
+     * @param string $tmpPath
+     * @return void
      * @throws DBDException
+     * @inheritdoc
      */
-    protected function _dump(string $preparedQuery, string $fileName, string $delimiter, string $nullString, bool $showHeader, string $tmpPath): string
+    protected function _dump(string $preparedQuery, string $filePath, string $delimiter, string $nullString, bool $showHeader): void
     {
-        $file = realpath($tmpPath) . DIRECTORY_SEPARATOR . $fileName . "." . DBD::CSV_EXTENSION;
-
-        file_put_contents($file, "");
-        chmod($file, 0666);
-
         $showHeader = $showHeader ? 'true' : 'false';
 
-        if ($this->_query("COPY ($preparedQuery) TO '$file' (FORMAT csv, DELIMITER  E'$delimiter', NULL  E'$nullString', HEADER $showHeader)") === false)
+        if ($this->_query("COPY ($preparedQuery) TO '$filePath' (FORMAT csv, DELIMITER  E'$delimiter', NULL  E'$nullString', HEADER $showHeader)") === false)
             throw new DBDException ($this->_errorMessage(), $preparedQuery);
-
-        return $file;
     }
 
     /**

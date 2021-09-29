@@ -337,7 +337,7 @@ abstract class DBD implements CRUD
 
             $cost = Debug::me()->endTimer();
 
-            if (is_null($this->result))
+            if (is_null($this->result) || $this->result === false)
                 throw new DBDException ($this->_errorMessage(), $preparedQuery, $this->Options->isPrepareExecute() ? Helper::parseArguments($executeArguments) : null);
 
             $this->storage = self::STORAGE_DATABASE;
@@ -665,82 +665,47 @@ abstract class DBD implements CRUD
      * Dumping result as CSV file
      *
      * @param array|null $executeArguments
-     * @param string $fileName
      * @param string $delimiter
      * @param string $nullString
      * @param bool $header
-     * @param string $tmpPath
-     * @param string $type
      * @param bool $utf8
      *
-     * @return void
+     * @return string
      * @throws DBDException
      */
-    public function dump(?array $executeArguments = [], string $fileName = "dump", string $delimiter = "\\t", string $nullString = "", bool $header = true, string $tmpPath = "/tmp", string $type = "csv", bool $utf8 = true)
+    public function dump(?array $executeArguments = [], string $delimiter = "\\t", string $nullString = "", bool $header = true, bool $utf8 = true): string
     {
+        $temporaryFile = tempnam(sys_get_temp_dir(), 'DBD');
+
+        register_shutdown_function(function() use($temporaryFile) {
+            @unlink($temporaryFile);
+        });
+
+        file_put_contents($temporaryFile, "");
+        chmod($temporaryFile, 0666);
+
         $BOM = b"\xEF\xBB\xBF";
         $preparedQuery = $this->getPreparedQuery($executeArguments);
+        $this->_dump($preparedQuery, $temporaryFile, $delimiter, $nullString, $header);
 
-        $filename = $this->_dump($preparedQuery, $fileName, $delimiter, $nullString, $header, $tmpPath);
-
-        header('Content-Description: File Transfer');
-        switch (strtolower($type)) {
-            case "csv":
-                header('Content-Type: text/csv');
-                header('Content-Disposition: attachment;filename="' . $fileName . '.csv"');
-                break;
-            case "tsv":
-                header('Content-Type: text/tab-separated-values');
-                header('Content-Disposition: attachment;filename="' . $fileName . '.tsv"');
-                break;
-            default:
-                header('Content-Type: text/plain');
-                header('Content-Disposition: attachment;filename="' . $fileName . '.txt"');
-                break;
-        }
-
-        header('Cache-Control: max-age=0');
-        // If you're serving to IE 9, then the following may be needed
-        header('Cache-Control: max-age=1');
-        header('Expires: 0');
-        header('Pragma: public');
-
-        if ($utf8) {
-            $file = @fopen($filename, "r");
-            $bom = fread($file, 3);
-            fclose($file);
-
-            if ($bom != $BOM) {
-                header('Content-Length: ' . (filesize($filename) + mb_strlen($BOM)));
-                echo $BOM;
-            }
-        } else {
-            header('Content-Length: ' . filesize($filename));
-        }
-
-        readfile($filename);
-
-        unlink($filename);
-
-        exit;
+        return ($utf8 ? $BOM : null ) . file_get_contents($temporaryFile);
     }
 
     /**
      * @param string $preparedQuery
-     * @param string $fileName
+     * @param string $filePath
      * @param string $delimiter
      * @param string $nullString
      * @param bool $showHeader
-     * @param string $tmpPath
      *
-     * @return string full file path
-     * @see Pg::_dump
-     * @see MSSQL::_dump
-     * @see MySQL::_dump
-     * @see OData::_dump
+     * @return void
+     * @see Pg::_dump()
+     * @see MSSQL::_dump()
+     * @see MySQL::_dump()
+     * @see OData::_dump()
      * @see DBD::dump()
      */
-    abstract protected function _dump(string $preparedQuery, string $fileName, string $delimiter, string $nullString, bool $showHeader, string $tmpPath): string;
+    abstract protected function _dump(string $preparedQuery, string $filePath, string $delimiter, string $nullString, bool $showHeader): void;
 
     /**
      *

@@ -539,7 +539,7 @@ class OData extends DBD
      * @inheritDoc
      * @throws DBDException
      */
-    protected function _dump(string $preparedQuery, string $fileName, string $delimiter, string $nullString, bool $showHeader, string $tmpPath): string
+    protected function _dump(string $preparedQuery, string $filePath, string $delimiter, string $nullString, bool $showHeader): void
     {
         throw new DBDException("OData doesn't not data dumping");
     }

@@ -45,9 +45,10 @@ class DBDException extends Exception
 	 * @param Throwable|null $previous
 	 */
 	public function __construct(string $message = "", string $query = null, $arguments = null, Throwable $previous = null) {
+        parent::__construct($message, E_ERROR, $previous);
+
 		$this->query = $query;
 		$this->message = $message;
-		$this->code = E_ERROR;
 		$this->arguments = $arguments;
 
 		$backTrace = parent::getTrace();
@@ -58,8 +59,7 @@ class DBDException extends Exception
 				$pathInfo = pathinfo($trace['file']);
 				if($pathInfo['basename'] == "DBD.php") {
 					array_shift($backTrace);
-					continue;
-				}
+                }
 				else {
 					break;
 				}
@@ -69,8 +69,6 @@ class DBDException extends Exception
 		$this->line = $backTrace[0]['line'];
 
 		$this->shortTrace = $backTrace;
-
-		parent::__construct($message, $this->code, $previous);
 	}
 
 	/**
