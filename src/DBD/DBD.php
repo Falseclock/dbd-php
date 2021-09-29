@@ -27,6 +27,7 @@ use DBD\Entity\Entity;
 use DBD\Entity\Primitive;
 use DBD\Tests\Pg\PgRowsTest;
 use DBD\Tests\Pg\PgTransactionTest;
+use DBD\Utils\ConversionMap;
 use DBD\Utils\InsertArguments;
 use DBD\Utils\UpdateArguments;
 use Exception;
@@ -65,6 +66,8 @@ abstract class DBD implements CRUD
     protected $binds = [];
     /** @var mixed $fetch */
     private $fetch = self::UNDEFINED;
+    /** @var ConversionMap */
+    protected $conversionMap;
 
     /**
      * DBD constructor.
@@ -273,6 +276,7 @@ abstract class DBD implements CRUD
         $this->result = null;
         $this->storage = null;
         $this->fetch = self::UNDEFINED;
+        $this->conversionMap = null;
 
         $executeArguments = func_get_args();
         $preparedQuery = $this->getPreparedQuery($executeArguments);
@@ -554,12 +558,12 @@ abstract class DBD implements CRUD
     public function fetchRow()
     {
         if ($this->storage == self::STORAGE_DATABASE) {
-            $return = $this->_fetchAssoc();
+            $associativeArray = $this->_fetchAssoc();
 
             if ($this->Options->isConvertNumeric() || $this->Options->isConvertBoolean())
-                $this->_convertTypes($return);
+                $this->_convertTypes($associativeArray);
 
-            return $return;
+            return $associativeArray;
         } else {
             return array_shift($this->CacheHolder->result);
         }
@@ -567,12 +571,11 @@ abstract class DBD implements CRUD
 
     /**
      * @return array|bool
+     * @see Pg::_fetchAssoc()
+     * @see MSSQL::_fetchAssoc()
+     * @see MySQL::_fetchAssoc()
+     * @see OData::_fetchAssoc()
      * @see DBD::fetchRow()
-     * @see Pg::_fetchAssoc
-     * @see MSSQL::_fetchAssoc
-     * @see MySQL::_fetchAssoc
-     * @see OData::_fetchAssoc
-     * @see fetchRow
      */
     abstract protected function _fetchAssoc();
 
@@ -580,10 +583,10 @@ abstract class DBD implements CRUD
      * @param $data
      *
      * @return void
-     * @see Pg::_convertTypes
-     * @see MySQL::_convertTypes
-     * @see OData::_convertTypes
-     * @see MSSQL::_convertTypes
+     * @see Pg::_convertTypes()
+     * @see MySQL::_convertTypes()
+     * @see OData::_convertTypes()
+     * @see MSSQL::_convertTypes()
      */
     abstract protected function _convertTypes(&$data): void;
 

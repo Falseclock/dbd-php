@@ -18,6 +18,7 @@ use DBD\Common\DBDException;
 use DBD\Entity\Primitive;
 use DBD\Tests\Pg\PgQueryTest;
 use DBD\Tests\Pg\PgTransactionTest;
+use DBD\Utils\ConversionMap;
 use DBD\Utils\InsertArguments;
 use DBD\Utils\UpdateArguments;
 use Exception;
@@ -252,56 +253,23 @@ class Pg extends DBD
      *
      * @param $data
      * @inheritdoc
-     * TODO: in case of fetchRowSet do not get each time and use static variable
+     * @see PgConvertTypesTest::testConvertTypes()
      */
     protected function _convertTypes(&$data): void
     {
-        $numericMap = [
-            'int' => 'integer',
-            'int2' => 'integer',
-            'int4' => 'integer',
-            'int8' => 'integer',
-            'serial2' => 'integer',
-            'serial4' => 'integer',
-            'serial8' => 'integer',
-            'smallint' => 'integer',
-            'bigint' => 'integer',
-            'serial' => 'integer',
-            'smallserial' => 'integer',
-            'bigserial' => 'integer',
-            //'numeric'   => 'float',
-            //'decimal'     => 'float',
-            'real' => 'float',
-            'float' => 'float',
-            'float4' => 'float',
-            'float8' => 'float',
-        ];
-
         if (is_iterable($data)) {
+            if (is_null($this->conversionMap))
+                $this->buildConversionMap($data);
 
             foreach ($data as $key => &$value) {
-                if (is_integer($key))
-                    $fieldNumber = $key;
-                else
-                    $fieldNumber = pg_field_num($this->result, $key);
-
-                // That's a limitation of PQfnumber in libpq-exec
-                if ($fieldNumber === -1) {
-                    if (is_string($key) and !ctype_lower($key))
-                        $fieldNumber = pg_field_num($this->result, sprintf('"%s"', $key));
-                }
-
-                $fieldType = pg_field_type($this->result, $fieldNumber);
-
                 if ($this->Options->isConvertNumeric()) {
-                    if (array_key_exists($fieldType, $numericMap)) {
-                        if (!is_null($value)) {
-                            $value = ($numericMap[$fieldType] == 'integer' ? intval($value) : floatval($value));
-                        }
-                    }
+                    if (in_array($key, $this->conversionMap->floats))
+                        $value = (float)$value;
+                    if (in_array($key, $this->conversionMap->integers))
+                        $value = (int)$value;
                 }
                 if ($this->Options->isConvertBoolean()) {
-                    if ($fieldType == 'bool') {
+                    if (in_array($key, $this->conversionMap->booleans)) {
                         if ($value === 't')
                             $value = true;
                         else if ($value === 'f')
@@ -309,6 +277,62 @@ class Pg extends DBD
                     }
                 }
             }
+        }
+    }
+
+    /**
+     * @param array $resultRow
+     * @return void
+     */
+    private function buildConversionMap(array $resultRow): void
+    {
+        $integers = [
+            'int',
+            'int2',
+            'int4',
+            'int8',
+            'serial2',
+            'serial4',
+            'serial8',
+            'smallint',
+            'bigint',
+            'serial',
+            'smallserial',
+            'bigserial',
+        ];
+        $floats = [
+            'real',
+            'float',
+            'float4',
+            'float8',
+        ];
+
+        $this->conversionMap = new ConversionMap();
+
+        foreach ($resultRow as $key => $value) {
+            if (is_integer($key))
+                $fieldNumber = $key;
+            else
+                $fieldNumber = pg_field_num($this->result, $key);
+
+            // That's a limitation of PQfnumber in libpq-exec
+            if ($fieldNumber === -1) {
+                // @codeCoverageIgnoreStart
+                if (is_string($key) and !ctype_lower($key))
+                    $fieldNumber = pg_field_num($this->result, sprintf('"%s"', $key));
+                // @codeCoverageIgnoreEnd
+            }
+
+            $fieldType = pg_field_type($this->result, $fieldNumber);
+
+            if ($fieldType == 'bool')
+                $this->conversionMap->booleans[] = $key;
+
+            if (in_array($fieldType, $integers))
+                $this->conversionMap->integers[] = $key;
+
+            if (in_array($fieldType, $floats))
+                $this->conversionMap->floats[] = $key;
         }
     }
 
