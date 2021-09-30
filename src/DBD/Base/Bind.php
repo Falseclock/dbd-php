@@ -13,7 +13,7 @@ declare(strict_types=1);
 namespace DBD\Base;
 
 use DBD\Common\DBDException;
-use DBD\Entity\Primitive;
+use DBD\Entity\Primitives\NumericPrimitives;
 
 class Bind
 {
@@ -42,9 +42,9 @@ class Bind
         $this->column = $originalColumn;
 
         switch ($this->type) {
-            case Primitive::Int16:
-            case Primitive::Int32:
-            case Primitive::Int64:
+            case NumericPrimitives::Int16:
+            case NumericPrimitives::Int32:
+            case NumericPrimitives::Int64:
                 if (!is_int($this->value) && !is_array($this->value) && !is_null($this->value)) {
                     throw new DBDException("Bound parameter '$name' is not integer type");
                 }
@@ -56,6 +56,21 @@ class Bind
                         }
                     }
                 }
+                break;
+            case NumericPrimitives::FLOAT;
+            case NumericPrimitives::Double;
+                if (!is_float($this->value) && !is_array($this->value) && !is_null($this->value)) {
+                    throw new DBDException("Bound parameter '$name' is not float type");
+                }
+                if (is_array($this->value)) {
+                    foreach ($this->value as $item) {
+                        // check is float
+                        if (!is_float($item) && !is_null($item)) {
+                            throw new DBDException("One of value for bound parameter '$name' is not float type");
+                        }
+                    }
+                }
+                break;
         }
     }
 }

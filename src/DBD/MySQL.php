@@ -99,8 +99,8 @@ class MySQL extends DBD
     }
 
     /**
-     * @param $uniqueName
-     * @param $arguments
+     * @param string $uniqueName
+     * @param array $arguments
      *
      * @return mixed
      * @see MSSQL::_executeNamed
@@ -108,7 +108,7 @@ class MySQL extends DBD
      * @see OData::_executeNamed
      * @see Pg::_executeNamed
      */
-    protected function _executeNamed($uniqueName, $arguments)
+    protected function _executeNamed(string $uniqueName, array $arguments)
     {
         // TODO: Implement _execute() method.
     }

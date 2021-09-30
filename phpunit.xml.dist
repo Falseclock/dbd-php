@@ -7,6 +7,10 @@
         <include>
             <directory>src</directory>
         </include>
+        <exclude>./src/DBD/MSSQL.php</exclude>
+        <exclude>./src/DBD/MySQL.php</exclude>
+        <exclude>./src/DBD/OData.php</exclude>
+        <exclude>./src/DBD/YellowERP.php</exclude>
     </coverage>
     <testsuites>
         <testsuite name="Project Test Suite">

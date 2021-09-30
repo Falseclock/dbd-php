@@ -14,25 +14,25 @@ namespace DBD\Base;
 
 final class Options
 {
-    /** @var null $applicationName connection identity */
+    /** @var null connection identity */
     private $applicationName = "DBD-PHP";
-    /** @var bool $convertBoolean */
+    /** @var bool */
     private $convertBoolean = false;
-    /** @var bool $convertNumeric */
+    /** @var bool */
     private $convertNumeric = false;
-    /** @var bool $onDemand */
+    /** @var bool */
     private $onDemand = true;
-    /** @var string $placeHolder */
+    /** @var string */
     private $placeHolder = "?";
-    /** @var bool $prepareExecute use real prepared and execute towards database */
+    /** @var bool use real prepared and execute towards database */
     private $prepareExecute = false;
-    /** @var bool $printError */
+    /** @var bool */
     private $printError = true;
-    /** @var bool $raiseError */
+    /** @var bool */
     private $raiseError = true;
-    /** @var bool $showErrorStatement */
+    /** @var bool */
     private $showErrorStatement = false;
-    /** @var bool $useDebug */
+    /** @var bool */
     private $useDebug = false;
 
     /**

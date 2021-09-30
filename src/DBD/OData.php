@@ -550,14 +550,14 @@ class OData extends DBD
     }
 
     /**
-     * @param $uniqueName
-     * @param $arguments
+     * @param string $uniqueName
+     * @param array $arguments
      *
      * @return mixed
      * @throws DBDException
      * @inheritDoc
      */
-    protected function _executeNamed($uniqueName, $arguments)
+    protected function _executeNamed(string $uniqueName, array $arguments)
     {
         throw new DBDException("OData doesn't not support named query execution");
     }

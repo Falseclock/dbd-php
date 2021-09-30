@@ -327,7 +327,7 @@ abstract class DBD implements CRUD
                     if (!$this->_prepareNamed((string)$uniqueName, $preparedQuery))
                         throw new DBDException ($this->_errorMessage(), $preparedQuery);
                 }
-                $this->result = $this->_executeNamed($uniqueName, Helper::parseArguments($executeArguments));
+                $this->result = $this->_executeNamed((string)$uniqueName, Helper::parseArguments($executeArguments));
             } else {
                 // Execute query to the database
                 $this->result = $this->_query($preparedQuery);
@@ -492,8 +492,9 @@ abstract class DBD implements CRUD
 
     /**
      * Executes prepared named question
-     * @param $uniqueName
-     * @param $arguments
+     *
+     * @param string $uniqueName
+     * @param array $arguments
      *
      * @return mixed
      * @see MSSQL::_executeNamed()
@@ -502,7 +503,7 @@ abstract class DBD implements CRUD
      * @see Pg::_executeNamed()
      * @see DBD::execute()
      */
-    abstract protected function _executeNamed($uniqueName, $arguments);
+    abstract protected function _executeNamed(string $uniqueName, array $arguments);
 
     /**
      * Executes the query on the specified database connection.

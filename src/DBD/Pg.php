@@ -15,7 +15,9 @@ namespace DBD;
 
 use DBD\Base\Bind;
 use DBD\Common\DBDException;
-use DBD\Entity\Primitive;
+use DBD\Entity\Primitives\NumericPrimitives;
+use DBD\Entity\Primitives\StringPrimitives;
+use DBD\Tests\Pg\PgNamedTest;
 use DBD\Tests\Pg\PgQueryTest;
 use DBD\Tests\Pg\PgTransactionTest;
 use DBD\Utils\ConversionMap;
@@ -384,19 +386,22 @@ class Pg extends DBD
     }
 
     /**
-     * @param $uniqueName
-     * @param $arguments
+     * @param string $uniqueName
+     * @param array $arguments
      *
      * @return resource|null
      * @inheritDoc
+     * @see PgNamedTest
      */
-    protected function _executeNamed($uniqueName, $arguments)
+    protected function _executeNamed(string $uniqueName, array $arguments)
     {
         try {
-            $resource = pg_execute($this->resourceLink, (string)$uniqueName, $arguments);
+            $resource = pg_execute($this->resourceLink, $uniqueName, $arguments);
+            // @codeCoverageIgnoreStart
         } catch (Exception $e) {
             return null;
         }
+        // @codeCoverageIgnoreEnd
 
         return $resource ?: null;
     }
@@ -428,19 +433,22 @@ class Pg extends DBD
      * @param $statement
      *
      * @return bool|null
-     * @see MSSQL::_prepareNamed
-     * @see MySQL::_prepareNamed
-     * @see OData::_prepareNamed
-     * @see Pg::_prepareNamed
+     * @see Pg::_prepareNamed()
+     * @see MySQL::_prepareNamed()
+     * @see OData::_prepareNamed()
+     * @see MSSQL::_prepareNamed()
      * @inheritDoc
+     * @see PgNamedTest
      */
     protected function _prepareNamed(string $uniqueName, string $statement): bool
     {
-        $return = false;
         try {
             $return = pg_prepare($this->resourceLink, $uniqueName, $statement);
+            // @codeCoverageIgnoreStart
         } catch (Exception $e) {
+            return false;
         }
+        // @codeCoverageIgnoreEnd
 
         return $return !== false;
     }
@@ -454,15 +462,21 @@ class Pg extends DBD
     protected function replaceBind(string &$preparedQuery, Bind $bind): void
     {
         switch ($bind->type) {
-            case Primitive::Int16:
-            case Primitive::Int32:
-            case Primitive::Int64:
-                if (is_array($bind->value))
+            case NumericPrimitives::Int16:
+            case NumericPrimitives::Int32:
+            case NumericPrimitives::Int64:
+            case NumericPrimitives::Double:
+            case NumericPrimitives::FLOAT:
+                if (is_array($bind->value)) {
+                    $bind->value = array_map(function ($value) {
+                        return (float)$value;
+                    }, $bind->value);
                     $preparedQuery = $this->_replaceBind($bind->name, implode(',', $bind->value ?? 'NULL'), $preparedQuery);
-                else
-                    $preparedQuery = $this->_replaceBind($bind->name, $bind->value ?? 'NULL', $preparedQuery);
+                } else {
+                    $preparedQuery = $this->_replaceBind($bind->name, (float)$bind->value ?? 'NULL', $preparedQuery);
+                }
                 break;
-            case Primitive::Binary:
+            case StringPrimitives::Binary:
                 $binary = $this->escapeBinary($bind->value);
                 $preparedQuery = $this->_replaceBind($bind->name, $binary ? "'$binary'" : 'NULL', $preparedQuery);
                 break;
@@ -484,7 +498,7 @@ class Pg extends DBD
      */
     private function _replaceBind($name, $value, $subject)
     {
-        return preg_replace('~' . $name . '(::\w+)?(\s|\t|]|\))~', sprintf("%s$1$2", $value), $subject);
+        return preg_replace('~' . $name . '(::\w+)?(\W)~', sprintf("%s$1$2", $value), $subject);
     }
 
     /**

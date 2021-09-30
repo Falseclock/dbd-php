@@ -17,6 +17,7 @@ use DBD\Base\Config;
 use DBD\Base\Options;
 use DBD\Cache\MemCache;
 use DBD\Common\DBDException;
+use DBD\DBD;
 use DBD\Pg;
 use DBD\Tests\CommonTest;
 
