@@ -15,11 +15,14 @@ namespace DBD\Base;
 
 use DBD\Common\DBDException;
 use DBD\DBD;
+use DBD\Tests\Utils\HelperTest;
+use DBD\Utils\Caller;
 use DBD\Utils\InsertArguments;
 use DBD\Utils\PrepareArguments;
-use DBD\Utils\Caller;
 use DBD\Utils\UpdateArguments;
 use Exception;
+use RecursiveArrayIterator;
+use RecursiveIteratorIterator;
 use ReflectionClass;
 
 final class Helper
@@ -228,54 +231,37 @@ final class Helper
      * @param array $ARGS
      *
      * @return array
+     *
      */
     final public static function parseArguments(array $ARGS): array
     {
         $args = [];
 
-        foreach ($ARGS as $arg) {
-            if (is_array($arg)) {
-                foreach (self::arrayFlatten($arg) as $value)
-                    $args[] = $value;
-            } else {
-                $args[] = $arg;
-            }
-        }
+        $iterator = new RecursiveIteratorIterator(new RecursiveArrayIterator($ARGS));
+        foreach ($iterator as $value)
+            $args[] = $value;
 
         return $args;
-    }
-
-    /**
-     * @param array $array
-     * @return array
-     */
-    private static function arrayFlatten(array $array): array
-    {
-        $result = [];
-        foreach ($array as $key => $value) {
-            if (is_array($value)) {
-                $arrayList = self::arrayFlatten($value);
-                foreach ($arrayList as $listItem) {
-                    $result[] = $listItem;
-                }
-            } else {
-                $result[$key] = $value;
-            }
-        }
-
-        return $result;
     }
 
     /**
      * @param string $query
      * @return string
      * @throws DBDException
+     * @see HelperTest::testGetQueryType()
      */
     public static function getQueryType(string $query): string
     {
-        preg_match('/^(\s*?--.*\n)?\s*(SELECT|UPDATE|DELETE|INSERT)\s+/', $query, $matches);
+        $query = preg_replace('/[ \t]*\/\*.*?\*\/[ \t]*[\r\n]?/sm', '', $query);
+        $query = preg_replace('/--\s.*$/m', '', $query);
+        $query = trim($query);
 
-        switch (strtoupper(trim($matches[2]))) {
+        preg_match('/^(SELECT|UPDATE|DELETE|INSERT)\s+/', $query, $matches);
+
+        if (count($matches) == 0)
+            throw new DBDException("non SQL query: $query");
+
+        switch (strtoupper(trim($matches[1]))) {
             case CRUD::CREATE:
                 return CRUD::CREATE;
             case CRUD::READ:
@@ -284,8 +270,10 @@ final class Helper
                 return CRUD::UPDATE;
             case CRUD::DELETE:
                 return CRUD::DELETE;
+            // @codeCoverageIgnoreStart
             default:
                 throw new DBDException("non SQL query: $query");
+            // @codeCoverageIgnoreEnd
         }
     }
 }
