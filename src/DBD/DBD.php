@@ -363,18 +363,14 @@ abstract class DBD implements CRUD
             $driver = $this->storage == self::STORAGE_CACHE ? self::STORAGE_CACHE : (new ReflectionClass($this))->getShortName();
             $caller = Helper::caller($this);
 
-            Debug::addQueries(
+            Debug::storeQuery(
                 new Query(
                     Helper::cleanSql($this->Options->isPrepareExecute() ? $this->getPreparedQuery($executeArguments, true) : $preparedQuery),
                     $cost,
-                    $caller[0],
-                    Helper::debugMark($cost),
+                    $caller,
                     $driver
                 )
             );
-
-            Debug::addTotalQueries(1);
-            Debug::addTotalCost($cost);
         }
 
         return $this;
@@ -874,7 +870,7 @@ abstract class DBD implements CRUD
      */
     public function insert(string $table, array $arguments, string $return = null): DBD
     {
-        $insert = Helper::compileInsertArgs($arguments, $this);
+        $insert = Helper::compileInsertArguments($arguments, $this);
 
         $sth = $this->prepare($this->_compileInsert($table, $insert, $return));
 

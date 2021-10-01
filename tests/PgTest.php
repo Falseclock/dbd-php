@@ -948,7 +948,6 @@ class PgTest extends TestCase
         $this->db->prepare("");
     }
 
-
     /**
      * @throws DBDException
      */
@@ -965,7 +964,7 @@ class PgTest extends TestCase
         self::assertSame("t", $this->db->select("SELECT true, COUNT(1), 2"));
 
         self::expectException(DBDException::class);
-        $this->db->select("DROP TABLE IF EXISTS fake_table");
+        /** @noinspection SqlResolve */
+        $this->db->select("DROP TABLE fake_table");
     }
-
 }

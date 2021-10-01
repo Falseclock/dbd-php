@@ -12,44 +12,23 @@ declare(strict_types=1);
 
 namespace DBD\Base;
 
-use DBD\Common\Instantiatable;
 use DBD\Common\Singleton;
 
 final class Debug extends Singleton
 {
-    /** @var float $maxExecutionTime in milliseconds */
+    /** @var float Average query execution time in milliseconds as a standard for comparison */
     public static $maxExecutionTime = 20;
-    /** @var Query[] $queries */
-    private static $queries;
-    /** @var float $totalCost */
-    private static $totalCost = 0;
-    /** @var int $totalQueries */
-    private static $totalQueries = 0;
-    /** @var string $startTime */
+    /** @var Query[] All executed queries */
+    private static $queries = [];
+    /** @var string */
     private $startTime = null;
 
     /**
-     * @param Query $queries
+     * @param Query $query
      */
-    public static function addQueries(Query $queries)
+    public static function storeQuery(Query $query): void
     {
-        self::$queries[] = $queries;
-    }
-
-    /**
-     * @param int|float $cost
-     */
-    public static function addTotalCost($cost)
-    {
-        self::$totalCost += $cost;
-    }
-
-    /**
-     * @param $count
-     */
-    public static function addTotalQueries($count)
-    {
-        self::$totalQueries += $count;
+        self::$queries[] = $query;
     }
 
     /**
@@ -68,6 +47,7 @@ final class Debug extends Singleton
     }
 
     /**
+     * All executed queries
      * @return Query[]
      */
     public static function getQueries(): array
@@ -76,11 +56,16 @@ final class Debug extends Singleton
     }
 
     /**
+     * Time total for all queries
      * @return float
      */
-    public static function getTotalCost()
+    public static function getTotalCost(): float
     {
-        return self::$totalCost;
+        $total = 0;
+        foreach (self::$queries as $query)
+            $total += $query->cost;
+
+        return $total;
     }
 
     /**
@@ -88,15 +73,7 @@ final class Debug extends Singleton
      */
     public static function getTotalQueries(): int
     {
-        return self::$totalQueries;
-    }
-
-    /**
-     * @return Debug
-     */
-    public static function me(): Instantiatable
-    {
-        return Singleton::getInstance(__CLASS__);
+        return count(self::$queries);
     }
 
     /**

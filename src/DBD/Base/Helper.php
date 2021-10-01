@@ -17,6 +17,7 @@ use DBD\Common\DBDException;
 use DBD\DBD;
 use DBD\Utils\InsertArguments;
 use DBD\Utils\PrepareArguments;
+use DBD\Utils\Caller;
 use DBD\Utils\UpdateArguments;
 use Exception;
 use ReflectionClass;
@@ -26,13 +27,12 @@ final class Helper
     /**
      * @param $context
      *
-     * @return array
+     * @return Caller
      * @throws DBDException
      */
-    final public static function caller($context): array
+    final public static function caller($context): Caller
     {
         try {
-            $return = [];
             $debug = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS);
 
             // working directory
@@ -52,19 +52,18 @@ final class Helper
                     $call['file'] = str_replace($wd, '', $call['file']);
 
                     if ($myFilename != $call['file'] && !preg_match('/' . $child . '\.\w+$/', $call['file'])) {
-                        $return[] = [
-                            'file' => $call['file'],
-                            'line' => $call['line'],
-                            'function' => $call['function'],
-                        ];
+                        return new Caller($call['file'], $call['line'], $call['function']);
                     }
                 }
             }
 
-            return $return;
+            // @codeCoverageIgnoreStart
+            return new Caller("unknown file", 0, "unknown function");
+
         } catch (Exception $e) {
             throw new DBDException($e->getMessage());
         }
+        // @codeCoverageIgnoreEnd
     }
 
     /**
@@ -82,7 +81,7 @@ final class Helper
                 unset($array[$idx]);
                 continue;
             }
-            if (preg_match('/^\s*?(UNION|CREATE|DELETE|UPDATE|SELECT|FROM|WHERE|JOIN|LIMIT|OFFSET|ORDER|GROUP)/i', $line)) {
+            if (preg_match('/^\s*?(UNION|DROP|CREATE|DELETE|UPDATE|SELECT|FROM|WHERE|JOIN|LIMIT|OFFSET|ORDER|GROUP|HAVING)/i', $line)) {
                 $array[$idx] = ltrim($line);
             } else {
                 $array[$idx] = "    " . ltrim($line);
@@ -98,7 +97,7 @@ final class Helper
      * @return InsertArguments
      * @throws DBDException
      */
-    final public static function compileInsertArgs(array $data, DBD $driver): InsertArguments
+    final public static function compileInsertArguments(array $data, DBD $driver): InsertArguments
     {
         $columns = [];
         $values = [];
@@ -141,11 +140,10 @@ final class Helper
      *
      * @param mixed $value
      */
-    private static function booleanToString(&$value)
+    private static function booleanToString(&$value): void
     {
-        if (is_bool($value)) {
+        if (is_bool($value))
             $value = ($value) ? 'TRUE' : 'FALSE';
-        }
     }
 
     /**
@@ -247,11 +245,12 @@ final class Helper
         return $args;
     }
 
-    private static function arrayFlatten($array)
+    /**
+     * @param array $array
+     * @return array
+     */
+    private static function arrayFlatten(array $array): array
     {
-        if (!is_array($array)) {
-            return false;
-        }
         $result = [];
         foreach ($array as $key => $value) {
             if (is_array($value)) {
@@ -268,11 +267,11 @@ final class Helper
     }
 
     /**
-     * @param $query
+     * @param string $query
      * @return string
      * @throws DBDException
      */
-    public static function getQueryType($query): string
+    public static function getQueryType(string $query): string
     {
         preg_match('/^(\s*?--.*\n)?\s*(SELECT|UPDATE|DELETE|INSERT)\s+/', $query, $matches);
 

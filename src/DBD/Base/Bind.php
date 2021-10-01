@@ -14,6 +14,7 @@ namespace DBD\Base;
 
 use DBD\Common\DBDException;
 use DBD\Entity\Primitives\NumericPrimitives;
+use DBD\Entity\Primitives\StringPrimitives;
 
 class Bind
 {
@@ -30,11 +31,11 @@ class Bind
      * Bind constructor.
      * @param string $name
      * @param mixed $value
-     * @param string|null $type
+     * @param string $type
      * @param string|null $originalColumn
      * @throws DBDException
      */
-    public function __construct(string $name, $value, ?string $type = null, ?string $originalColumn = null)
+    public function __construct(string $name, $value, string $type = StringPrimitives::STRING, ?string $originalColumn = null)
     {
         $this->name = $name;
         $this->value = $value;
@@ -59,15 +60,14 @@ class Bind
                 break;
             case NumericPrimitives::FLOAT;
             case NumericPrimitives::Double;
-                if (!is_float($this->value) && !is_array($this->value) && !is_null($this->value)) {
+                if (!is_float($this->value) && !is_array($this->value) && !is_null($this->value))
                     throw new DBDException("Bound parameter '$name' is not float type");
-                }
+
                 if (is_array($this->value)) {
                     foreach ($this->value as $item) {
                         // check is float
-                        if (!is_float($item) && !is_null($item)) {
+                        if (!is_float($item) && !is_null($item))
                             throw new DBDException("One of value for bound parameter '$name' is not float type");
-                        }
                     }
                 }
                 break;

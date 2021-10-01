@@ -146,7 +146,7 @@ class OData extends DBD
         try {
             $record = $this->createInsertRecord($entity);
 
-            $params = Helper::compileInsertArgs($record, $this);
+            $params = Helper::compileInsertArguments($record, $this);
 
             // ONLY FOR EMULATION
             $this->query = $this->_compileInsert($entity::TABLE, $params);
@@ -403,14 +403,15 @@ class OData extends DBD
 
     /**
      * @return $this
+     * @inheritdoc
      */
-    public function disconnect(): DBD
+    public function disconnect(): bool
     {
         if ($this->isConnected()) {
             curl_close($this->resourceLink);
         }
 
-        return $this;
+        return true;
     }
 
     /**

@@ -12,11 +12,13 @@ declare(strict_types=1);
 
 namespace DBD\Base;
 
+use DBD\Utils\Caller;
+
 final class Query
 {
-    /** @var */
+    /** @var Caller */
     public $caller;
-    /** @var */
+    /** @var float */
     public $cost;
     /** @var */
     public $driver;
@@ -28,18 +30,17 @@ final class Query
     /**
      * Query constructor.
      *
-     * @param $query
-     * @param $cost
-     * @param $caller
-     * @param $mark
-     * @param $driver
+     * @param string $query
+     * @param float $cost
+     * @param Caller $caller
+     * @param string $driver
      */
-    public function __construct($query, $cost, $caller, $mark, $driver)
+    public function __construct(string $query, float $cost, Caller $caller, string $driver)
     {
         $this->query = $query;
         $this->cost = $cost;
         $this->caller = $caller;
-        $this->mark = $mark;
+        $this->mark = Helper::debugMark($cost);
         $this->driver = $driver;
     }
 }
