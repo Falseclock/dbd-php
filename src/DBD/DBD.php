@@ -105,15 +105,14 @@ abstract class DBD implements CRUD
             if (!isset($this->query))
                 throw new DBDException("SQL statement not prepared");
 
-            if (preg_match("/^[\s\t\r\n]*select/i", $this->query)) {
-                // set hash key
-                $this->CacheHolder = new CacheHolder($key);
-
-                if ($ttl !== null)
-                    $this->CacheHolder->expire = $ttl;
-            } else {
+            if (Helper::getQueryType($this->query) != CRUD::READ)
                 throw new DBDException("Caching setup failed, current query is not of SELECT type");
-            }
+
+            // set hash key
+            $this->CacheHolder = new CacheHolder($key);
+
+            if ($ttl !== null)
+                $this->CacheHolder->expire = $ttl;
         }
 
         return $this;
