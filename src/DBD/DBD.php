@@ -299,7 +299,8 @@ abstract class DBD implements CRUD
 
             // Cache not empty?
             if (!is_null($this->CacheHolder->result)) {
-                $cost = Debug::me()->endTimer();
+                if ($this->Options->isUseDebug())
+                    $cost = Debug::me()->endTimer();
                 // To avoid errors as result by default is NULL
                 $this->result = self::GOT_FROM_CACHE;
                 $this->storage = self::STORAGE_CACHE;
