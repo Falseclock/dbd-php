@@ -333,7 +333,8 @@ abstract class DBD implements CRUD
             }
             self::$executedStatements[] = $preparedQuery;
 
-            $cost = Debug::me()->endTimer();
+            if ($this->Options->isUseDebug())
+                $cost = Debug::me()->endTimer();
 
             if (is_null($this->result) || $this->result === false)
                 throw new DBDException ($this->_errorMessage(), $preparedQuery, $this->Options->isPrepareExecute() ? Helper::parseArguments($executeArguments) : null);
