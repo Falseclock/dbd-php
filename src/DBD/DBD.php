@@ -666,20 +666,23 @@ abstract class DBD implements CRUD
      * @param string $nullString
      * @param bool $header
      * @param bool $utf8
-     *
+     * @param string|null $temporaryFile
      * @return string
      * @throws DBDException
      */
-    public function dump(?array $executeArguments = [], string $delimiter = "\\t", string $nullString = "", bool $header = true, bool $utf8 = true): string
+    public function dump(?array $executeArguments = [], string $delimiter = "\\t", string $nullString = "", bool $header = true, bool $utf8 = true, string $temporaryFile = null): string
     {
-        $temporaryFile = tempnam(sys_get_temp_dir(), 'DBD');
+        // If file not provided, we believe that database located on the same machine
+        if (is_null($temporaryFile)) {
+            $temporaryFile = tempnam(sys_get_temp_dir(), 'DBD');
 
-        register_shutdown_function(function () use ($temporaryFile) {
-            @unlink($temporaryFile);
-        });
+            register_shutdown_function(function() use ($temporaryFile) {
+                @unlink($temporaryFile);
+            });
 
-        file_put_contents($temporaryFile, "");
-        chmod($temporaryFile, 0666);
+            file_put_contents($temporaryFile, "");
+            chmod($temporaryFile, 0666);
+        }
 
         $BOM = b"\xEF\xBB\xBF";
         $preparedQuery = $this->getPreparedQuery($executeArguments);
