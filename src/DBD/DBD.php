@@ -665,12 +665,11 @@ abstract class DBD implements CRUD
      * @param string $delimiter
      * @param string $nullString
      * @param bool $header
-     * @param bool $utf8
      * @param string|null $temporaryFile
-     * @return string
+     * @return DBD
      * @throws DBDException
      */
-    public function dump(?array $executeArguments = [], string $delimiter = "\\t", string $nullString = "", bool $header = true, bool $utf8 = true, string $temporaryFile = null): string
+    public function dump(?array $executeArguments = [], string $temporaryFile = null, string $delimiter = "\\t", string $nullString = "", bool $header = true): DBD
     {
         // If file not provided, we believe that database located on the same machine
         if (is_null($temporaryFile)) {
@@ -684,11 +683,10 @@ abstract class DBD implements CRUD
             chmod($temporaryFile, 0666);
         }
 
-        $BOM = b"\xEF\xBB\xBF";
         $preparedQuery = $this->getPreparedQuery($executeArguments);
         $this->_dump($preparedQuery, $temporaryFile, $delimiter, $nullString, $header);
 
-        return ($utf8 ? $BOM : null) . file_get_contents($temporaryFile);
+        return $this;
     }
 
     /**
