@@ -266,9 +266,9 @@ class Pg extends DBD
             foreach ($data as $key => &$value) {
                 if ($this->Options->isConvertNumeric()) {
                     if (in_array($key, $this->conversionMap->floats))
-                        $value = (float)$value;
+                        $value = $value ? (float)$value : null;
                     if (in_array($key, $this->conversionMap->integers))
-                        $value = (int)$value;
+                        $value = $value ? (int)$value : null;
                 }
                 if ($this->Options->isConvertBoolean()) {
                     if (in_array($key, $this->conversionMap->booleans)) {
