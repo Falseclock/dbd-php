@@ -19,7 +19,7 @@ use DBD\Common\DBDException;
 use DBD\OData;
 use PHPUnit\Framework\TestCase;
 
-abstract class OdataTest extends TestCase
+abstract class OdataTestCase extends TestCase
 {
     /** @var Options */
     protected $options;
@@ -48,9 +48,9 @@ abstract class OdataTest extends TestCase
     {
         parent::__construct($name, $data, $dataName);
 
-        $host = getenv('ODHOST') ?: 'https://url/odata/standard.odata/';
-        $user = getenv('ODUSER') ?: 'User';
-        $password = getenv('ODPASSWORD') ?: 'password';
+        $host = getenv('ODHOST') ?: 'https://inf.sandbox.mp.kz/1c/odata/standard.odata/';
+        $user = getenv('ODUSER') ?: 'Нурлан Муханов';
+        $password = getenv('ODPASSWORD') ?: ',kz,ele12';
 
         $this->memcache = new MemCache([[MemCache::HOST => '127.0.0.1', MemCache::PORT => 11211]]);
         $this->memcache->connect();

@@ -15,7 +15,7 @@ namespace DBD\Tests\Odata;
 use DBD\Utils\OData\Metadata;
 use Exception;
 
-class OdataMetadataTest extends OdataTest
+class OdataMetadataTestCase extends OdataTestCase
 {
     /**
      * @throws Exception

@@ -30,15 +30,13 @@
     "php": "^7.1|^8.0",
     "psr/simple-cache": "^1.0.1",
     "openlss/lib-array2xml": "^1.0.0",
-    "falseclock/dbd-php-entity": "^2.3.1",
+    "falseclock/dbd-php-entity": "^2.3.5",
     "ext-json": "*",
     "ext-simplexml": "*",
     "ext-dom": "*"
   },
   "require-dev": {
-    "ext-pgsql": "*",
-    "ext-memcache": "*",
-    "phpunit/phpunit": "^9.5.0",
+    "phpunit/phpunit": "^9.5.10",
     "php-coveralls/php-coveralls": "^2.4.3"
   },
   "suggest": {

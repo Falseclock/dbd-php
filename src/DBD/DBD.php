@@ -25,6 +25,7 @@ use DBD\Entity\Common\EntityException;
 use DBD\Entity\Constraint;
 use DBD\Entity\Entity;
 use DBD\Entity\Primitive;
+use DBD\Entity\Primitives\StringPrimitives;
 use DBD\Tests\Pg\PgRowsTest;
 use DBD\Tests\Pg\PgTransactionTest;
 use DBD\Utils\ConversionMap;
@@ -916,7 +917,7 @@ abstract class DBD implements CRUD
         foreach ($columns as $propertyName => $column) {
 
             if (property_exists($entity, $propertyName) and isset($entity->$propertyName)) {
-                if ($column->type == Primitive::String and stripos($column->originType, 'json') !== false and !is_string($entity->$propertyName)) {
+                if ($column->type == StringPrimitives::String and stripos($column->originType, 'json') !== false and !is_string($entity->$propertyName)) {
                     $entity->$propertyName = json_encode($entity->$propertyName, JSON_UNESCAPED_UNICODE);
                 }
             }

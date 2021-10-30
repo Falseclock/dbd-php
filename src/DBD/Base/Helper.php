@@ -197,9 +197,8 @@ final class Helper
      */
     final public static function debugMark(float $cost, int $maxExecutionTime = null): float
     {
-        if (!isset($maxExecutionTime)) {
+        if (is_null($maxExecutionTime))
             $maxExecutionTime = Debug::$maxExecutionTime;
-        }
 
         $value = floor($cost / $maxExecutionTime) + 1;
 
@@ -216,11 +215,12 @@ final class Helper
      */
     final public static function prepareArguments(array $ARGS): PrepareArguments
     {
-        if (count($ARGS) == 1 and is_array($ARGS[0])) {
+        if (count($ARGS) == 1 and is_array($ARGS[0]))
             $ARGS = $ARGS[0];
-        }
+
         // Shift query from passed arguments. Query is always first
         $statement = array_shift($ARGS);
+
         // Build array of arguments
         $args = self::parseArguments($ARGS);
 
@@ -231,7 +231,6 @@ final class Helper
      * @param array $ARGS
      *
      * @return array
-     *
      */
     final public static function parseArguments(array $ARGS): array
     {

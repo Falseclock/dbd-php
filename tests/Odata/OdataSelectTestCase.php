@@ -15,7 +15,7 @@ namespace DBD\Tests\Odata;
 use DBD\Common\DBDException;
 use Exception;
 
-class OdataSelectTest extends OdataTest
+class OdataSelectTestCase extends OdataTestCase
 {
     /**
      * Just selecting and checking fetchRow

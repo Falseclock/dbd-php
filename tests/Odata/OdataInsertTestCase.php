@@ -15,7 +15,7 @@ namespace DBD\Tests\Odata;
 use DBD\Common\DBDException;
 use DBD\Tests\Entities\Odata\Currency;
 
-class OdataInsertTest extends OdataTest
+class OdataInsertTestCase extends OdataTestCase
 {
     /**
      * @throws DBDException

@@ -16,7 +16,7 @@ use DateTime;
 use DBD\Common\DBDException;
 use DBD\Entity\Primitive;
 
-class OdataBindTest extends OdataTest
+class OdataBindTestCase extends OdataTestCase
 {
     /**
      * @throws DBDException

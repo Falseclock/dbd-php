@@ -14,7 +14,7 @@ namespace DBD\Tests\Odata;
 
 use DBD\Common\DBDException;
 
-class OdataUnsupportedTest extends OdataTest
+class OdataUnsupportedTestCase extends OdataTestCase
 {
     /**
      * @throws DBDException
