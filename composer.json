@@ -46,7 +46,7 @@
   },
   "autoload": {
     "psr-4": {
-      "DBD\\": "src/DBD"
+      "DBD\\": "src"
     }
   },
   "autoload-dev": {

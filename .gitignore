@@ -2,7 +2,6 @@
 vendor/
 /composer.lock
 /build/
-/.run/
 /.phpunit.result.cache
-./run/
 /phpunit.phar
+/composer.phar

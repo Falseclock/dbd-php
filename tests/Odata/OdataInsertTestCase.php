@@ -35,7 +35,7 @@ class OdataInsertTestCase extends OdataTestCase
         $checkEntity->key = $currency->key;
         $this->db->entitySelect($checkEntity);
 
-        self::assertEquals($checkEntity, $currency);
+        self::assertSame($checkEntity, $currency);
 
         self::assertTrue($this->db->entityDelete($currency));
 

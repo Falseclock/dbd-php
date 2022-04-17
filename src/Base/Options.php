@@ -48,32 +48,41 @@ final class Options
      */
     public function __construct(?bool $onDemand = null, ?bool $printError = null, ?bool $raiseError = null, ?bool $showErrorStatement = null, ?bool $convertNumeric = null, ?bool $convertBoolean = null, ?bool $useDebug = null, ?bool $prepareExecute = null, ?string $placeholder = null)
     {
-        if (isset($onDemand))
+        if (!is_null($onDemand)) {
             $this->onDemand = $onDemand;
+        }
 
-        if (isset($printError))
+        if (!is_null($printError)) {
             $this->printError = $printError;
+        }
 
-        if (isset($raiseError))
+        if (!is_null($raiseError)) {
             $this->raiseError = $raiseError;
+        }
 
-        if (isset($showErrorStatement))
+        if (!is_null($showErrorStatement)) {
             $this->showErrorStatement = $showErrorStatement;
+        }
 
-        if (isset($convertNumeric))
+        if (!is_null($convertNumeric)) {
             $this->convertNumeric = $convertNumeric;
+        }
 
-        if (isset($convertBoolean))
+        if (!is_null($convertBoolean)) {
             $this->convertBoolean = $convertBoolean;
+        }
 
-        if (isset($useDebug))
+        if (!is_null($useDebug)) {
             $this->useDebug = $useDebug;
+        }
 
-        if (isset($prepareExecute))
+        if (!is_null($prepareExecute)) {
             $this->prepareExecute = $prepareExecute;
+        }
 
-        if (isset($placeholder))
+        if (!is_null($placeholder)) {
             $this->placeHolder = $placeholder;
+        }
     }
 
     /**

@@ -24,7 +24,6 @@ use DBD\Common\DBDException;
 use DBD\Entity\Common\EntityException;
 use DBD\Entity\Constraint;
 use DBD\Entity\Entity;
-use DBD\Entity\Primitive;
 use DBD\Entity\Primitives\StringPrimitives;
 use DBD\Tests\Pg\PgRowsTest;
 use DBD\Tests\Pg\PgTransactionTest;
@@ -294,7 +293,7 @@ abstract class DBD implements CRUD
             // Get data from cache
             try {
                 $this->CacheHolder->result = $this->Config->cacheDriver->get($this->CacheHolder->key);
-            } catch (Throwable | Exception | InvalidArgumentException $e) {
+            } catch (Throwable|Exception|InvalidArgumentException $e) {
                 throw new DBDException("Failed to get from cache: {$e->getMessage()}", $preparedQuery);
             }
 
@@ -353,7 +352,7 @@ abstract class DBD implements CRUD
                 // Setting up our cache
                 try {
                     $this->Config->cacheDriver->set($this->CacheHolder->key, $this->CacheHolder->result, $this->CacheHolder->expire);
-                } catch (InvalidArgumentException | Throwable $e) {
+                } catch (InvalidArgumentException|Throwable $e) {
                     throw new DBDException("Failed to store in cache: {$e->getMessage()}", $preparedQuery);
                 }
             }
@@ -653,7 +652,7 @@ abstract class DBD implements CRUD
      * @return $this
      * @throws DBDException
      */
-    public function bind(string $paramName, $value, ?string $dataType = Primitive::String, ?string $column = null): DBD
+    public function bind(string $paramName, $value, ?string $dataType = StringPrimitives::String, ?string $column = null): DBD
     {
         $this->binds[] = new Bind($paramName, $value, $dataType, $column);
         return $this;
@@ -676,7 +675,7 @@ abstract class DBD implements CRUD
         if (is_null($temporaryFile)) {
             $temporaryFile = tempnam(sys_get_temp_dir(), 'DBD');
 
-            register_shutdown_function(function() use ($temporaryFile) {
+            register_shutdown_function(function () use ($temporaryFile) {
                 @unlink($temporaryFile);
             });
 
@@ -714,6 +713,7 @@ abstract class DBD implements CRUD
      *
      * @return bool
      * @throws DBDException
+     * @noinspection SqlNoDataSourceInspection
      */
     public function entityDelete(Entity $entity): bool
     {
@@ -756,11 +756,10 @@ abstract class DBD implements CRUD
             }
 
             return [$execute, $columns];
+        } catch (DBDException $e) {
+            throw $e;
         } catch (Exception $e) {
-            if ($e instanceof DBDException)
-                throw $e;
-            else
-                throw new DBDException($e->getMessage(), null, null, $e);
+            throw new DBDException($e->getMessage(), null, null, $e);
         }
     }
 
@@ -784,11 +783,10 @@ abstract class DBD implements CRUD
 
             return $entity;
 
-        } catch (DBDException | EntityException $e) {
-            if ($e instanceof DBDException)
-                throw $e;
-            else
-                throw new DBDException($e->getMessage(), null, null, $e);
+        } catch (DBDException $e) {
+            throw $e;
+        } catch (Exception $e) {
+            throw new DBDException($e->getMessage(), null, null, $e);
         }
     }
 
@@ -809,7 +807,7 @@ abstract class DBD implements CRUD
 
             $originName = $column->name;
 
-            if ($column->nullable == false) {
+            if (!$column->nullable) {
                 // Mostly we always define properties for any columns
                 if (property_exists($entity, $propertyName)) {
                     if (!isset($entity->$propertyName) and ($column->isAuto === false and !isset($column->defaultValue)))
@@ -819,15 +817,15 @@ abstract class DBD implements CRUD
                         // Finally, add column to record if it is set
                         $finalValue = $entity->$propertyName ?? $column->defaultValue;
 
-                        $record[$originName] = $column->type->getValue() == Primitive::Binary ? $this->escapeBinary($finalValue) : $finalValue;
+                        $record[$originName] = $column->type->getValue() == StringPrimitives::Binary ? $this->escapeBinary($finalValue) : $finalValue;
                     }
                 }
             } else {
                 // Finally, add column to record if it is set
                 if (isset($entity->$propertyName)) {
-                    $record[$originName] = ($column->type->getValue() == Primitive::Binary) ? $this->escapeBinary($entity->$propertyName) : $entity->$propertyName;
+                    $record[$originName] = ($column->type->getValue() == StringPrimitives::Binary) ? $this->escapeBinary($entity->$propertyName) : $entity->$propertyName;
                 } else {
-                    // If value not set and we have some default value, let's define also
+                    // If value not set, and we have some default value, let's define also
                     if ($column->isAuto === false and isset($column->defaultValue))
                         $record[$originName] = $column->defaultValue;
                 }
@@ -983,7 +981,8 @@ abstract class DBD implements CRUD
             $fields = array_flip($constraintEntity::map()->getOriginFieldNames());
 
             /** @var string $foreignColumn name of origin column */
-            $foreignColumn = $constraint instanceof Constraint ? $constraint->foreignColumn : $constraint->foreignColumn->name;
+            //$foreignColumn = $constraint instanceof Constraint ? $constraint->foreignColumn : $constraint->foreignColumn->name;
+            $foreignColumn = $constraint->foreignColumn;
 
             return $fields[$foreignColumn];
         } catch (EntityException $e) {
@@ -1024,7 +1023,7 @@ abstract class DBD implements CRUD
      * // this will update all rows in a table where invoice_uuid is null
      * // query will return invoice_id
      * $sth = $db->update('invoices', $update, "invoice_uuid IS NULL", "invoice_id");
-     * while ($row = $sth->fetchrow()) {
+     * while ($row = $sth->fetchRow()) {
      *     printf("Updated invoice with ID=%d\n", $row['invoice_id']);
      * }
      * ```
@@ -1038,7 +1037,7 @@ abstract class DBD implements CRUD
      * // this will update all rows in a table where invoice_uuid equals to some value
      * // query will return invoice_id
      * $sth = $db->update('invoices', $update, "invoice_uuid = ?", $doc['UUID'], "invoice_id, invoice_uuid");
-     * while($row = $sth->fetchrow()) {
+     * while($row = $sth->fetchRow()) {
      *     printf("Updated invoice with ID=%d and UUID=%s\n", $row['invoice_id'], $row['invoice_uuid']);
      * }
      * ```
@@ -1119,6 +1118,7 @@ abstract class DBD implements CRUD
      *
      * @return Entity|null
      * @throws DBDException
+     * @noinspection SqlNoDataSourceInspection
      */
     public function entitySelect(Entity &$entity, bool $exceptionIfNoRecord = true): ?Entity
     {

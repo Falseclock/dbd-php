@@ -19,12 +19,13 @@ use DBD\Tests\CommonTest;
 
 class HelperTest extends CommonTest
 {
-    public function testParseArguments() {
-        self::assertSame([1,2,3], Helper::parseArguments([1,2,3]));
-        self::assertSame([1,1,2,3,3], Helper::parseArguments([1,[1,2,3],3]));
-        self::assertSame([1,1,1,2,3,3,3], Helper::parseArguments([1,[1,[1,2,3],3],3]));
-        self::assertSame([1,1,1,2,3,3], Helper::parseArguments([1,[1,[1,2],3],3]));
-        self::assertSame([1,1,2,3,3], Helper::parseArguments([1,[1,[2],3],3]));
+    public function testParseArguments()
+    {
+        self::assertSame([1, 2, 3], Helper::parseArguments([1, 2, 3]));
+        self::assertSame([1, 1, 2, 3, 3], Helper::parseArguments([1, [1, 2, 3], 3]));
+        self::assertSame([1, 1, 1, 2, 3, 3, 3], Helper::parseArguments([1, [1, [1, 2, 3], 3], 3]));
+        self::assertSame([1, 1, 1, 2, 3, 3], Helper::parseArguments([1, [1, [1, 2], 3], 3]));
+        self::assertSame([1, 1, 2, 3, 3], Helper::parseArguments([1, [1, [2], 3], 3]));
     }
 
     /**
@@ -70,7 +71,11 @@ class HelperTest extends CommonTest
         }
 
         $this->assertException(DBDException::class, function () {
-            Helper::getQueryType("WITH ");
+            Helper::getQueryType("WITH RECURSIVE t(n) AS");
+        });
+
+        $this->assertException(DBDException::class, function () {
+            Helper::getQueryType("FOO bar");
         });
     }
 }

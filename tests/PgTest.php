@@ -1,31 +1,27 @@
 <?php
 /**
- * PgTest
- *
  * @author    Nurlan Mukhanov <nurike@gmail.com>
  * @copyright 2020 Nurlan Mukhanov
  * @license   https://en.wikipedia.org/wiki/MIT_License MIT License
  * @link      https://github.com/Falseclock/dbd-php
+ * @noinspection SqlNoDataSourceInspection
  */
 
 declare(strict_types=1);
 
 namespace DBD\Tests;
 
-use DBD\Base\Bind;
 use DBD\Base\Config;
 use DBD\Base\Options;
 use DBD\Cache\MemCache;
 use DBD\Common\DBDException;
 use DBD\Entity\Common\EntityException;
-use DBD\Entity\Primitive;
 use DBD\Pg;
 use DBD\Tests\Entities\TestBaseNoAuto;
 use DBD\Tests\Entities\TestBaseNullable;
 use DBD\Tests\Entities\TestBaseNullable2;
 use DBD\Tests\Entities\TestBaseNullable2Map;
 use DBD\Tests\Entities\TestBaseNullableMap;
-use Exception;
 use PHPUnit\Framework\TestCase;
 use Psr\SimpleCache\InvalidArgumentException;
 
@@ -95,7 +91,6 @@ class PgTest extends TestCase
         $this->expectException(DBDException::class);
         $this->db->query("SELECT * FROM unknown_TABLE");
     }
-
 
     /**
      * @throws DBDException
@@ -884,7 +879,7 @@ class PgTest extends TestCase
         $sth->execute(1000);
 
         $i = 0;
-        while ($row = $sth->fetchRow()) {
+        while ($sth->fetchRow()) {
             $i++;
         }
 
@@ -894,7 +889,7 @@ class PgTest extends TestCase
         $sth->execute(1000);
 
         $i = 0;
-        while ($row = $sth->fetchRow()) {
+        while ($sth->fetchRow()) {
             $i++;
         }
         self::assertSame(0, $i);
@@ -904,7 +899,7 @@ class PgTest extends TestCase
         $sth->execute(1000);
 
         $i = 0;
-        while ($row = $sth->fetchRow()) {
+        while ($sth->fetchRow()) {
             $i++;
         }
         self::assertSame(0, $i);

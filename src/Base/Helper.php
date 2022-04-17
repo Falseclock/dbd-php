@@ -1,7 +1,5 @@
 <?php
 /**
- * Helper
- *
  * @author       Nurlan Mukhanov <nurike@gmail.com>
  * @copyright    2020 Nurlan Mukhanov
  * @license      https://en.wikipedia.org/wiki/MIT_License MIT License
@@ -20,10 +18,10 @@ use DBD\Utils\Caller;
 use DBD\Utils\InsertArguments;
 use DBD\Utils\PrepareArguments;
 use DBD\Utils\UpdateArguments;
-use Exception;
 use RecursiveArrayIterator;
 use RecursiveIteratorIterator;
 use ReflectionClass;
+use ReflectionException;
 
 final class Helper
 {
@@ -63,7 +61,7 @@ final class Helper
             // @codeCoverageIgnoreStart
             return new Caller("unknown file", 0, "unknown function");
 
-        } catch (Exception $e) {
+        } catch (ReflectionException $e) {
             throw new DBDException($e->getMessage());
         }
         // @codeCoverageIgnoreEnd
@@ -145,8 +143,9 @@ final class Helper
      */
     private static function booleanToString(&$value): void
     {
-        if (is_bool($value))
+        if (is_bool($value)) {
             $value = ($value) ? 'TRUE' : 'FALSE';
+        }
     }
 
     /**
@@ -197,13 +196,15 @@ final class Helper
      */
     final public static function debugMark(float $cost, int $maxExecutionTime = null): float
     {
-        if (is_null($maxExecutionTime))
+        if (is_null($maxExecutionTime)) {
             $maxExecutionTime = Debug::$maxExecutionTime;
+        }
 
         $value = floor($cost / $maxExecutionTime) + 1;
 
-        if ($value > 6)
+        if ($value > 6) {
             return 6;
+        }
 
         return $value;
     }
@@ -215,8 +216,9 @@ final class Helper
      */
     final public static function prepareArguments(array $ARGS): PrepareArguments
     {
-        if (count($ARGS) == 1 and is_array($ARGS[0]))
+        if (count($ARGS) == 1 and is_array($ARGS[0])) {
             $ARGS = $ARGS[0];
+        }
 
         // Shift query from passed arguments. Query is always first
         $statement = array_shift($ARGS);
@@ -237,8 +239,9 @@ final class Helper
         $args = [];
 
         $iterator = new RecursiveIteratorIterator(new RecursiveArrayIterator($ARGS));
-        foreach ($iterator as $value)
+        foreach ($iterator as $value) {
             $args[] = $value;
+        }
 
         return $args;
     }
@@ -255,10 +258,11 @@ final class Helper
         $query = preg_replace('/--\s.*$/m', '', $query);
         $query = trim($query);
 
-        preg_match('/^(SELECT|UPDATE|DELETE|INSERT)\s+/', $query, $matches);
+        preg_match('/^(SELECT|UPDATE|DELETE|INSERT|WITH)\s+/', $query, $matches);
 
-        if (count($matches) == 0)
+        if (count($matches) == 0) {
             throw new DBDException("non SQL query: $query");
+        }
 
         switch (strtoupper(trim($matches[1]))) {
             case CRUD::CREATE:
@@ -269,10 +273,8 @@ final class Helper
                 return CRUD::UPDATE;
             case CRUD::DELETE:
                 return CRUD::DELETE;
-            // @codeCoverageIgnoreStart
             default:
-                throw new DBDException("non SQL query: $query");
-            // @codeCoverageIgnoreEnd
+                throw new DBDException("Can't identity query type: $query");
         }
     }
 }
