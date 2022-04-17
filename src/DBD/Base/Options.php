@@ -1,9 +1,7 @@
 <?php
 /**
- * Options
- *
  * @author    Nurlan Mukhanov <nurike@gmail.com>
- * @copyright 2020 Nurlan Mukhanov
+ * @copyright 2009-2022 Nurlan Mukhanov
  * @license   https://en.wikipedia.org/wiki/MIT_License MIT License
  * @link      https://github.com/Falseclock/dbd-php
  */
@@ -14,7 +12,7 @@ namespace DBD\Base;
 
 final class Options
 {
-    /** @var null connection identity */
+    /** @var string connection identity */
     private $applicationName = "DBD-PHP";
     /** @var bool */
     private $convertBoolean = false;
@@ -87,11 +85,11 @@ final class Options
     }
 
     /**
-     * @param null $applicationName
+     * @param string $applicationName
      *
      * @return Options
      */
-    public function setApplicationName($applicationName): Options
+    public function setApplicationName(string $applicationName): Options
     {
         $this->applicationName = $applicationName;
 

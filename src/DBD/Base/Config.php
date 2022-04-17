@@ -21,7 +21,7 @@ final class Config
     /** @var string */
     private $database;
     /** @var string */
-    private $dsn;
+    private $dsn = "";
     /** @var string */
     private $host;
     /** @var string */

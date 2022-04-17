@@ -1,7 +1,5 @@
 <?php
 /**
- * DebugTest
- *
  * @author    Nurlan Mukhanov <nurike@gmail.com>
  * @copyright 2020 Nurlan Mukhanov
  * @license   https://en.wikipedia.org/wiki/MIT_License MIT License
@@ -41,5 +39,11 @@ class DebugTest extends CommonTest
         self::assertCount(1, $perDriver);
         self::assertTrue(isset($perDriver['test']));
         self::assertCount(10, $perDriver['test']);
+
+        Debug::me()->startTimer();
+        sleep(1);
+        $cost = Debug::me()->endTimer();
+        self::assertGreaterThan(1000, $cost);
+        self::assertLessThan(2000, $cost);
     }
 }
