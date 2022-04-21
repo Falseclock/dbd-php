@@ -67,6 +67,6 @@ jobs:
 
       - name: Build coverage report
         env:
-          COVERALLS_REPO_TOKEN: ${{ secrets.COVERALLS_REPO_TOKEN }}
+          COVERALLS_REPO_TOKEN: ToRqd0jbV4IX64snc7N08rSP5X25OIqjp
         run: vendor/bin/php-coveralls --verbose --coverage_clover=build/logs/clover.xml
         working-directory: './'
