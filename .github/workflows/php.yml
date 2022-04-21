@@ -39,6 +39,7 @@ jobs:
         run: |
           sudo apt update
           sudo apt install memcached postgresql -y
+          sudo pg_lsclusters
           PG_VERSION=$(sudo pg_lsclusters |grep 5432|awk ' {print $1} ')
           PG_CLUSTER=$(sudo pg_lsclusters |grep 5432|awk ' {print $2} ')
           sudo echo -e "local all postgres peer\nlocal all all trust\nhost all all 0.0.0.0/0 trust" > /etc/postgresql/$PG_VERSION/$PG_CLUSTER/pg_hba.conf
