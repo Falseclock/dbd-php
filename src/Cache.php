@@ -1,7 +1,5 @@
 <?php
 /**
- * Cache
- *
  * @author    Nurlan Mukhanov <nurike@gmail.com>
  * @copyright 2020 Nurlan Mukhanov
  * @license   https://en.wikipedia.org/wiki/MIT_License MIT License
@@ -13,6 +11,7 @@ declare(strict_types=1);
 namespace DBD;
 
 use DateInterval;
+use DateTimeImmutable;
 use Psr\SimpleCache\CacheInterface;
 
 abstract class Cache implements CacheInterface
@@ -70,11 +69,14 @@ abstract class Cache implements CacheInterface
      */
     public function getTtl($ttl)
     {
-        if (!isset($ttl))
+        if (is_null($ttl))
             return $this->defaultTtl;
 
-        if ($ttl instanceof DateInterval)
-            return $ttl->format("%s");
+        if ($ttl instanceof DateInterval) {
+            $reference = new DateTimeImmutable();
+            $endTime = $reference->add($ttl);
+            return $endTime->getTimestamp() - $reference->getTimestamp();
+        }
 
         if (is_int($ttl))
             return $ttl;
@@ -98,6 +100,7 @@ abstract class Cache implements CacheInterface
 
                     case 'h':
                     case 'hr':
+                    case 'hrs':
                     case 'hour':
                     case 'hours':
                         return $value * 60 * 60;
@@ -125,6 +128,7 @@ abstract class Cache implements CacheInterface
                     default:
                     case 's':
                     case 'sec':
+                    case 'secs':
                     case 'second':
                     case 'seconds':
                         return $value;

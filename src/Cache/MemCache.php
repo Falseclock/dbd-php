@@ -1,12 +1,10 @@
 <?php
 /**
- * MemCache
- *
- * @noinspection PhpComposerExtensionStubsInspection
  * @author    Nurlan Mukhanov <nurike@gmail.com>
  * @copyright 2020 Nurlan Mukhanov
  * @license   https://en.wikipedia.org/wiki/MIT_License MIT License
  * @link      https://github.com/Falseclock/dbd-php
+ * @noinspection PhpComposerExtensionStubsInspection
  */
 
 declare(strict_types=1);
@@ -14,8 +12,8 @@ declare(strict_types=1);
 namespace DBD\Cache;
 
 use DateInterval;
-use DBD\Common\DBDException;
 use DBD\Cache;
+use DBD\Common\DBDException;
 
 class MemCache extends Cache
 {
@@ -86,30 +84,12 @@ class MemCache extends Cache
     {
         $state = true;
 
-        if (is_resource($this->link))
+        if (!is_null($this->link))
             $state = $this->link->close();
 
         $this->link = null;
 
         return $state;
-    }
-
-    /**
-     * Fetches a value from the cache.
-     *
-     * @param string $key The unique key of this item in the cache.
-     * @param mixed $default Default value to return if the key does not exist.
-     *
-     * @return mixed The value of the item from the cache, or $default in case of cache miss.
-     */
-    public function get($key, $default = null)
-    {
-        $value = $this->link->get($key);
-        if ($value === false) {
-            return $default;
-        }
-
-        return $value;
     }
 
     /**
@@ -140,6 +120,24 @@ class MemCache extends Cache
     public function has($key): bool
     {
         return !($this->link->get($key) === false);
+    }
+
+    /**
+     * Fetches a value from the cache.
+     *
+     * @param string $key The unique key of this item in the cache.
+     * @param mixed $default Default value to return if the key does not exist.
+     *
+     * @return mixed The value of the item from the cache, or $default in case of cache miss.
+     */
+    public function get($key, $default = null)
+    {
+        $value = $this->link->get($key);
+        if ($value === false) {
+            return $default;
+        }
+
+        return $value;
     }
 
     /**
