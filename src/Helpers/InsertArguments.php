@@ -1,7 +1,5 @@
 <?php
 /**
- * InsertArguments
- *
  * @author       Nurlan Mukhanov <nurike@gmail.com>
  * @copyright    2021 Nurlan Mukhanov
  * @license      https://en.wikipedia.org/wiki/MIT_License MIT License

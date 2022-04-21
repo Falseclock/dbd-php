@@ -1,7 +1,5 @@
 <?php
 /**
- * Utils
- *
  * @author    Nurlan Mukhanov <nurike@gmail.com>
  * @copyright 2020 Nurlan Mukhanov
  * @license   https://en.wikipedia.org/wiki/MIT_License MIT License
@@ -37,7 +35,7 @@ abstract class UtilsImpl implements UtilsInterface
      *
      * @return string
      */
-    public static function toCamelCase($string, $capitalizeFirstCharacter = false, array $search = ['_'])
+    public static function toCamelCase($string, bool $capitalizeFirstCharacter = false, array $search = ['_'])
     {
         $str = str_replace($search, '', ucwords($string, implode("", $search)));
 

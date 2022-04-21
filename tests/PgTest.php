@@ -19,7 +19,6 @@ use DBD\Common\DBDException;
 use DBD\Common\Options;
 use DBD\Entity\Common\EntityException;
 use DBD\Pg;
-use DBD\Tests\Entities\City;
 use DBD\Tests\Entities\TestBaseNoAuto;
 use DBD\Tests\Entities\TestBaseNullable;
 use DBD\Tests\Entities\TestBaseNullable2;

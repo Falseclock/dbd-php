@@ -10,8 +10,6 @@ declare(strict_types=1);
 
 namespace DBD\Common;
 
-use DBD\Common\Singleton;
-
 final class Debug extends Singleton
 {
     /** @var float Average query execution time in milliseconds as a standard for comparison */

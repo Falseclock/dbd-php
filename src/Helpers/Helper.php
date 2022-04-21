@@ -22,6 +22,8 @@ use ReflectionException;
 
 final class Helper
 {
+    public static $measureStep = 6.0;
+
     /**
      * @param $context
      *
@@ -57,11 +59,10 @@ final class Helper
 
             // @codeCoverageIgnoreStart
             return new Caller("unknown file", 0, "unknown function");
-
+            // @codeCoverageIgnoreEnd
         } catch (ReflectionException $e) {
             throw new DBDException($e->getMessage());
         }
-        // @codeCoverageIgnoreEnd
     }
 
     /**
@@ -121,7 +122,7 @@ final class Helper
                         $arguments[] = $columnValue[0];
                         break;
                     default:
-                        throw new DBDException("Unknown format of record for insert");
+                        throw new DBDException(CRUD::ERROR_UNKNOWN_INSERT_FORMAT);
                 }
             } else {
                 self::booleanToString($columnValue);
@@ -174,7 +175,7 @@ final class Helper
                         $args[] = $columnValue[0];
                         break;
                     default:
-                        throw new DBDException("Unknown format of record for update");
+                        throw new DBDException(CRUD::ERROR_UNKNOWN_UPDATE_FORMAT);
                 }
             } else {
                 $columns[] = sprintf($defaultFormat, $columnName);
@@ -199,8 +200,8 @@ final class Helper
 
         $value = floor($cost / $maxExecutionTime) + 1;
 
-        if ($value > 6) {
-            return 6;
+        if ($value > self::$measureStep) {
+            return self::$measureStep;
         }
 
         return $value;
@@ -258,7 +259,7 @@ final class Helper
         preg_match('/^(SELECT|UPDATE|DELETE|INSERT|WITH)\s+/', $query, $matches);
 
         if (count($matches) == 0) {
-            throw new DBDException("non SQL query: $query");
+            throw new DBDException(sprintf(CRUD::ERROR_NON_SQL_QUERY, $query));
         }
 
         switch (strtoupper(trim($matches[1]))) {
@@ -271,7 +272,7 @@ final class Helper
             case CRUD::DELETE:
                 return CRUD::DELETE;
             default:
-                throw new DBDException("Can't identity query type: $query");
+                throw new DBDException(sprintf(CRUD::ERROR_UNIDENTIFIABLE_QUERY, $query));
         }
     }
 }

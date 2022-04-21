@@ -6,11 +6,13 @@
  * @copyright    2021 Nurlan Mukhanov
  * @license      https://en.wikipedia.org/wiki/MIT_License MIT License
  * @link         https://github.com/Falseclock/dbd-php
+ * @noinspection SqlNoDataSourceInspection
+ * @noinspection SqlResolve
  */
 
 declare(strict_types=1);
 
-namespace DBD\Tests\Helpers;
+namespace DBD\Tests\Common;
 
 use DBD\Common\CRUD;
 use DBD\Common\DBDException;
@@ -19,6 +21,22 @@ use DBD\Tests\CommonTest;
 
 class HelperTest extends CommonTest
 {
+    public function testDebugMark()
+    {
+        $mark = Helper::debugMark(200, 20);
+
+        self::assertSame(Helper::$measureStep, $mark);
+    }
+
+    /**
+     */
+    public function testCallerException()
+    {
+        $this->assertException(DBDException::class, function () {
+            Helper::caller("unknown/class");
+        });
+    }
+
     public function testParseArguments()
     {
         self::assertSame([1, 2, 3], Helper::parseArguments([1, 2, 3]));

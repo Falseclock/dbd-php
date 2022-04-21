@@ -21,4 +21,34 @@ class ConversionMap
     public $floats = [];
     /** @var string[] */
     public $integers = [];
+
+    /**
+     * @param string $field
+     * @return $this
+     */
+    public function addBoolean(string $field): ConversionMap
+    {
+        $this->booleans[] = $field;
+        return $this;
+    }
+
+    /**
+     * @param string $field
+     * @return $this
+     */
+    public function addFloat(string $field): ConversionMap
+    {
+        $this->floats[] = $field;
+        return $this;
+    }
+
+    /**
+     * @param string $field
+     * @return $this
+     */
+    public function addInteger(string $field): ConversionMap
+    {
+        $this->integers[] = $field;
+        return $this;
+    }
 }

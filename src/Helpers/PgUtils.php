@@ -20,6 +20,9 @@ use DBD\Entity\Key;
 use DBD\Entity\Primitive;
 use DBD\Entity\Table;
 
+/**
+ * TODO: check on diff PostgreSQL versions
+ */
 class PgUtils extends UtilsImpl
 {
     /** @var DBD $db */

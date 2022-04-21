@@ -17,12 +17,12 @@ use DBD\Common\Bind;
 use DBD\Common\DBDException;
 use DBD\Entity\Primitives\NumericPrimitives;
 use DBD\Entity\Primitives\StringPrimitives;
-use DBD\Tests\Pg\PgNamedTest;
-use DBD\Tests\Pg\PgQueryTest;
-use DBD\Tests\Pg\PgTransactionTest;
 use DBD\Helpers\ConversionMap;
 use DBD\Helpers\InsertArguments;
 use DBD\Helpers\UpdateArguments;
+use DBD\Tests\Pg\PgNamedTest;
+use DBD\Tests\Pg\PgQueryTest;
+use DBD\Tests\Pg\PgTransactionTest;
 use Exception;
 use Throwable;
 
@@ -331,13 +331,13 @@ class Pg extends DBD
             $fieldType = pg_field_type($this->result, $fieldNumber);
 
             if ($fieldType == 'bool')
-                $this->conversionMap->booleans[] = $key;
+                $this->conversionMap->addBoolean((string)$key);
 
             if (in_array($fieldType, $integers))
-                $this->conversionMap->integers[] = $key;
+                $this->conversionMap->addInteger((string)$key);
 
             if (in_array($fieldType, $floats))
-                $this->conversionMap->floats[] = $key;
+                $this->conversionMap->addFloat((string)$key);
         }
     }
 

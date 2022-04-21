@@ -8,6 +8,7 @@
             <directory>src</directory>
         </include>
         <exclude>
+            <directory>src/Helpers/OData</directory>
             <file>src/DBD/MSSQL.php</file>
             <file>src/DBD/MySQL.php</file>
             <file>src/DBD/OData.php</file>
