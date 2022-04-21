@@ -67,6 +67,7 @@ jobs:
 
       - name: Build coverage report
         env:
-          COVERALLS_REPO_TOKEN: ${{ secrets.COVERALLS_REPO_TOKEN }}
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          COVERALLS_REPO_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          COVERALLS_PARALLEL: true
+          COVERALLS_FLAG_NAME: ${{ matrix.php-versions }}
         run: vendor/bin/php-coveralls --verbose --coverage_clover=build/logs/clover.xml
