@@ -44,7 +44,7 @@ class Pg extends DBD
         $dsn .= $this->Config->getUsername() ? "user={$this->Config->getUsername()} " : "";
         $dsn .= $this->Config->getPassword() ? "password={$this->Config->getPassword()} " : "";
         $dsn .= $this->Config->getPort() ? "port={$this->Config->getPort()} " : "";
-        $dsn .= "application_name={$this->Options->getApplicationName()} options='-c extra_float_digits=3'";
+        $dsn .= "application_name={$this->Options->getApplicationName()} options='-c extra_float_digits=1'";
 
         $this->Config->setDsn($dsn);
 
