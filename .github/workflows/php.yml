@@ -44,10 +44,9 @@ jobs:
           PG_VERSION=$(sudo pg_lsclusters |grep 5432|awk ' {print $1} ')
           PG_CLUSTER=$(sudo pg_lsclusters |grep 5432|awk ' {print $2} ')
           echo -e "local all postgres peer\nlocal all all trust\nhost all all 0.0.0.0/0 trust" | sudo tee /etc/postgresql/$PG_VERSION/$PG_CLUSTER/pg_hba.conf
-          sudo cat /etc/postgresql/$PG_VERSION/$PG_CLUSTER/pg_hba.conf
           sudo pg_ctlcluster $PG_VERSION $PG_CLUSTER stop
           sudo pg_ctlcluster $PG_VERSION $PG_CLUSTER start
-          sudo memcached.service start
+          sudo systemctl start memcached.service 
           sudo -H -u postgres bash -c 'createdb dbd_tests' 
 
       - name: Cache Composer packages
