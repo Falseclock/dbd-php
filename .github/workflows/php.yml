@@ -39,6 +39,10 @@ jobs:
         run: |
           sudo apt update
           sudo apt install memcached postgresql -y
+          sudo PG_VERSION=$(pg_lsclusters |grep 5432|awk ' {print $1} ')
+          sudo PG_CLUSTER=$(pg_lsclusters |grep 5432|awk ' {print $2} ')
+          echo -e "local all postgres peer\nlocal all all trust\nhost all all 0.0.0.0/0 trust" > /etc/postgresql/$PG_VERSION/$PG_CLUSTER/pg_hba.conf
+          sudo /etc/init.d/postgresql stop
           sudo /etc/init.d/postgresql start
           sudo /etc/init.d/memcached start
           sudo -H -u postgres bash -c 'createdb dbd_tests' 
@@ -58,3 +62,8 @@ jobs:
       - name: Run test suite
         run: vendor/bin/phpunit --coverage-clover build/logs/clover.xml
         working-directory: './'
+
+      - name: Build coverage report
+        env:
+          COVERALLS_REPO_TOKEN: ${{ secrets.COVERALLS_REPO_TOKEN }}
+        run: vendor/bin/php-coveralls --verbose --coverage_clover=build/logs/clover.xm
