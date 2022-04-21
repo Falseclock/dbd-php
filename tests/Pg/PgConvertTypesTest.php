@@ -25,10 +25,10 @@ class PgConvertTypesTest extends PgAbstractTest
     {
         // ini_set('precision', (string)17);
 
-        $this->db->getOptions()->setConvertBoolean(true);
-        $this->db->getOptions()->setConvertNumeric(true);
+        $this->db->getOptions()->setConvertBoolean(false);
+        $this->db->getOptions()->setConvertNumeric(false);
 
-        $sth = $this->db->query("
+        $sth = $this->db->prepare("
             SELECT
                 123::INT                                AS value_int,      -- integer
                 124::INT2                               AS value_int2,     -- smallint
@@ -75,42 +75,49 @@ class PgConvertTypesTest extends PgAbstractTest
                 TRUE                                    AS value_true,
                 FALSE                                   AS value_false
         ");
+        $sth->execute();
+        $no = $sth->fetchRow();
+
+        $this->db->getOptions()->setConvertBoolean(true);
+        $this->db->getOptions()->setConvertNumeric(true);
+        $sth->execute();
         $row = $sth->fetchRow();
-        self::assertSame(123, $row['value_int']);
-        self::assertSame(124, $row['value_int2']);
-        self::assertSame(125, $row['value_int4']);
-        self::assertSame(126, $row['value_int8']);
-        self::assertSame(130, $row['value_smallint']);
-        self::assertSame(131, $row['value_bigint']);
+
+        self::assertSame(123, $row['value_int'], $no['value_int']);
+        self::assertSame(124, $row['value_int2'], $no['value_int2']);
+        self::assertSame(125, $row['value_int4'], $no['value_int4']);
+        self::assertSame(126, $row['value_int8'], $no['value_int8']);
+        self::assertSame(130, $row['value_smallint'], $no['value_smallint']);
+        self::assertSame(131, $row['value_bigint'], $no['value_bigint']);
         self::assertSame(true, $row['value_true']);
         self::assertSame(false, $row['value_false']);
         self::assertSame(null, $row['value_null']);
 
-        self::assertSame(231.0, $row['value_real_0']);
-        self::assertSame(231.11111, $row['value_real_1']);
-        self::assertSame(232.22223, $row['value_real_2']);
-        self::assertSame(233.33333, $row['value_real_3']);
-        self::assertSame(233.44444, $row['value_real_4']);
-        self::assertSame(233.55556, $row['value_real_5']);
-        self::assertSame(233.66667, $row['value_real_6']);
-        self::assertSame(233.77777, $row['value_real_7']);
-        self::assertSame(233.88889, $row['value_real_8']);
-        self::assertSame(234.0, $row['value_real_9']);
-        self::assertSame(234.01234, $row['value_real']);
-        self::assertSame(235.98766, $row['value_float4']);
+        self::assertSame(231.0, $row['value_real_0'], $no['value_real_0']);
+        self::assertSame(231.11111, $row['value_real_1'], $no['value_real_1']);
+        self::assertSame(232.22223, $row['value_real_2'], $no['value_real_2']);
+        self::assertSame(233.33333, $row['value_real_3'], $no['value_real_3']);
+        self::assertSame(233.44444, $row['value_real_4'], $no['value_real_4']);
+        self::assertSame(233.55556, $row['value_real_5'], $no['value_real_5']);
+        self::assertSame(233.66667, $row['value_real_6'], $no['value_real_6']);
+        self::assertSame(233.77777, $row['value_real_7'], $no['value_real_7']);
+        self::assertSame(233.88889, $row['value_real_8'], $no['value_real_8']);
+        self::assertSame(234.0, $row['value_real_9'], $no['value_real_9']);
+        self::assertSame(234.01234, $row['value_real'], $no['value_real']);
+        self::assertSame(235.98766, $row['value_float4'], $no['value_float4']);
 
-        self::assertSame(301.0, $row['value_double_0']);
-        self::assertSame(301.1111111111111, $row['value_double_1']);
-        self::assertSame(301.22222222222223, $row['value_double_2']);
-        self::assertSame(301.3333333333333, $row['value_double_3']);
-        self::assertSame(301.44444444444446, $row['value_double_4']);
-        self::assertSame(301.55555555555554, $row['value_double_5']);
-        self::assertSame(301.6666666666667, $row['value_double_6']);
-        self::assertSame(301.77777777777777, $row['value_double_7']);
-        self::assertSame(301.8888888888889, $row['value_double_8']);
-        self::assertSame(302.0, $row['value_double_9']);
-        self::assertSame(337.0123456789012, $row['value_float']);
-        self::assertSame(339.01234567898763, $row['value_float8']);
+        self::assertSame(301.0, $row['value_double_0'], $no['value_double_0']);
+        self::assertSame(301.1111111111111, $row['value_double_1'], $no['value_double_1']);
+        self::assertSame(301.22222222222223, $row['value_double_2'], $no['value_double_2']);
+        self::assertSame(301.3333333333333, $row['value_double_3'], $no['value_double_3']);
+        self::assertSame(301.44444444444446, $row['value_double_4'], $no['value_double_4']);
+        self::assertSame(301.55555555555554, $row['value_double_5'], $no['value_double_5']);
+        self::assertSame(301.6666666666667, $row['value_double_6'], $no['value_double_6']);
+        self::assertSame(301.77777777777777, $row['value_double_7'], $no['value_double_7']);
+        self::assertSame(301.8888888888889, $row['value_double_8'], $no['value_double_8']);
+        self::assertSame(302.0, $row['value_double_9'], $no['value_double_9']);
+        self::assertSame(337.0123456789012, $row['value_float'], $no['value_float']);
+        self::assertSame(339.01234567898763, $row['value_float8'], $no['value_float8']);
 
         $sth->execute();
         while ($column = $sth->fetch()) {
