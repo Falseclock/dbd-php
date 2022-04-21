@@ -39,9 +39,9 @@ jobs:
         run: |
           sudo apt update
           sudo apt install memcached postgresql -y
-          /etc/init.d/postgresql start
-          /etc/init.d/memcached start
-          su postgres
+          sudo /etc/init.d/postgresql start
+          sudo /etc/init.d/memcached start
+          sudo su postgres
           createdb dbd_tests
 
       - name: Cache Composer packages
