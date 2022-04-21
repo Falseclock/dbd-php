@@ -86,7 +86,7 @@ class PgConvertTypesTest extends PgAbstractTest
         self::assertSame(false, $row['value_false']);
         self::assertSame(null, $row['value_null']);
 
-        self::assertSame((float)231, $row['value_real_0']);
+        self::assertSame(231.0, $row['value_real_0']);
         self::assertSame(231.11111, $row['value_real_1']);
         self::assertSame(232.22223, $row['value_real_2']);
         self::assertSame(233.33333, $row['value_real_3']);
@@ -95,11 +95,11 @@ class PgConvertTypesTest extends PgAbstractTest
         self::assertSame(233.66667, $row['value_real_6']);
         self::assertSame(233.77777, $row['value_real_7']);
         self::assertSame(233.88889, $row['value_real_8']);
-        self::assertSame((float)234, $row['value_real_9']);
+        self::assertSame(234.0, $row['value_real_9']);
         self::assertSame(234.01234, $row['value_real']);
         self::assertSame(235.98766, $row['value_float4']);
 
-        self::assertSame((float)301, $row['value_double_0']);
+        self::assertSame(301.0, $row['value_double_0']);
         self::assertSame(301.1111111111111, $row['value_double_1']);
         self::assertSame(301.22222222222223, $row['value_double_2']);
         self::assertSame(301.3333333333333, $row['value_double_3']);
@@ -108,7 +108,7 @@ class PgConvertTypesTest extends PgAbstractTest
         self::assertSame(301.6666666666667, $row['value_double_6']);
         self::assertSame(301.77777777777777, $row['value_double_7']);
         self::assertSame(301.8888888888889, $row['value_double_8']);
-        self::assertSame((float)302, $row['value_double_9']);
+        self::assertSame(302.0, $row['value_double_9']);
         self::assertSame(337.0123456789012, $row['value_float']);
         self::assertSame(339.01234567898763, $row['value_float8']);
 

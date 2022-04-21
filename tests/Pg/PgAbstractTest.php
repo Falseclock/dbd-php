@@ -13,11 +13,10 @@ declare(strict_types=1);
 
 namespace DBD\Tests\Pg;
 
-use DBD\Base\Config;
-use DBD\Base\Options;
-use DBD\Cache\MemCache;
+use DBD\Common\Config;
 use DBD\Common\DBDException;
-use DBD\DBD;
+use DBD\Common\Options;
+use DBD\Cache\MemCache;
 use DBD\Pg;
 use DBD\Tests\CommonTest;
 

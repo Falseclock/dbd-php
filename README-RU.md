@@ -216,7 +216,7 @@ while ($row = $sth->fetchrow()) {
 ?>
 ```
 
->## **HTML Error Example**
+> ## **HTML Error Example**
 >![Image of Yaktocat](https://cloud.githubusercontent.com/assets/3299139/24210184/77632df8-0f52-11e7-95fd-3514ed4ad60d.PNG)
 >
 >## **TEXT Error Example**
@@ -235,7 +235,7 @@ while ($row = $sth->fetchrow()) {
 >// make connection to the database
 >$db = $dsn->connect();
 >
->class SQLErrorHandler extends DBD\Base\ErrorHandler
+>class SQLErrorHandler extends DBD\Common\ErrorHandler
 >{
 >	public function __construct($query, $errstr, $caller, $options=null) {
 >		

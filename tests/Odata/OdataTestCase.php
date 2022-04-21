@@ -12,10 +12,10 @@ declare(strict_types=1);
 
 namespace DBD\Tests\OData;
 
-use DBD\Base\Config;
-use DBD\Base\Options;
-use DBD\Cache\MemCache;
+use DBD\Common\Config;
 use DBD\Common\DBDException;
+use DBD\Common\Options;
+use DBD\Cache\MemCache;
 use DBD\OData;
 use PHPUnit\Framework\TestCase;
 
@@ -52,7 +52,7 @@ abstract class OdataTestCase extends TestCase
         $user = getenv('ODUSER') ?: 'Нурлан Муханов';
         $password = getenv('ODPASSWORD') ?: ',kz,ele12';
 
-        $this->memcache = new MemCache([[MemCache::HOST => '127.0.0.1', MemCache::PORT => 11211]]);
+        $this->memcache = new MemCache([[MemCache::HOST => getenv('MEMCACHE_HOST') ?: '127.0.0.1', MemCache::PORT => getenv('MEMCACHE_PORT') ?: '112211']]);
         $this->memcache->connect();
 
         $this->config = new Config($host, null, null, $user, $password);

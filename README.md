@@ -22,7 +22,7 @@ Very and very easy:
 
 ```php
 <?php
-use DBD\Base\Config;
+use DBD\Common\Config;
 use DBD\Pg;
 
 $config = new Config("127.0.0.1", 5432, "db_name", "user_name", "user_password");
@@ -106,7 +106,7 @@ Since PostgreSQL 9.0 and above, the server returns the number of SELECTed rows. 
 
 ```php
 <?php
-use DBD\Base\Config;
+use DBD\Common\Config;
 use DBD\Pg;
 
 $config = new Config("127.0.0.1", 5432, "db_name", "user_name", "user_password");

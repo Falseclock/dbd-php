@@ -12,7 +12,7 @@ declare(strict_types=1);
 
 namespace DBD\Tests\Odata;
 
-use DBD\Utils\OData\Metadata;
+use DBD\Helpers\OData\Metadata;
 use Exception;
 
 class OdataMetadataTestCase extends OdataTestCase

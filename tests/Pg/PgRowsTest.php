@@ -1,11 +1,12 @@
 <?php
 /**
- * PgRowsTest
- *
  * @author    Nurlan Mukhanov <nurike@gmail.com>
  * @copyright 2021 Nurlan Mukhanov
  * @license   https://en.wikipedia.org/wiki/MIT_License MIT License
  * @link      https://github.com/Falseclock/dbd-php
+ * @noinspection SqlResolve
+ * @noinspection SqlWithoutWhere
+ * @noinspection SqlNoDataSourceInspection
  */
 
 declare(strict_types=1);
@@ -58,14 +59,12 @@ class PgRowsTest extends PgAbstractTest
 
     /**
      * @throws DBDException
-     * @noinspection SqlResolve
-     * @noinspection SqlWithoutWhere
      */
     public function testRows()
     {
         $sth = $this->db->query("SELECT 1 UNION SELECT 2 UNION SELECT 3");
         self::assertSame(3, $sth->rows());
-        $sth->cache(__METHOD__ . __LINE__)->execute();
+        $sth->cache(__METHOD__ . __LINE__, "1s")->execute();
         self::assertSame(3, $sth->rows());
 
         $sth = $this->db->query("SELECT 1");

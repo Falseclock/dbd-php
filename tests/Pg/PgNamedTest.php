@@ -1,12 +1,11 @@
 <?php
 /**
- * PgNamedTest
- *
  * @author    Nurlan Mukhanov <nurike@gmail.com>
  * @copyright 2021 Nurlan Mukhanov
  * @license   https://en.wikipedia.org/wiki/MIT_License MIT License
  * @link      https://github.com/Falseclock/dbd-php
  * @noinspection PhpComposerExtensionStubsInspection
+ * @noinspection SqlNoDataSourceInspection
  */
 
 declare(strict_types=1);

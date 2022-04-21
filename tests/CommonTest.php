@@ -1,7 +1,5 @@
 <?php
 /**
- * CommonTest
- *
  * @author    Nurlan Mukhanov <nurike@gmail.com>
  * @copyright 2020 Nurlan Mukhanov
  * @license   https://en.wikipedia.org/wiki/MIT_License MIT License
@@ -12,8 +10,8 @@ declare(strict_types=1);
 
 namespace DBD\Tests;
 
-use DBD\Base\Config;
-use DBD\Base\Options;
+use DBD\Common\Config;
+use DBD\Common\Options;
 use DBD\DBD;
 use Exception;
 use PHPUnit\Framework\TestCase;
@@ -34,7 +32,7 @@ abstract class CommonTest extends TestCase
      * @param string $expectClass
      * @param callable $callback
      * @param string|null $expectMessage
-     * @return Exception|Throwable|void
+     * @return Throwable|void
      */
     protected function assertException(string $expectClass, callable $callback, string $expectMessage = null): Throwable
     {

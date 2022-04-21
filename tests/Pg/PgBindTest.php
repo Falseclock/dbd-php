@@ -13,7 +13,7 @@ declare(strict_types=1);
 
 namespace DBD\Tests\Pg;
 
-use DBD\Base\Bind;
+use DBD\Common\Bind;
 use DBD\Common\DBDException;
 use DBD\Entity\Primitives\NumericPrimitives;
 use DBD\Entity\Primitives\StringPrimitives;

@@ -1,44 +1,41 @@
 <?php
 /**
- * PgTest
- *
  * @author    Nurlan Mukhanov <nurike@gmail.com>
  * @copyright 2020 Nurlan Mukhanov
  * @license   https://en.wikipedia.org/wiki/MIT_License MIT License
  * @link      https://github.com/Falseclock/dbd-php
+ * @noinspection SqlNoDataSourceInspection
+ * @noinspection SqlResolve
  */
 
 declare(strict_types=1);
 
 namespace DBD\Tests;
 
-use DBD\Base\Bind;
-use DBD\Base\Config;
-use DBD\Base\Options;
 use DBD\Cache\MemCache;
+use DBD\Common\Config;
+use DBD\Common\CRUD;
 use DBD\Common\DBDException;
+use DBD\Common\Options;
 use DBD\Entity\Common\EntityException;
-use DBD\Entity\Primitive;
 use DBD\Pg;
 use DBD\Tests\Entities\TestBaseNoAuto;
 use DBD\Tests\Entities\TestBaseNullable;
 use DBD\Tests\Entities\TestBaseNullable2;
 use DBD\Tests\Entities\TestBaseNullable2Map;
 use DBD\Tests\Entities\TestBaseNullableMap;
-use Exception;
-use PHPUnit\Framework\TestCase;
 use Psr\SimpleCache\InvalidArgumentException;
 
-class PgTest extends TestCase
+class PgTest extends CommonTest
 {
     /** @var Pg */
     protected $db;
     /** @var Config */
-    private $config;
+    protected $config;
     /**  @var MemCache */
-    private $memcache;
+    protected $memcache;
     /** @var Options */
-    private $options;
+    protected $options;
 
     /**
      * PgTest constructor.
@@ -76,9 +73,9 @@ class PgTest extends TestCase
      * This should be last as transaction may be in fail state
      *
      * @throws DBDException
-     * @noinspection SqlResolve
+     *
      */
-    public function tAAAAAAAAAAAAAAAAestErrorQueryDirect()
+    public function testErrorQueryDirect()
     {
         $this->options->setPrepareExecute(true);
         $this->expectException(DBDException::class);
@@ -87,15 +84,13 @@ class PgTest extends TestCase
 
     /**
      * @throws DBDException
-     * @noinspection SqlResolve
      */
-    public function tAAAAAAAAAAAAAAestErrorQueryPrepare()
+    public function testErrorQueryPrepare()
     {
         $this->options->setPrepareExecute(false);
         $this->expectException(DBDException::class);
         $this->db->query("SELECT * FROM unknown_TABLE");
     }
-
 
     /**
      * @throws DBDException
@@ -116,7 +111,7 @@ class PgTest extends TestCase
     {
         $this->config->setCacheDriver($this->memcache);
         self::expectException(DBDException::class);
-        self::expectExceptionMessage("SQL statement not prepared");
+        self::expectExceptionMessage(CRUD::ERROR_STATEMENT_NOT_PREPARED);
         $this->db->cache(__METHOD__);
     }
 
@@ -128,7 +123,7 @@ class PgTest extends TestCase
         $this->config->setCacheDriver($this->memcache);
 
         self::expectException(DBDException::class);
-        self::expectExceptionMessage("Caching setup failed, current query is not of SELECT type");
+        self::expectExceptionMessage(CRUD::ERROR_CACHING_NON_SELECT_QUERY);
 
         $sth = $this->db->prepare(" \t    \r\n\r\nDELETE FROM TEST WHERE SELECT");
         $sth->cache(__METHOD__);
@@ -142,7 +137,6 @@ class PgTest extends TestCase
 
     /**
      * @throws DBDException
-     * @noinspection SqlResolve
      * @noinspection SqlWithoutWhere
      */
     public function testDo()
@@ -237,6 +231,13 @@ class PgTest extends TestCase
 
             self::assertTrue($this->db->entityDelete($entity));
         }
+
+        // test for return false
+        $entity = new TestBaseNullable();
+        $entity->id = 123456789;
+        $result = $this->db->entityDelete($entity);
+
+        self::assertFalse($result);
     }
 
     /**
@@ -306,7 +307,6 @@ class PgTest extends TestCase
     /**
      * @throws DBDException
      * @throws InvalidArgumentException
-     * @noinspection SqlResolve
      */
     public function testExecuteFetchRowSetKeyWithCache()
     {
@@ -362,7 +362,6 @@ class PgTest extends TestCase
     /**
      * @throws DBDException
      * @throws InvalidArgumentException
-     * @noinspection SqlResolve
      */
     public function testExecuteFetchRowSetKeyWithCachePrepare()
     {
@@ -419,7 +418,6 @@ class PgTest extends TestCase
     /**
      * @throws DBDException
      * @throws InvalidArgumentException
-     * @noinspection SqlResolve
      */
     public function testExecuteFetchRowSetWithCache()
     {
@@ -480,7 +478,6 @@ class PgTest extends TestCase
     /**
      * @throws DBDException
      * @throws InvalidArgumentException
-     * @noinspection SqlResolve
      */
     public function testExecuteFetchRowWithCache()
     {
@@ -532,7 +529,6 @@ class PgTest extends TestCase
     /**
      * @throws DBDException
      * @throws InvalidArgumentException
-     * @noinspection SqlResolve
      */
     public function testExecuteFetchWithCache()
     {
@@ -685,7 +681,6 @@ class PgTest extends TestCase
 
     /**
      * @throws DBDException
-     * @noinspection SqlResolve
      */
     public function testFetchRow()
     {
@@ -733,7 +728,6 @@ class PgTest extends TestCase
 
     /**
      * @throws DBDException
-     * @noinspection SqlResolve
      */
     public function testFetchRowSet()
     {
@@ -786,7 +780,6 @@ class PgTest extends TestCase
 
     /**
      * @throws DBDException
-     * @noinspection SqlResolve
      */
     public function testFetchRowSetWithKey()
     {
@@ -864,7 +857,6 @@ class PgTest extends TestCase
     /**
      * @throws DBDException
      * @throws InvalidArgumentException
-     * @noinspection SqlResolve
      */
     public function testNoRows()
     {
@@ -884,7 +876,7 @@ class PgTest extends TestCase
         $sth->execute(1000);
 
         $i = 0;
-        while ($row = $sth->fetchRow()) {
+        while ($sth->fetchRow()) {
             $i++;
         }
 
@@ -894,7 +886,7 @@ class PgTest extends TestCase
         $sth->execute(1000);
 
         $i = 0;
-        while ($row = $sth->fetchRow()) {
+        while ($sth->fetchRow()) {
             $i++;
         }
         self::assertSame(0, $i);
@@ -904,7 +896,7 @@ class PgTest extends TestCase
         $sth->execute(1000);
 
         $i = 0;
-        while ($row = $sth->fetchRow()) {
+        while ($sth->fetchRow()) {
             $i++;
         }
         self::assertSame(0, $i);
@@ -963,8 +955,10 @@ class PgTest extends TestCase
         $this->options->setConvertBoolean(false);
         self::assertSame("t", $this->db->select("SELECT true, COUNT(1), 2"));
 
-        self::expectException(DBDException::class);
-        /** @noinspection SqlResolve */
-        $this->db->select("DROP TABLE fake_table");
+        $this->assertException(DBDException::class, function () {
+            $this->db->select("DROP TABLE fake_table");
+        });
+
+        self::assertNull($this->db->select("DROP VIEW IF EXISTS non_exist"));
     }
 }

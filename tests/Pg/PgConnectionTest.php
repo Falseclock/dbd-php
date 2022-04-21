@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace DBD\Tests\Pg;
 
+use DBD\Common\CRUD;
 use DBD\Common\DBDException;
 use DBD\Pg;
 
@@ -50,7 +51,7 @@ class PgConnectionTest extends PgAbstractTest
         $this->db->begin();
         $this->assertException(DBDException::class, function () {
             $this->db->disconnect();
-        }, "Uncommitted transaction state");
+        }, CRUD::ERROR_UNCOMMITTED_TRANSACTION);
         $this->db->rollback();
 
         $this->assertException(DBDException::class, function () {

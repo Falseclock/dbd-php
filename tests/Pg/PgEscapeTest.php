@@ -1,12 +1,11 @@
 <?php
 /**
- * PgEscapeTest
- *
  * @author    Nurlan Mukhanov <nurike@gmail.com>
  * @copyright 2020 Nurlan Mukhanov
  * @license   https://en.wikipedia.org/wiki/MIT_License MIT License
  * @link      https://github.com/Falseclock/dbd-php
  * @noinspection PhpComposerExtensionStubsInspection
+ * @noinspection SqlNoDataSourceInspection
  */
 
 declare(strict_types=1);
@@ -38,6 +37,12 @@ class PgEscapeTest extends PgAbstractTest
      */
     public function testEscape()
     {
+        $result = $this->db->escapeBinary(null);
+        self::assertNull($result);
+
+        $result = $this->db->escapeBinary("");
+        self::assertNotNull($result);
+
         // set timezone
         $timeZone = $this->db->select("SELECT current_setting('TIMEZONE')");
         date_default_timezone_set($timeZone);
