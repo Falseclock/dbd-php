@@ -17,12 +17,8 @@ class DBDException extends Exception
     protected $arguments;
     /** @var int $code */
     protected $code;
-    /** @var string $file */
-    protected $filename = '';
     /** @var array $fullTrace */
     protected $fullTrace;
-    /** @var int $line */
-    protected $line;
     /** @var string $message */
     protected $message;
     /** @var string $query */
@@ -61,19 +57,10 @@ class DBDException extends Exception
                 }
             }
         }
-        $this->filename = $backTrace[0]['file'];
         $this->file = $backTrace[0]['file'];
         $this->line = $backTrace[0]['line'];
 
         $this->shortTrace = $backTrace;
-    }
-
-    /**
-     * @return string
-     */
-    public function getFilename(): string
-    {
-        return $this->filename;
     }
 
     /**
