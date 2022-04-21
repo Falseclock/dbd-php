@@ -25,24 +25,4 @@ abstract class UtilsImpl implements UtilsInterface
      * @throws DBDException
      */
     public abstract function tableStructure(string $tableName, string $schemeName): Table;
-
-    /**
-     * Converts to Camel Case
-     *
-     * @param       $string
-     * @param bool $capitalizeFirstCharacter
-     * @param array $search
-     *
-     * @return string
-     */
-    public static function toCamelCase($string, bool $capitalizeFirstCharacter = false, array $search = ['_'])
-    {
-        $str = str_replace($search, '', ucwords($string, implode("", $search)));
-
-        if (!$capitalizeFirstCharacter) {
-            $str = lcfirst($str);
-        }
-
-        return $str;
-    }
 }

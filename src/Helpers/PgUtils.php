@@ -18,10 +18,11 @@ use DBD\Entity\Common\EntityException;
 use DBD\Entity\Constraint;
 use DBD\Entity\Key;
 use DBD\Entity\Primitive;
+use DBD\Entity\Primitives\NumericPrimitives;
 use DBD\Entity\Table;
 
 /**
- * TODO: check on diff PostgreSQL versions
+ * TODO: check against diff PostgreSQL versions
  */
 class PgUtils extends UtilsImpl
 {
@@ -90,6 +91,21 @@ class PgUtils extends UtilsImpl
     }
 
     /**
+     * @param Column[] $columns
+     * @param          $name
+     *
+     * @return Column
+     */
+    private function getColumnByName(iterable $columns, $name): Column
+    {
+        foreach ($columns as $column) {
+            if ($column->name == $name) {
+                return $column;
+            }
+        }
+    }
+
+    /**
      * @param string $tableName
      * @param string $schemeName
      *
@@ -99,7 +115,6 @@ class PgUtils extends UtilsImpl
      */
     public function tableStructure(string $tableName, string $schemeName): Table
     {
-
         $table = new Table();
         $table->name = $tableName;
         $table->scheme = $schemeName;
@@ -138,10 +153,7 @@ class PgUtils extends UtilsImpl
                 $column = new Column($row['column_name']);
 
                 if (isset($row['is_nullable'])) {
-                    if ($row['is_nullable'] == 'f' || $row['is_nullable'] == false)
-                        $column->nullable = false;
-                    else
-                        $column->nullable = false;
+                    $column->nullable = false;
                 }
 
                 if (isset($row['character_maximum_length']))
@@ -165,16 +177,16 @@ class PgUtils extends UtilsImpl
                 $column->type = Primitive::fromType($row['udt_name']);
                 $column->originType = $row['udt_name'];
 
-                if (in_array($column->type->getValue(), [Primitive::Int16, Primitive::Int32(), Primitive::Int64])) {
+                if (in_array($column->type->getValue(), [NumericPrimitives::Int16, Primitive::Int32(), NumericPrimitives::Int64])) {
                     $column->scale = null;
                     $column->precision = null;
                 }
 
-                if (isset($row['is_primary'])) {
-                    $column->key = false;
-                } else {
+                if (isset($row['is_primary']) && $row['is_primary'] == "t") {
                     $column->key = true;
                     $table->keys[] = new Key($column);
+                } else {
+                    $column->key = false;
                 }
                 $columns[] = $column;
             }
@@ -185,22 +197,5 @@ class PgUtils extends UtilsImpl
         $table->constraints = $this->getTableConstraints($table);
 
         return $table;
-    }
-
-    /**
-     * @param Column[] $columns
-     * @param          $name
-     *
-     * @return Column
-     * @throws DBDException
-     */
-    private function getColumnByName(iterable $columns, $name): Column
-    {
-        foreach ($columns as $column) {
-            if ($column->name == $name) {
-                return $column;
-            }
-        }
-        throw  new DBDException("Unknown column {$name}");
     }
 }
