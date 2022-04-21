@@ -17,9 +17,9 @@ jobs:
     runs-on: ${{ matrix.operating-system }}
     strategy:
       matrix:
-        operating-system: [ ubuntu-20.04 ]
-        #php-versions: [ '7.1', '7.2', '7.3', '7.4', '8.0', '8.1', '8.2' ]
-        php-versions: [ '7.4' ]
+        operating-system: [ ubuntu-18.04, ubuntu-20.04 ]
+        php-versions: [ '7.1', '7.2', '7.3', '7.4', '8.0', '8.1', '8.2' ]
+        #php-versions: [ '7.4' ]
         phpunit-versions: ['latest']
     env:
       extensions: json, simplexml, dom, pgsql, memcache
