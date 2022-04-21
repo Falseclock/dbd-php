@@ -1,4 +1,4 @@
-name: PHP
+name: Build
 
 on:
   push:
@@ -18,7 +18,8 @@ jobs:
     strategy:
       matrix:
         operating-system: [ ubuntu-20.04 ]
-        php-versions: [ '7.1', '7.2', '7.3', '7.4', '8.0', '8.1', '8.2' ]
+        #php-versions: [ '7.1', '7.2', '7.3', '7.4', '8.0', '8.1', '8.2' ]
+        php-versions: [ '7.4' ]
         phpunit-versions: ['latest']
     env:
       extensions: json, simplexml, dom, pgsql, memcache
@@ -34,7 +35,27 @@ jobs:
           coverage: xdebug
           tools: phpunit:${{ matrix.phpunit-versions }}
 
-      - name: Install required components
+      - name: Install required packages
         run: |
           sudo apt update
           sudo apt install memcached postgresql -y
+          /etc/init.d/postgresql start
+          /etc/init.d/memcached start
+          su postgres
+          createdb dbd_tests
+
+      - name: Cache Composer packages
+        id: composer-cache
+        uses: actions/cache@v3
+        with:
+          path: vendor
+          key: ${{ runner.os }}-php-${{ hashFiles('**/composer.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-php-
+
+      - name: Install Composer dependencies
+        run: composer install --prefer-dist --no-progress
+
+      - name: Run test suite
+        run: vendor/bin/phpunit --coverage-clover build/logs/clover.xml
+        working-directory: './'
