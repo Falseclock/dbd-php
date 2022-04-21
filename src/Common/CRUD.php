@@ -37,4 +37,5 @@ interface CRUD
     const ERROR_ENTITY_TOO_MANY_UPDATES = "More then one records updated with query. Transaction rolled back!";
     const ERROR_ENTITY_NO_UPDATES = "No any records updated.";
     const ERROR_ARGUMENT_NOT_SCALAR = "Execute arguments for WHERE condition is not scalar";
+    const ERROR_ENTITY_NOT_FOUND = "No data found for entity '%s' with such query";
 }

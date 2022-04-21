@@ -20,7 +20,6 @@ use DBD\Common\DBDException;
 use DBD\Common\Debug;
 use DBD\Common\Options;
 use DBD\Common\Query;
-use DBD\Entity\Common\EntityException;
 use DBD\Entity\Constraint;
 use DBD\Entity\Entity;
 use DBD\Entity\Primitives\StringPrimitives;
@@ -880,6 +879,7 @@ abstract class DBD implements CRUD
                     $record[$column->name] = $entity->$propertyName;
                 } else {
                     // Possibly we got reference constraint field
+                    // This could happen when we define object property in Entity and map it as Constraint
                     foreach ($constraints as $constraintName => $constraint) {
                         if (property_exists($entity, $constraintName)) {
                             if ($constraint->localColumn->name == $column->name and isset($entity->$constraintName)) {
@@ -917,23 +917,21 @@ abstract class DBD implements CRUD
      * @param Constraint $constraint
      *
      * @return mixed
-     * @throws DBDException
+     * @noinspection PhpUnhandledExceptionInspection
+     * @noinspection PhpDocMissingThrowsInspection
+     * @note EntityException will never be thrown because we are unable to instantiate Entity without map
      */
     private function findForeignProperty(Constraint $constraint)
     {
-        try {
-            /** @var Entity $constraintEntity */
-            $constraintEntity = new $constraint->class;
-            $fields = array_flip($constraintEntity::map()->getOriginFieldNames());
+        /** @var Entity $constraintEntity */
+        $constraintEntity = new $constraint->class;
+        $fields = array_flip($constraintEntity::map()->getOriginFieldNames());
 
-            /** @var string $foreignColumn name of origin column */
-            //$foreignColumn = $constraint instanceof Constraint ? $constraint->foreignColumn : $constraint->foreignColumn->name;
-            $foreignColumn = $constraint->foreignColumn;
+        /** @var string $foreignColumn name of origin column */
+        //$foreignColumn = $constraint instanceof Constraint ? $constraint->foreignColumn : $constraint->foreignColumn->name;
+        $foreignColumn = $constraint->foreignColumn;
 
-            return $fields[$foreignColumn];
-        } catch (EntityException $e) {
-            throw new DBDException($e->getMessage(), null, null, $e);
-        }
+        return $fields[$foreignColumn];
     }
 
     /**
@@ -1075,7 +1073,7 @@ abstract class DBD implements CRUD
 
         if (!$sth->rows()) {
             if ($exceptionIfNoRecord) {
-                throw new DBDException(sprintf("No data found for entity '%s' with such query", get_class($entity)));
+                throw new DBDException(sprintf(CRUD::ERROR_ENTITY_NOT_FOUND, get_class($entity)));
             } else {
                 $entity = null;
 
@@ -1108,7 +1106,7 @@ abstract class DBD implements CRUD
 
     /**
      * Simply query and get first column.
-     * Usefully when need quickly fetch count(*)
+     * Usefully when need quickly fetch count(*) for example
      *
      * @return null|mixed
      * @throws DBDException
@@ -1117,8 +1115,9 @@ abstract class DBD implements CRUD
     {
         $sth = $this->query(func_get_args());
 
-        if ($sth->rows())
+        if ($sth->rows()) {
             return $sth->fetch();
+        }
 
         return null;
     }

@@ -19,24 +19,24 @@ use DBD\Common\DBDException;
 use DBD\Common\Options;
 use DBD\Entity\Common\EntityException;
 use DBD\Pg;
+use DBD\Tests\Entities\City;
 use DBD\Tests\Entities\TestBaseNoAuto;
 use DBD\Tests\Entities\TestBaseNullable;
 use DBD\Tests\Entities\TestBaseNullable2;
 use DBD\Tests\Entities\TestBaseNullable2Map;
 use DBD\Tests\Entities\TestBaseNullableMap;
-use PHPUnit\Framework\TestCase;
 use Psr\SimpleCache\InvalidArgumentException;
 
-class PgTest extends TestCase
+class PgTest extends CommonTest
 {
     /** @var Pg */
     protected $db;
     /** @var Config */
-    private $config;
+    protected $config;
     /**  @var MemCache */
-    private $memcache;
+    protected $memcache;
     /** @var Options */
-    private $options;
+    protected $options;
 
     /**
      * PgTest constructor.
@@ -956,7 +956,10 @@ class PgTest extends TestCase
         $this->options->setConvertBoolean(false);
         self::assertSame("t", $this->db->select("SELECT true, COUNT(1), 2"));
 
-        self::expectException(DBDException::class);
-        $this->db->select("DROP TABLE fake_table");
+        $this->assertException(DBDException::class, function () {
+            $this->db->select("DROP TABLE fake_table");
+        });
+
+        self::assertNull($this->db->select("DROP VIEW IF EXISTS non_exist"));
     }
 }
