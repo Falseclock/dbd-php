@@ -38,14 +38,15 @@ jobs:
       - name: Install required packages
         run: |
           sudo apt update
+          sudo apt purge postgresql*
           sudo apt install memcached postgresql -y
           sudo pg_lsclusters
           PG_VERSION=$(sudo pg_lsclusters |grep 5432|awk ' {print $1} ')
           PG_CLUSTER=$(sudo pg_lsclusters |grep 5432|awk ' {print $2} ')
           sudo echo -e "local all postgres peer\nlocal all all trust\nhost all all 0.0.0.0/0 trust" > /etc/postgresql/$PG_VERSION/$PG_CLUSTER/pg_hba.conf
-          sudo /etc/init.d/postgresql stop
-          sudo /etc/init.d/postgresql start
-          sudo /etc/init.d/memcached start
+          sudo pg_ctlcluster $PG_VERSION $PG_CLUSTER stop
+          sudo pg_ctlcluster $PG_VERSION $PG_CLUSTER start
+          sudo memcached.service start
           sudo -H -u postgres bash -c 'createdb dbd_tests' 
 
       - name: Cache Composer packages
