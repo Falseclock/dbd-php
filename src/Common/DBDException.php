@@ -6,8 +6,6 @@
  * @link      https://github.com/Falseclock/dbd-php
  */
 
-declare(strict_types=1);
-
 namespace DBD\Common;
 
 use Exception;
