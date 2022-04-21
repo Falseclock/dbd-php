@@ -41,7 +41,7 @@ jobs:
           sudo apt install memcached postgresql -y
           sudo PG_VERSION=$(pg_lsclusters |grep 5432|awk ' {print $1} ')
           sudo PG_CLUSTER=$(pg_lsclusters |grep 5432|awk ' {print $2} ')
-          echo -e "local all postgres peer\nlocal all all trust\nhost all all 0.0.0.0/0 trust" > /etc/postgresql/$PG_VERSION/$PG_CLUSTER/pg_hba.conf
+          sudo echo -e "local all postgres peer\nlocal all all trust\nhost all all 0.0.0.0/0 trust" > /etc/postgresql/$PG_VERSION/$PG_CLUSTER/pg_hba.conf
           sudo /etc/init.d/postgresql stop
           sudo /etc/init.d/postgresql start
           sudo /etc/init.d/memcached start
