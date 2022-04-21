@@ -321,7 +321,7 @@ abstract class DBD implements CRUD
                     self::$preparedStatements[$uniqueName] = $preparedQuery;
 
                     if (!$this->_prepareNamed((string)$uniqueName, $preparedQuery))
-                        throw new DBDException ($this->_errorMessage(), $preparedQuery);
+                        throw new DBDException ($this->_errorMessage(), $preparedQuery, Helper::parseArguments($executeArguments));
                 }
                 $this->result = $this->_executeNamed((string)$uniqueName, Helper::parseArguments($executeArguments));
             } else {
@@ -334,7 +334,7 @@ abstract class DBD implements CRUD
                 $cost = Debug::me()->endTimer();
 
             if (is_null($this->result) || $this->result === false)
-                throw new DBDException ($this->_errorMessage(), $preparedQuery, $this->Options->isPrepareExecute() ? Helper::parseArguments($executeArguments) : null);
+                throw new DBDException ($this->_errorMessage(), $preparedQuery, Helper::parseArguments($executeArguments));
 
             $this->storage = self::STORAGE_DATABASE;
 
