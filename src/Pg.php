@@ -268,10 +268,10 @@ class Pg extends DBD
                 if ($this->Options->isConvertNumeric()) {
                     if (in_array($key, $this->conversionMap->floats))
                         if (!is_null($value))
-                            $value = (float)$value;
+                            $value = floatval($value);
                     if (in_array($key, $this->conversionMap->integers))
                         if (!is_null($value))
-                            $value = (int)$value;
+                            $value = intval($value);
                 }
                 if ($this->Options->isConvertBoolean()) {
                     if (in_array($key, $this->conversionMap->booleans)) {
