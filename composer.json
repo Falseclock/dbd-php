@@ -3,6 +3,7 @@
   "type": "library",
   "description": "Database driver for PHP (PostgreSQL, MySQL, MSSQL, OData, YellowERP, 1С)",
   "keywords": [
+    "pdo",
     "dbd",
     "dbi",
     "sql",

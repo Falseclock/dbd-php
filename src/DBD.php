@@ -12,25 +12,24 @@ declare(strict_types=1);
 
 namespace DBD;
 
-use DBD\Base\Bind;
-use DBD\Base\CacheHolder;
-use DBD\Base\Config;
-use DBD\Base\CRUD;
-use DBD\Base\Debug;
-use DBD\Base\Helper;
-use DBD\Base\Options;
-use DBD\Base\Query;
+use DBD\Common\Bind;
+use DBD\Common\CacheHolder;
+use DBD\Common\Config;
+use DBD\Common\CRUD;
 use DBD\Common\DBDException;
+use DBD\Common\Debug;
+use DBD\Common\Options;
+use DBD\Common\Query;
 use DBD\Entity\Common\EntityException;
 use DBD\Entity\Constraint;
 use DBD\Entity\Entity;
 use DBD\Entity\Primitives\StringPrimitives;
+use DBD\Helpers\ConversionMap;
+use DBD\Helpers\Helper;
+use DBD\Helpers\InsertArguments;
+use DBD\Helpers\UpdateArguments;
 use DBD\Tests\Pg\PgRowsTest;
 use DBD\Tests\Pg\PgTransactionTest;
-use DBD\Utils\ConversionMap;
-use DBD\Utils\InsertArguments;
-use DBD\Utils\UpdateArguments;
-use Exception;
 use Psr\SimpleCache\InvalidArgumentException;
 use ReflectionClass;
 use Throwable;
@@ -103,10 +102,10 @@ abstract class DBD implements CRUD
         if (isset($this->Config->cacheDriver)) {
 
             if (!isset($this->query))
-                throw new DBDException("SQL statement not prepared");
+                throw new DBDException(CRUD::ERROR_STATEMENT_NOT_PREPARED);
 
             if (Helper::getQueryType($this->query) != CRUD::READ)
-                throw new DBDException("Caching setup failed, current query is not of SELECT type");
+                throw new DBDException(CRUD::ERROR_CACHING_NON_SELECT_QUERY);
 
             // set hash key
             $this->CacheHolder = new CacheHolder($key);
@@ -144,7 +143,7 @@ abstract class DBD implements CRUD
 
         if ($this->isConnected()) {
             if ($this->_inTransaction()) {
-                throw new DBDException("Uncommitted transaction state");
+                throw new DBDException(CRUD::ERROR_UNCOMMITTED_TRANSACTION);
             }
             $result = $this->_disconnect();
             if ($result)
@@ -225,7 +224,7 @@ abstract class DBD implements CRUD
     public function do(): int
     {
         if (!func_num_args())
-            throw new DBDException("query failed: statement is not set or empty");
+            throw new DBDException(CRUD::ERROR_NO_STATEMENT);
 
         $prepare = Helper::prepareArguments(func_get_args());
 
@@ -258,7 +257,7 @@ abstract class DBD implements CRUD
     public function query(): DBD
     {
         if (!func_num_args())
-            throw new DBDException("query statement is not set or empty");
+            throw new DBDException(CRUD::ERROR_NO_STATEMENT);
 
         $prepare = Helper::prepareArguments(func_get_args());
 
@@ -293,8 +292,8 @@ abstract class DBD implements CRUD
             // Get data from cache
             try {
                 $this->CacheHolder->result = $this->Config->cacheDriver->get($this->CacheHolder->key);
-            } catch (Throwable|Exception|InvalidArgumentException $e) {
-                throw new DBDException("Failed to get from cache: {$e->getMessage()}", $preparedQuery);
+            } catch (Throwable|InvalidArgumentException $t) {
+                throw new DBDException($t->getMessage(), $preparedQuery);
             }
 
             // Cache not empty?
@@ -353,7 +352,7 @@ abstract class DBD implements CRUD
                 try {
                     $this->Config->cacheDriver->set($this->CacheHolder->key, $this->CacheHolder->result, $this->CacheHolder->expire);
                 } catch (InvalidArgumentException|Throwable $e) {
-                    throw new DBDException("Failed to store in cache: {$e->getMessage()}", $preparedQuery);
+                    throw new DBDException($e->getMessage(), $preparedQuery);
                 }
             }
         }
@@ -387,7 +386,7 @@ abstract class DBD implements CRUD
     private function getPreparedQuery($ARGS, bool $overrideOption = false): string
     {
         if (is_null($this->query))
-            throw new DBDException("No query prepared for execution");
+            throw new DBDException(self::ERROR_NOT_PREPARED);
 
         $placeHolder = $this->Options->getPlaceHolder();
         $isPrepareExecute = $this->Options->isPrepareExecute();
@@ -399,7 +398,7 @@ abstract class DBD implements CRUD
         $numberOfArgs = count($executeArguments);
 
         if ($binds != $numberOfArgs)
-            throw new DBDException("Execute failed, called with $numberOfArgs bind variables when $binds are needed", $this->query, $executeArguments);
+            throw new DBDException(sprintf(CRUD::ERROR_BINDS_MISMATCH, $numberOfArgs, $binds), $this->query, $executeArguments);
 
         if ($numberOfArgs) {
             $query = str_split($this->query);
@@ -418,8 +417,9 @@ abstract class DBD implements CRUD
             $preparedQuery = implode("", $query);
         }
 
-        foreach ($this->binds as $bind)
+        foreach ($this->binds as $bind) {
             $this->replaceBind($preparedQuery, $bind);
+        }
 
         return $preparedQuery;
     }
@@ -432,11 +432,13 @@ abstract class DBD implements CRUD
      */
     public function escape($value): string
     {
-        if (is_object($value))
-            throw new DBDException("Object can't be escaped");
+        if (is_object($value)) {
+            throw new DBDException(CRUD::ERROR_OBJECT_ESCAPE);
+        }
 
-        if (is_array($value))
-            throw new DBDException("Array can't be escaped");
+        if (is_array($value)) {
+            throw new DBDException(CRUD::ERROR_ARRAY_ESCAPE);
+        }
 
         return $this->_escape($value);
     }
@@ -532,7 +534,7 @@ abstract class DBD implements CRUD
                     if (!isset($array[$row[$uniqueKey]]))
                         $array[$row[$uniqueKey]] = $row;
                     else
-                        throw new DBDException("Key '$row[$uniqueKey]' not unique");
+                        throw new DBDException(sprintf(CRUD::ERROR_KEY_NOT_UNIQUE, $row[$uniqueKey]));
                 } else {
                     $array[] = $row;
                 }
@@ -543,7 +545,7 @@ abstract class DBD implements CRUD
                     if (!isset($array[$row[$uniqueKey]]))
                         $array[$row[$uniqueKey]] = $row;
                     else
-                        throw new DBDException("Key '$row[$uniqueKey]' not unique");
+                        throw new DBDException(sprintf(CRUD::ERROR_KEY_NOT_UNIQUE, $row[$uniqueKey]));
                 }
             } else {
                 $array = $this->CacheHolder->result;
@@ -606,8 +608,9 @@ abstract class DBD implements CRUD
      */
     public function prepare(string $statement): DBD
     {
-        if (!isset($statement) or empty($statement))
-            throw new DBDException("prepare failed: statement is not set or empty");
+        if (!isset($statement) or empty($statement)) {
+            throw new DBDException(CRUD::ERROR_NOTHING_TO_PREPARE);
+        }
 
         $className = get_class($this);
         $class = new $className($this->Config, $this->Options);
@@ -659,55 +662,6 @@ abstract class DBD implements CRUD
     }
 
     /**
-     * Dumping result as CSV file
-     *
-     * @param array|null $executeArguments
-     * @param string $delimiter
-     * @param string $nullString
-     * @param bool $header
-     * @param string|null $temporaryFile
-     * @return DBD
-     * @throws DBDException
-     */
-    public function dump(?array $executeArguments = [], string $temporaryFile = null, string $delimiter = "\\t", string $nullString = "", bool $header = true): DBD
-    {
-        // If file not provided, we believe that database located on the same machine
-        if (is_null($temporaryFile)) {
-            $temporaryFile = tempnam(sys_get_temp_dir(), 'DBD');
-
-            register_shutdown_function(function () use ($temporaryFile) {
-                @unlink($temporaryFile);
-            });
-
-            file_put_contents($temporaryFile, "");
-            chmod($temporaryFile, 0666);
-        }
-
-        $preparedQuery = $this->getPreparedQuery($executeArguments);
-        $this->_dump($preparedQuery, $temporaryFile, $delimiter, $nullString, $header);
-
-        return $this;
-    }
-
-    /**
-     * This function should write data to file
-     *
-     * @param string $preparedQuery
-     * @param string $filePath
-     * @param string $delimiter
-     * @param string $nullString
-     * @param bool $showHeader
-     *
-     * @return void
-     * @see Pg::_dump()
-     * @see MSSQL::_dump()
-     * @see MySQL::_dump()
-     * @see OData::_dump()
-     * @see DBD::dump()
-     */
-    abstract protected function _dump(string $preparedQuery, string $filePath, string $delimiter, string $nullString, bool $showHeader): void;
-
-    /**
      *
      * @param Entity $entity
      *
@@ -733,34 +687,32 @@ abstract class DBD implements CRUD
      *
      * @return array
      * @throws DBDException
+     * @note EntityException will never be thrown because we are unable to instantiate Entity without map
+     * @noinspection PhpUnhandledExceptionInspection
+     * @noinspection PhpDocMissingThrowsInspection
      */
     private function getPrimaryKeysForEntity(Entity $entity): array
     {
-        try {
-            $keys = $entity::map()->getPrimaryKey();
+        $keys = $entity::map()->getPrimaryKey();
 
-            if (!count($keys))
-                throw new DBDException(sprintf("Entity %s does not have any defined primary key", get_class($entity)));
+        if (!count($keys))
+            throw new DBDException(sprintf(CRUD::ERROR_ENTITY_NO_PK, get_class($entity)));
 
-            $columns = [];
-            $execute = [];
+        $columns = [];
+        $execute = [];
 
-            $placeHolder = $this->Options->getPlaceHolder();
+        $placeHolder = $this->Options->getPlaceHolder();
 
-            foreach ($keys as $keyName => $column) {
-                if (!isset($entity->$keyName))
-                    throw new DBDException(sprintf("Value of %s->%s, which is primary key column, is null", get_class($entity), $keyName));
+        foreach ($keys as $keyName => $column) {
+            if (!isset($entity->$keyName))
+                throw new DBDException(sprintf(CRUD::ERROR_PK_IS_NULL, get_class($entity), $keyName));
 
-                $execute[] = $entity->$keyName;
-                $columns[] = "$column->name = $placeHolder";
-            }
-
-            return [$execute, $columns];
-        } catch (DBDException $e) {
-            throw $e;
-        } catch (Exception $e) {
-            throw new DBDException($e->getMessage(), null, null, $e);
+            $execute[] = $entity->$keyName;
+            $columns[] = "$column->name = $placeHolder";
         }
+
+        return [$execute, $columns];
+
     }
 
     /**
@@ -771,30 +723,24 @@ abstract class DBD implements CRUD
      */
     public function entityInsert(Entity &$entity): Entity
     {
-        try {
-            $record = $this->createInsertRecord($entity);
+        $record = $this->createInsertRecord($entity);
 
-            $sth = $this->insert($entity::table(), $record, "*");
+        $sth = $this->insert($entity::table(), $record, "*");
 
-            /** @var Entity $class */
-            $class = get_class($entity);
+        /** @var Entity $class */
+        $class = get_class($entity);
 
-            $entity = new $class($sth->fetchRow());
+        $entity = new $class($sth->fetchRow());
 
-            return $entity;
-
-        } catch (DBDException $e) {
-            throw $e;
-        } catch (Exception $e) {
-            throw new DBDException($e->getMessage(), null, null, $e);
-        }
+        return $entity;
     }
 
     /**
      * @param Entity $entity
      * @return array
      * @throws DBDException
-     * @throws EntityException
+     * @noinspection PhpUnhandledExceptionInspection
+     * @noinspection PhpDocMissingThrowsInspection
      */
     protected function createInsertRecord(Entity $entity): array
     {
@@ -811,7 +757,7 @@ abstract class DBD implements CRUD
                 // Mostly we always define properties for any columns
                 if (property_exists($entity, $propertyName)) {
                     if (!isset($entity->$propertyName) and ($column->isAuto === false and !isset($column->defaultValue)))
-                        throw new DBDException(sprintf("Property '%s' of %s can't be null according to Mapper annotation", $propertyName, get_class($entity)));
+                        throw new DBDException(sprintf(CRUD::ERROR_ENTITY_PROPERTY_NOT_NULL, $propertyName, get_class($entity)));
 
                     if ($column->isAuto === false) {
                         // Finally, add column to record if it is set
@@ -898,6 +844,9 @@ abstract class DBD implements CRUD
      *
      * @return Entity
      * @throws DBDException
+     * @note EntityException will never be thrown because we are unable to instantiate Entity without map
+     * @noinspection PhpUnhandledExceptionInspection
+     * @noinspection PhpDocMissingThrowsInspection
      */
     public function entityUpdate(Entity &$entity): Entity
     {
@@ -905,15 +854,12 @@ abstract class DBD implements CRUD
 
         $record = [];
 
-        try {
-            $columns = $entity::map()->getColumns();
-            $constraints = $entity::map()->getConstraints();
-        } catch (EntityException $e) {
-            throw new DBDException($e->getMessage(), null, null, $e);
-        }
+        $columns = $entity::map()->getColumns();
+        $constraints = $entity::map()->getConstraints();
 
         foreach ($columns as $propertyName => $column) {
 
+            // If column has json type and current value is not string, then convert it to the json string
             if (property_exists($entity, $propertyName) and isset($entity->$propertyName)) {
                 if ($column->type == StringPrimitives::String and stripos($column->originType, 'json') !== false and !is_string($entity->$propertyName)) {
                     $entity->$propertyName = json_encode($entity->$propertyName, JSON_UNESCAPED_UNICODE);
@@ -925,9 +871,9 @@ abstract class DBD implements CRUD
                     if (isset($entity->$propertyName))
                         $record[$column->name] = $entity->$propertyName;
                     else
-                        throw new DBDException(sprintf("Property '%s' of %s can't be null", $propertyName, get_class($entity)));
+                        throw new DBDException(sprintf(CRUD::ERROR_ENTITY_PROPERTY_NOT_NULL, $propertyName, get_class($entity)));
                 } else {
-                    throw new DBDException(sprintf("Property '%s' of %s not set", $propertyName, get_class($entity)));
+                    throw new DBDException(sprintf(CRUD::ERROR_ENTITY_PROPERTY_NON_SET, $propertyName, get_class($entity)));
                 }
             } else {
                 if (property_exists($entity, $propertyName)) {
@@ -955,9 +901,9 @@ abstract class DBD implements CRUD
         $affected = $sth->rows();
 
         if ($affected > 1)
-            throw new DBDException("More then one records updated with query. Transaction rolled back!");
+            throw new DBDException(CRUD::ERROR_ENTITY_TOO_MANY_UPDATES);
         else if ($affected == 0)
-            throw new DBDException("No any records updated.");
+            throw new DBDException(CRUD::ERROR_ENTITY_NO_UPDATES);
 
         /** @var Entity $class */
         $class = get_class($entity);
@@ -1075,7 +1021,7 @@ abstract class DBD implements CRUD
                     if (is_array($ARGS[$lastCheckedArgument])) {
                         foreach ($ARGS[$lastCheckedArgument] as $argument) {
                             if (!is_scalar($argument)) {
-                                throw new DBDException("Execute arguments for WHERE condition is not scalar");
+                                throw new DBDException(CRUD::ERROR_ARGUMENT_NOT_SCALAR);
                             }
                             $updateArguments->arguments[] = $argument;
                             $placeholdersCount--;
@@ -1129,7 +1075,7 @@ abstract class DBD implements CRUD
 
         if (!$sth->rows()) {
             if ($exceptionIfNoRecord) {
-                throw new DBDException(sprintf("No data found for entity %s with ", get_class($entity)));
+                throw new DBDException(sprintf("No data found for entity '%s' with such query", get_class($entity)));
             } else {
                 $entity = null;
 

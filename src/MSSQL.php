@@ -13,10 +13,10 @@ declare(strict_types=1);
 
 namespace DBD;
 
-use DBD\Base\Bind;
+use DBD\Common\Bind;
 use DBD\Common\DBDException as Exception;
-use DBD\Utils\InsertArguments;
-use DBD\Utils\UpdateArguments;
+use DBD\Helpers\InsertArguments;
+use DBD\Helpers\UpdateArguments;
 
 class MSSQL extends DBD
 {
@@ -225,14 +225,6 @@ class MSSQL extends DBD
     protected function _rollback(): bool
     {
         return sqlsrv_rollback($this->resourceLink);
-    }
-
-    /**
-     * @inheritDoc
-     */
-    protected function _dump(string $preparedQuery, string $filePath, string $delimiter, string $nullString, bool $showHeader): void
-    {
-        // TODO: Implement _dump() method.
     }
 
     /**

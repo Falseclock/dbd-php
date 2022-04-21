@@ -65,7 +65,7 @@ The currently recognized parameter keywords are: **host**, **port**, **dbname**,
 >Database user password. If provided, then should be omitted in dsn.
 
 ***options***
->array of options. The currently recognized options are:
+> array of options. The currently recognized options are:
 >
 >| Parameter          | default value | definition                                                                                                                   |
 >|--------------------|:-------------:|------------------------------------------------------------------------------------------------------------------------------|
@@ -98,7 +98,7 @@ The currently recognized parameter keywords are: **host**, **port**, **dbname**,
 >// make connection to the database
 >$db = $dsn->connect();
 >
->class SQLErrorHandler extends DBD\Base\ErrorHandler
+>class SQLErrorHandler extends DBD\Common\ErrorHandler
 >{
 >	public function __construct($query, $errstr, $caller, $options=null) {
 >		

@@ -14,8 +14,8 @@ declare(strict_types=1);
 namespace DBD\Cache;
 
 use DateInterval;
-use DBD\Cache;
 use DBD\Common\DBDException;
+use DBD\Cache;
 
 class MemCache extends Cache
 {

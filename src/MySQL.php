@@ -13,9 +13,9 @@ declare(strict_types=1);
 
 namespace DBD;
 
-use DBD\Base\Bind;
-use DBD\Utils\InsertArguments;
-use DBD\Utils\UpdateArguments;
+use DBD\Common\Bind;
+use DBD\Helpers\InsertArguments;
+use DBD\Helpers\UpdateArguments;
 
 class MySQL extends DBD
 {
@@ -150,14 +150,6 @@ class MySQL extends DBD
     protected function _rollback(): bool
     {
         return mysqli_rollback($this->resourceLink);
-    }
-
-    /**
-     * @inheritDoc
-     */
-    protected function _dump(string $preparedQuery, string $filePath, string $delimiter, string $nullString, bool $showHeader): void
-    {
-        // TODO: Implement _dump() method.
     }
 
     /**

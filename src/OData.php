@@ -13,16 +13,16 @@ declare(strict_types=1);
 
 namespace DBD;
 
-use DBD\Base\Bind;
-use DBD\Base\CRUD;
-use DBD\Base\Helper;
+use DBD\Common\Bind;
+use DBD\Common\CRUD;
 use DBD\Common\DBDException;
 use DBD\Entity\Common\EntityException;
 use DBD\Entity\Entity;
 use DBD\Entity\Primitive;
-use DBD\Utils\InsertArguments;
-use DBD\Utils\OData\Metadata;
-use DBD\Utils\UpdateArguments;
+use DBD\Helpers\Helper;
+use DBD\Helpers\InsertArguments;
+use DBD\Helpers\OData\Metadata;
+use DBD\Helpers\UpdateArguments;
 use Throwable;
 
 class OData extends DBD
@@ -534,15 +534,6 @@ class OData extends DBD
     protected function _disconnect(): bool
     {
 
-    }
-
-    /**
-     * @inheritDoc
-     * @throws DBDException
-     */
-    protected function _dump(string $preparedQuery, string $filePath, string $delimiter, string $nullString, bool $showHeader): void
-    {
-        throw new DBDException("OData doesn't not data dumping");
     }
 
     protected function _errorMessage(): string

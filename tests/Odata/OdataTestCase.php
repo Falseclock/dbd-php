@@ -12,10 +12,10 @@ declare(strict_types=1);
 
 namespace DBD\Tests\OData;
 
-use DBD\Base\Config;
-use DBD\Base\Options;
-use DBD\Cache\MemCache;
+use DBD\Common\Config;
 use DBD\Common\DBDException;
+use DBD\Common\Options;
+use DBD\Cache\MemCache;
 use DBD\OData;
 use PHPUnit\Framework\TestCase;
 

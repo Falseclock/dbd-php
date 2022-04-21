@@ -13,16 +13,16 @@ declare(strict_types=1);
 
 namespace DBD;
 
-use DBD\Base\Bind;
+use DBD\Common\Bind;
 use DBD\Common\DBDException;
 use DBD\Entity\Primitives\NumericPrimitives;
 use DBD\Entity\Primitives\StringPrimitives;
 use DBD\Tests\Pg\PgNamedTest;
 use DBD\Tests\Pg\PgQueryTest;
 use DBD\Tests\Pg\PgTransactionTest;
-use DBD\Utils\ConversionMap;
-use DBD\Utils\InsertArguments;
-use DBD\Utils\UpdateArguments;
+use DBD\Helpers\ConversionMap;
+use DBD\Helpers\InsertArguments;
+use DBD\Helpers\UpdateArguments;
 use Exception;
 use Throwable;
 
@@ -221,6 +221,7 @@ class Pg extends DBD
      * @return string
      * @inheritdoc
      * @see PgInsertTest::testInsert()
+     * @noinspection SqlNoDataSourceInspection
      */
     protected function _compileInsert(string $table, InsertArguments $insert, ?string $return = null): string
     {
@@ -350,25 +351,6 @@ class Pg extends DBD
     protected function _disconnect(): bool
     {
         return pg_close($this->resourceLink);
-    }
-
-    /**
-     * @param string $preparedQuery
-     * @param resource $temporaryFile
-     * @param string $delimiter
-     * @param string $nullString
-     * @param bool $showHeader
-     * @param string $tmpPath
-     * @return void
-     * @throws DBDException
-     * @inheritdoc
-     */
-    protected function _dump(string $preparedQuery, string $filePath, string $delimiter, string $nullString, bool $showHeader): void
-    {
-        $showHeader = $showHeader ? 'true' : 'false';
-
-        if ($this->_query("COPY ($preparedQuery) TO '$filePath' (FORMAT csv, DELIMITER  E'$delimiter', NULL  E'$nullString', HEADER $showHeader)") === false)
-            throw new DBDException ($this->_errorMessage(), $preparedQuery);
     }
 
     /**
