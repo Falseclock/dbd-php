@@ -1,0 +1,44 @@
+name: PHP
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    types:
+      - opened
+      - reopened
+      - edited
+      - synchronize
+jobs:
+  run:
+    runs-on: ${{ matrix.operating-system }}
+    strategy:
+      matrix:
+        operating-system: [ ubuntu-20.04, ubuntu-18.04 ]
+        php-versions: [ '7.1', '7.2', '7.3', '7.4', '8.0', '8.1', '8.2' ]
+        phpunit-versions: ['latest']
+    env:
+      extensions: json, simplexml, dom, pgsql, memcache
+    steps:
+      - name: Setup PHP
+        with:
+          php-version: ${{ matrix.php-versions }}
+          extensions: ${{ env.extensions }}
+          coverage: xdebug
+          tools: phpunit:${{ matrix.phpunit-versions }}
+
+      - name: Testing PHP version
+        run: |
+          php -v
+          php -r "if(strpos(phpversion(), '${{ matrix.php-versions }}') === false) {throw new Exception('Wrong PHP version Installed');}"
+
+      - name: Testing Composer version
+        run: |
+          composer -V
+          php -r "if(strpos(@exec('composer -V'), 'Composer version') === false) {throw new Exception('Composer not found');}"
+
+      - name: Install required components
+        run: |
+          apt update
+          apt install memcached postgresql-11 -y
