@@ -46,7 +46,8 @@ jobs:
           sudo pg_ctlcluster $PG_VERSION $PG_CLUSTER stop
           sudo pg_ctlcluster $PG_VERSION $PG_CLUSTER start
           sudo systemctl start memcached.service 
-          sudo -H -u postgres bash -c 'createdb dbd_tests' 
+          sudo -H -u postgres bash -c 'createdb dbd_tests'
+          sudo -H -u postgres bash -c 'psql --command="SHOW extra_float_digits" postgres'
 
       - name: Cache Composer packages
         id: composer-cache
