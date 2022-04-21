@@ -21,7 +21,7 @@ class PgConvertTypesTest extends PgAbstractTest
      * @throws DBDException
      * @see Pg::_convertTypes()
      */
-    public function testConvertTypes()
+    public function atestConvertTypes()
     {
         // ini_set('precision', (string)17);
 
