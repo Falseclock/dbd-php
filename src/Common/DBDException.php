@@ -18,7 +18,7 @@ class DBDException extends Exception
     /** @var int $code */
     protected $code;
     /** @var string $file */
-    protected $file;
+    protected $file = '';
     /** @var array $fullTrace */
     protected $fullTrace;
     /** @var int $line */
