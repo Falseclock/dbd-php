@@ -24,6 +24,7 @@ class PgExceptionTest extends PgAbstractTest
         });
 
         self::assertNotNull($exception);
+        self::assertNotNull($exception->getFilename());
         self::assertCount(1, $exception->getArguments());
         self::assertIsArray($exception->getFullTrace());
         self::assertIsArray($exception->getShortTrace());
