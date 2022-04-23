@@ -1,7 +1,5 @@
 <?php
 /**
- * PostgreSQL driver
- *
  * @author    Nurlan Mukhanov <nurike@gmail.com>
  * @copyright 2020 Nurlan Mukhanov
  * @license   https://en.wikipedia.org/wiki/MIT_License MIT License
@@ -14,19 +12,19 @@ declare(strict_types=1);
 namespace DBD;
 
 use DBD\Common\Bind;
+use DBD\Common\CRUD;
 use DBD\Common\DBDException;
+use DBD\Entity\Constraint;
+use DBD\Entity\Entity;
 use DBD\Entity\Primitives\NumericPrimitives;
 use DBD\Entity\Primitives\StringPrimitives;
 use DBD\Helpers\ConversionMap;
 use DBD\Helpers\InsertArguments;
 use DBD\Helpers\UpdateArguments;
-use DBD\Tests\Pg\PgNamedTest;
-use DBD\Tests\Pg\PgQueryTest;
-use DBD\Tests\Pg\PgTransactionTest;
 use Exception;
 use Throwable;
 
-class Pg extends DBD
+class Pg extends DBD implements EntityOperable
 {
     public const CAST_FORMAT_INSERT = "?::%s";
     public const CAST_FORMAT_UPDATE = "%s = ?::%s";
@@ -519,5 +517,257 @@ class Pg extends DBD
         $value = pg_escape_string((string)$value);
 
         return "'$value'";
+    }
+
+
+    /**
+     *
+     * @param Entity $entity
+     *
+     * @return bool
+     * @throws DBDException
+     * @noinspection SqlNoDataSourceInspection
+     */
+    public function entityDelete(Entity $entity): bool
+    {
+        [$execute, $columns] = $this->getPrimaryKeysForEntity($entity);
+
+        $sth = $this->prepare(sprintf("DELETE FROM %s.%s WHERE %s", $entity::SCHEME, $entity::TABLE, implode(" AND ", $columns)));
+        $sth->execute($execute);
+
+        if ($sth->rows() > 0)
+            return true;
+
+        return false;
+    }
+
+
+    /**
+     * @param Entity $entity
+     *
+     * @return Entity
+     * @throws DBDException
+     */
+    public function entityInsert(Entity &$entity): Entity
+    {
+        $record = $this->createInsertRecord($entity);
+
+        $sth = $this->insert($entity::table(), $record, "*");
+
+        /** @var Entity $class */
+        $class = get_class($entity);
+
+        $entity = new $class($sth->fetchRow());
+
+        return $entity;
+    }
+
+    /**
+     * Common usage when you have an Entity object with filled primary key only and want to fetch all available data
+     *
+     * @param Entity $entity
+     * @param bool $exceptionIfNoRecord
+     *
+     * @return Entity|null
+     * @throws DBDException
+     * @noinspection SqlNoDataSourceInspection
+     */
+    public function entitySelect(Entity &$entity, bool $exceptionIfNoRecord = true): ?Entity
+    {
+        [$execute, $columns] = $this->getPrimaryKeysForEntity($entity);
+
+        $sth = $this->prepare(sprintf("SELECT * FROM %s.%s WHERE %s", $entity::SCHEME, $entity::TABLE, implode(" AND ", $columns)));
+        $sth->execute($execute);
+
+        if (!$sth->rows()) {
+            if ($exceptionIfNoRecord) {
+                throw new DBDException(sprintf(CRUD::ERROR_ENTITY_NOT_FOUND, get_class($entity)));
+            } else {
+                $entity = null;
+
+                return null;
+            }
+        }
+        /** @var Entity $class */
+        $class = get_class($entity);
+
+        $entity = new $class($sth->fetchRow());
+
+        return $entity;
+    }
+
+    /**
+     *
+     * @param Entity $entity
+     *
+     * @return Entity
+     * @throws DBDException
+     * @note EntityException will never be thrown because we are unable to instantiate Entity without map
+     * @noinspection PhpUnhandledExceptionInspection
+     * @noinspection PhpDocMissingThrowsInspection
+     */
+    public function entityUpdate(Entity &$entity): Entity
+    {
+        [$execute, $primaryColumns] = $this->getPrimaryKeysForEntity($entity);
+
+        $record = [];
+
+        $columns = $entity::map()->getColumns();
+        $constraints = $entity::map()->getConstraints();
+
+        foreach ($columns as $propertyName => $column) {
+
+            // If column has json type and current value is not string, then convert it to the json string
+            if (property_exists($entity, $propertyName) and isset($entity->$propertyName)) {
+                if ($column->type == StringPrimitives::String and stripos($column->originType, 'json') !== false and !is_string($entity->$propertyName)) {
+                    $entity->$propertyName = json_encode($entity->$propertyName, JSON_UNESCAPED_UNICODE);
+                }
+            }
+
+            if ($column->nullable === false) {
+                if (property_exists($entity, $propertyName)) {
+                    if (isset($entity->$propertyName))
+                        $record[$column->name] = $entity->$propertyName;
+                    else
+                        throw new DBDException(sprintf(CRUD::ERROR_ENTITY_PROPERTY_NOT_NULL, $propertyName, get_class($entity)));
+                } else {
+                    throw new DBDException(sprintf(CRUD::ERROR_ENTITY_PROPERTY_NON_SET, $propertyName, get_class($entity)));
+                }
+            } else {
+                if (property_exists($entity, $propertyName)) {
+                    $record[$column->name] = $entity->$propertyName;
+                } else {
+                    // Possibly we got reference constraint field
+                    // This could happen when we define object property in Entity and map it as Constraint
+                    foreach ($constraints as $constraintName => $constraint) {
+                        if (property_exists($entity, $constraintName)) {
+                            if ($constraint->localColumn->name == $column->name and isset($entity->$constraintName)) {
+
+                                $foreignProperty = $this->findForeignProperty($constraint);
+
+                                if (isset($entity->$constraintName->$foreignProperty)) {
+                                    $record[$column->name] = $entity->$constraintName->$foreignProperty;
+                                }
+                                // Otherwise, it seems we do not want update reference value
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        $sth = $this->update($entity::table(), $record, implode(" AND ", $primaryColumns), $execute, "*");
+        $affected = $sth->rows();
+
+        if ($affected > 1)
+            throw new DBDException(CRUD::ERROR_ENTITY_TOO_MANY_UPDATES);
+        else if ($affected == 0)
+            throw new DBDException(CRUD::ERROR_ENTITY_NO_UPDATES);
+
+        /** @var Entity $class */
+        $class = get_class($entity);
+
+        $entity = new $class($sth->fetchRow());
+
+        return $entity;
+    }
+
+    /**
+     * @param Constraint $constraint
+     *
+     * @return mixed
+     * @noinspection PhpUnhandledExceptionInspection
+     * @noinspection PhpDocMissingThrowsInspection
+     * @note EntityException will never be thrown because we are unable to instantiate Entity without map
+     */
+    private function findForeignProperty(Constraint $constraint)
+    {
+        /** @var Entity $constraintEntity */
+        $constraintEntity = new $constraint->class;
+        $fields = array_flip($constraintEntity::map()->getOriginFieldNames());
+
+        /** @var string $foreignColumn name of origin column */
+        //$foreignColumn = $constraint instanceof Constraint ? $constraint->foreignColumn : $constraint->foreignColumn->name;
+        $foreignColumn = $constraint->foreignColumn;
+
+        return $fields[$foreignColumn];
+    }
+
+    /**
+     * @param Entity $entity
+     *
+     * @return array
+     * @throws DBDException
+     * @note EntityException will never be thrown because we are unable to instantiate Entity without map
+     * @noinspection PhpUnhandledExceptionInspection
+     * @noinspection PhpDocMissingThrowsInspection
+     */
+    private function getPrimaryKeysForEntity(Entity $entity): array
+    {
+        $keys = $entity::map()->getPrimaryKey();
+
+        if (!count($keys))
+            throw new DBDException(sprintf(CRUD::ERROR_ENTITY_NO_PK, get_class($entity)));
+
+        $columns = [];
+        $execute = [];
+
+        $placeHolder = $this->Options->getPlaceHolder();
+
+        foreach ($keys as $keyName => $column) {
+            if (!isset($entity->$keyName))
+                throw new DBDException(sprintf(CRUD::ERROR_PK_IS_NULL, get_class($entity), $keyName));
+
+            $execute[] = $entity->$keyName;
+            $columns[] = "$column->name = $placeHolder";
+        }
+
+        return [$execute, $columns];
+
+    }
+
+    /**
+     * @param Entity $entity
+     * @return array
+     * @throws DBDException
+     * @noinspection PhpUnhandledExceptionInspection
+     * @noinspection PhpDocMissingThrowsInspection
+     */
+    protected function createInsertRecord(Entity $entity): array
+    {
+        $record = [];
+
+        $columns = $entity::map()->getColumns();
+
+        // Cycle through all available columns according to Mapper definition
+        foreach ($columns as $propertyName => $column) {
+
+            $originName = $column->name;
+
+            if (!$column->nullable) {
+                // Mostly we always define properties for any columns
+                if (property_exists($entity, $propertyName)) {
+                    if (!isset($entity->$propertyName) and ($column->isAuto === false and !isset($column->defaultValue)))
+                        throw new DBDException(sprintf(CRUD::ERROR_ENTITY_PROPERTY_NOT_NULL, $propertyName, get_class($entity)));
+
+                    if ($column->isAuto === false) {
+                        // Finally, add column to record if it is set
+                        $finalValue = $entity->$propertyName ?? $column->defaultValue;
+
+                        $record[$originName] = $column->type->getValue() == StringPrimitives::Binary ? $this->escapeBinary($finalValue) : $finalValue;
+                    }
+                }
+            } else {
+                // Finally, add column to record if it is set
+                if (isset($entity->$propertyName)) {
+                    $record[$originName] = ($column->type->getValue() == StringPrimitives::Binary) ? $this->escapeBinary($entity->$propertyName) : $entity->$propertyName;
+                } else {
+                    // If value not set, and we have some default value, let's define also
+                    if ($column->isAuto === false and isset($column->defaultValue))
+                        $record[$originName] = $column->defaultValue;
+                }
+            }
+        }
+        return $record;
     }
 }

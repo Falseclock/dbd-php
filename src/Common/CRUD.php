@@ -40,6 +40,6 @@ interface CRUD
     const ERROR_ENTITY_NOT_FOUND = "No data found for entity '%s' with such query";
     const ERROR_UNKNOWN_INSERT_FORMAT = "Unknown format of record for insert";
     const ERROR_UNKNOWN_UPDATE_FORMAT = "Unknown format of record for update";
-    const ERROR_NON_SQL_QUERY= "non SQL query: %s";
+    const ERROR_NON_SQL_QUERY = "non SQL query: %s";
     const ERROR_UNIDENTIFIABLE_QUERY = "Can't identity query type";
 }

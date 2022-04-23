@@ -1,12 +1,11 @@
 <?php
 /**
- * MySQL
- *
  * @author    Nurlan Mukhanov <nurike@gmail.com>
  * @copyright 2020 Nurlan Mukhanov
  * @license   https://en.wikipedia.org/wiki/MIT_License MIT License
  * @link      https://github.com/Falseclock/dbd-php
  * @noinspection PhpComposerExtensionStubsInspection
+ * @noinspection SqlWithoutWhere
  */
 
 declare(strict_types=1);
@@ -14,14 +13,25 @@ declare(strict_types=1);
 namespace DBD;
 
 use DBD\Common\Bind;
+use DBD\Common\CRUD;
+use DBD\Common\DBDException;
+use DBD\Helpers\Helper;
 use DBD\Helpers\InsertArguments;
 use DBD\Helpers\UpdateArguments;
+use mysqli;
+use mysqli_result;
+use Throwable;
 
 class MySQL extends DBD
 {
+    /** @var mysqli */
+    protected $resourceLink;
+    /** @var mysqli_result|bool Query result data */
+    protected $result;
     /**
      *
      * @return $this|DBD
+     * @throws DBDException
      */
     public function connect(): DBD
     {
@@ -32,24 +42,27 @@ class MySQL extends DBD
         return $this;
     }
 
+    /**
+     * @throws DBDException
+     */
     protected function _connect(): void
     {
-        $this->resourceLink = mysqli_connect($this->Config->getHost(),
-            $this->Config->getUsername(),
-            $this->Config->getPassword(),
-            $this->Config->getDatabase(),
-            $this->Config->getPort()
-        );
-
-        if (!$this->resourceLink)
-            trigger_error("Can not connect to MySQL server: " . mysqli_connect_error(), E_USER_ERROR);
-
-        mysqli_autocommit($this->resourceLink, false);
+        try {
+            $this->resourceLink = new mysqli($this->Config->getHost(),
+                $this->Config->getUsername(),
+                $this->Config->getPassword(),
+                $this->Config->getDatabase(),
+                $this->Config->getPort()
+            );
+        } catch (Throwable $t) {
+            throw new DBDException($t->getMessage());
+        }
+        //mysqli_autocommit($this->resourceLink, false);
     }
 
     protected function _rows(): int
     {
-        return mysqli_affected_rows($this->result);
+        return mysqli_affected_rows($this->resourceLink);
     }
 
     protected function _begin(): bool
@@ -62,9 +75,15 @@ class MySQL extends DBD
         return mysqli_commit($this->resourceLink);
     }
 
+    /**
+     * @param string $table
+     * @param InsertArguments $insert
+     * @param string|null $return
+     * @return string
+     */
     protected function _compileInsert(string $table, InsertArguments $insert, ?string $return = null): string
     {
-        return sprintf("INSERT INTO %s (%s) VALUES (%s)", $table, implode(", ", $insert->columns), implode(", ", $insert->values));
+        return "INSERT INTO " . $table . " (" . implode(", ", $insert->columns) . ") VALUES (" . implode(", ", $insert->values) . ") ";
     }
 
     protected function _compileUpdate(string $table, UpdateArguments $updateArguments, ?string $where = null, ?string $return = null): string
@@ -89,10 +108,10 @@ class MySQL extends DBD
 
     protected function _escape($value): string
     {
-        if (!isset($value))
+        if (is_null($value))
             return "NULL";
 
-        $str = mysqli_real_escape_string($this->resourceLink, $value);
+        $str = mysqli_real_escape_string($this->resourceLink, (string)$value);
 
         return "'$str'";
     }
@@ -120,15 +139,18 @@ class MySQL extends DBD
         return mysqli_fetch_array($this->resourceLink);
     }
 
+    /**
+     * @return array|bool
+     */
     protected function _fetchAssoc()
     {
-        return mysqli_fetch_assoc($this->resourceLink);
+        return mysqli_fetch_assoc($this->result);
     }
 
     /**
-     * @param $uniqueName
+     * @param string $uniqueName
      *
-     * @param $statement
+     * @param string $statement
      *
      * @return mixed
      * @see MSSQL::_prepareNamed
@@ -138,12 +160,23 @@ class MySQL extends DBD
      */
     protected function _prepareNamed(string $uniqueName, string $statement): bool
     {
-        // TODO: Implement _prepare() method.
+        self::$preparedStatements[$uniqueName] = $statement;
+
+        return true;
     }
 
+    /**
+     * @throws DBDException
+     */
     protected function _query($statement)
     {
-        return mysqli_query($this->resourceLink, $statement);
+        $result = mysqli_query($this->resourceLink, $statement);
+
+        if ($result === false) {
+            throw new DBDException($this->resourceLink->error);
+        }
+
+        return $result;
     }
 
     protected function _rollback(): bool

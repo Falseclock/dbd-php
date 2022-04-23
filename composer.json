@@ -38,11 +38,16 @@
   },
   "require-dev": {
     "phpunit/phpunit": "^9.5.20",
-    "php-coveralls/php-coveralls": "^2.5.2"
+    "php-coveralls/php-coveralls": "^2.5.2",
+    "ext-mysqli": "*",
+    "ext-pgsql": "*",
+    "ext-memcache": "*",
+    "ext-curl": "*"
   },
   "suggest": {
     "ext-memcache": "Required to support Memcached",
     "ext-pgsql": "Required to support PostgreSQL database",
+    "ext-mysqli": "Required to support MySQL database",
     "ext-curl": "Required to support OData requests"
   },
   "autoload": {

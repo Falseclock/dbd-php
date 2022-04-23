@@ -13,9 +13,15 @@ namespace DBD\Tests\Traits;
 
 use DBD\Common\CRUD;
 use DBD\Common\DBDException;
+use DBD\Entity\Common\EntityException;
 use DBD\Tests\Entities\City;
 use DBD\Tests\Entities\Country;
 use DBD\Tests\Entities\TestBaseJson;
+use DBD\Tests\Entities\TestBaseNoAuto;
+use DBD\Tests\Entities\TestBaseNullable;
+use DBD\Tests\Entities\TestBaseNullable2;
+use DBD\Tests\Entities\TestBaseNullable2Map;
+use DBD\Tests\Entities\TestBaseNullableMap;
 
 trait EntityTest
 {
@@ -90,5 +96,125 @@ trait EntityTest
         }, sprintf(CRUD::ERROR_ENTITY_NOT_FOUND, City::class));
 
         $this->db->do("DROP TABLE city");
+    }
+
+    /**
+     * @throws DBDException
+     * @throws EntityException
+     * @noinspection SqlType
+     */
+    public function testEntityBase()
+    {
+        $this->options->setConvertNumeric(true);
+        $this->options->setConvertBoolean(true);
+
+        /** @var TestBaseNullableMap $map */
+        $map = TestBaseNullable::map();
+
+        $this->db->do(sprintf("DROP TABLE IF EXISTS %s.%s", TestBaseNullable::SCHEME, TestBaseNullable::TABLE));
+        $this->db->do(sprintf("CREATE TABLE %s.%s (%s serial, %s text)", TestBaseNullable::SCHEME, TestBaseNullable::TABLE, $map->id->name, $map->name->name));
+
+        $i = 1;
+        while ($i < 11) {
+            $entity = new TestBaseNullable();
+            $entity->name = substr(str_shuffle(str_repeat($x = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ', intval(ceil(10 / strlen($x))))), 1, 10);
+
+            $this->db->entityInsert($entity);
+            self::assertSame($i, $entity->id);
+
+            $i++;
+        }
+        self::assertSame(10, $this->db->select("SELECT count(*) FROM " . TestBaseNullable::TABLE));
+        $sth = $this->db->prepare("SELECT * FROM " . TestBaseNullable::TABLE);
+        $sth->execute();
+        while ($row = $sth->fetchRow()) {
+            $entity = new TestBaseNullable($row);
+            self::assertNotNull($entity->name);
+            self::assertNotNull($entity->id);
+
+            $entityInitial = clone $entity;
+
+            $this->db->entitySelect($entity);
+            self::assertEquals($entityInitial, $entity);
+
+            $entity->name = "updated";
+
+            $this->db->entityUpdate($entity);
+
+            self::assertSame("updated", $entity->name);
+
+            self::assertTrue($this->db->entityDelete($entity));
+        }
+
+        // test for return false
+        $entity = new TestBaseNullable();
+        $entity->id = 123456789;
+        $result = $this->db->entityDelete($entity);
+
+        self::assertFalse($result);
+    }
+
+    /**
+     * @throws DBDException
+     * @throws EntityException
+     */
+    public function testEntityBaseDefaultValueInsert()
+    {
+        /** @var TestBaseNullableMap $map */
+        $map = TestBaseNullable::map();
+
+        $this->db->do("DROP TABLE IF EXISTS " . TestBaseNullable::TABLE);
+        $this->db->do("CREATE TABLE " . TestBaseNullable::TABLE . " (" . $map->id->name . " serial, " . $map->name->name . " text)");
+
+        $i = 0;
+        while ($i < 10) {
+            $entity = new TestBaseNullable();
+            $this->db->entityInsert($entity);
+            $i++;
+        }
+
+        $sth = $this->db->prepare("SELECT * FROM " . TestBaseNullable::TABLE . " WHERE " . $map->name->name . "=?");
+        $sth->execute($map->name->defaultValue);
+
+        self::assertCount(10, $sth->fetchRowSet());
+    }
+
+    /**
+     * @throws DBDException
+     */
+    public function testEntityBaseNoAutoInsert()
+    {
+        $this->options->setConvertNumeric(true);
+        $this->options->setConvertBoolean(true);
+
+        $entity = new TestBaseNoAuto();
+
+        self::expectException(DBDException::class);
+        $this->db->entityInsert($entity);
+    }
+
+    /**
+     * @throws DBDException
+     * @throws EntityException
+     */
+    public function testEntityBaseNullableValueInsert()
+    {
+        /** @var TestBaseNullable2Map $map */
+        $map = TestBaseNullable2::map();
+
+        $this->db->do("DROP TABLE IF EXISTS " . TestBaseNullable2::TABLE);
+        $this->db->do("CREATE TABLE " . TestBaseNullable2::TABLE . " (" . $map->id->name . " serial, " . $map->name->name . " text, " . $map->name2->name . " text)");
+
+        $i = 0;
+        while ($i < 10) {
+            $entity = new TestBaseNullable2();
+            $this->db->entityInsert($entity);
+            $i++;
+        }
+
+        $sth = $this->db->prepare("SELECT * FROM " . TestBaseNullable2::TABLE . " WHERE " . $map->name->name . " IS NULL");
+        $sth->execute();
+
+        self::assertCount(10, $sth->fetchRowSet());
     }
 }
