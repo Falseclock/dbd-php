@@ -4,28 +4,18 @@
  * @copyright 2020 Nurlan Mukhanov
  * @license   https://en.wikipedia.org/wiki/MIT_License MIT License
  * @link      https://github.com/Falseclock/dbd-php
+ * @noinspection SqlResolve
  */
 
 declare(strict_types=1);
 
 namespace DBD\Tests;
 
-use DBD\Common\Config;
-use DBD\Common\Options;
-use DBD\DBD;
-use Exception;
 use PHPUnit\Framework\TestCase;
 use Throwable;
 
 abstract class CommonTest extends TestCase
 {
-    /** @var DBD */
-    protected $db;
-    /** @var Options */
-    protected $options;
-    /** @var Config */
-    protected $config;
-
     /**
      * Asserts that the given callback throws the given exception.
      *

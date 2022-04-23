@@ -4,23 +4,20 @@
  * @copyright 2021 Nurlan Mukhanov
  * @license   https://en.wikipedia.org/wiki/MIT_License MIT License
  * @link      https://github.com/Falseclock/dbd-php
+ * @noinspection SqlNoDataSourceInspection
  * @noinspection SqlResolve
  * @noinspection SqlWithoutWhere
- * @noinspection SqlNoDataSourceInspection
+ * @noinspection PhpUnused
  */
 
 declare(strict_types=1);
 
-namespace DBD\Tests\Pg;
+namespace DBD\Tests\Traits;
 
 use DBD\Common\DBDException;
 use DBD\Pg;
 
-/**
- * @see Pg::rows()
- * @see Pg::_rows()
- */
-class PgRowsTest extends PgAbstractTest
+trait RowsTest
 {
     /**
      * @throws DBDException

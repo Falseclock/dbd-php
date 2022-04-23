@@ -4,12 +4,13 @@
  * @copyright 2009-2022 Nurlan Mukhanov
  * @license   https://en.wikipedia.org/wiki/MIT_License MIT License
  * @link      https://github.com/Falseclock/dbd-php
- * @noinspection SqlNoDataSourceInspection
+ * @noinspection PhpUnused
+ * @noinspection SqlResolve
  */
 
 declare(strict_types=1);
 
-namespace DBD\Tests\Pg;
+namespace DBD\Tests\Traits;
 
 use DBD\Common\CRUD;
 use DBD\Common\DBDException;
@@ -18,8 +19,34 @@ use DBD\Tests\Common\BadCacheDriver;
 use DBD\Tests\Entities\TestBase;
 use DBD\Tests\Entities\TestBaseNoPK;
 
-class PgExceptionsTest extends PgAbstractTest
+trait ExceptionsTest
 {
+    /**  */
+    public function testCommonException()
+    {
+        /** @var DBDException $exception */
+        $exception = $this->assertException(DBDException::class, function () {
+            $this->db->select("SELECT * FROM bla WHERE a=?", 1);
+        });
+
+        self::assertNotNull($exception);
+        self::assertCount(1, $exception->getArguments());
+        self::assertIsArray($exception->getFullTrace());
+        self::assertIsArray($exception->getShortTrace());
+        self::assertSame("SELECT * FROM bla WHERE a='1'", $exception->getQuery());
+
+        $this->db->getOptions()->setPrepareExecute(true);
+        /** @var DBDException $exception */
+
+        $exception = $this->assertException(DBDException::class, function () {
+            $this->db->select("SELECT * FROM bla WHERE a=?", 1);
+        });
+
+        self::assertNotNull($exception->getArguments());
+        $arguments = $exception->getArguments();
+        self::assertSame(1, array_shift($arguments));
+    }
+
     /**
      * @throws DBDException
      */
@@ -45,8 +72,8 @@ class PgExceptionsTest extends PgAbstractTest
      */
     public function testExecuteExceptions()
     {
-        $this->memcache = new BadCacheDriver([]);
-        $this->config->setCacheDriver($this->memcache);
+        $this->cache = new BadCacheDriver([]);
+        $this->config->setCacheDriver($this->cache);
 
         $sth = $this->db->prepare("SELECT 1");
         $sth->cache(__METHOD__, "1s");
@@ -56,7 +83,7 @@ class PgExceptionsTest extends PgAbstractTest
         });
     }
 
-    public function testGetPreparedQuery()
+    public function testGetPreparedQueryException()
     {
         $this->assertException(DBDException::class, function () {
             $this->db->execute();

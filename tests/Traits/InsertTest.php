@@ -1,17 +1,18 @@
 <?php
 /**
- * PgInsertTest
- *
  * @author    Nurlan Mukhanov <nurike@gmail.com>
  * @copyright 2021 Nurlan Mukhanov
  * @license   https://en.wikipedia.org/wiki/MIT_License MIT License
  * @link      https://github.com/Falseclock/dbd-php
- * @noinspection PhpComposerExtensionStubsInspection
+ * @noinspection SqlNoDataSourceInspection
+ * @noinspection SqlResolve
+ * @noinspection SqlWithoutWhere
+ * @noinspection PhpUnused
  */
 
 declare(strict_types=1);
 
-namespace DBD\Tests\Pg;
+namespace DBD\Tests\Traits;
 
 use DBD\Common\DBDException;
 
@@ -19,7 +20,7 @@ use DBD\Common\DBDException;
  * @see Pg::insert()
  * @see Pg::_compileInsert()
  */
-class PgInsertTest extends PgAbstractTest
+trait InsertTest
 {
     /**
      * @throws DBDException

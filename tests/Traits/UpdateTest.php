@@ -1,26 +1,24 @@
 <?php
 /**
- * PgUpdateTest
- *
  * @author    Nurlan Mukhanov <nurike@gmail.com>
  * @copyright 2021 Nurlan Mukhanov
  * @license   https://en.wikipedia.org/wiki/MIT_License MIT License
  * @link      https://github.com/Falseclock/dbd-php
- * @noinspection PhpComposerExtensionStubsInspection
+ * @noinspection SqlNoDataSourceInspection
+ * @noinspection SqlResolve
+ * @noinspection SqlWithoutWhere
+ * @noinspection PhpUnused
  */
 
 declare(strict_types=1);
 
-namespace DBD\Tests\Pg;
+namespace DBD\Tests\Traits;
 
 use DBD\Common\DBDException;
+use DBD\Tests\DBDTest;
 use stdClass;
 
-/**
- * @see Pg::update()
- * @see Pg::_compileUpdate()
- */
-class PgUpdateTest extends PgAbstractTest
+trait UpdateTest
 {
     /**
      * @throws DBDException

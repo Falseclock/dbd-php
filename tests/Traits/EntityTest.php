@@ -4,12 +4,12 @@
  * @copyright 2009-2022 Nurlan Mukhanov
  * @license   https://en.wikipedia.org/wiki/MIT_License MIT License
  * @link      https://github.com/Falseclock/dbd-php
- * @noinspection SqlNoDataSourceInspection
+ * @noinspection PhpUnused
  */
 
 declare(strict_types=1);
 
-namespace DBD\Tests\Pg;
+namespace DBD\Tests\Traits;
 
 use DBD\Common\CRUD;
 use DBD\Common\DBDException;
@@ -17,7 +17,7 @@ use DBD\Tests\Entities\City;
 use DBD\Tests\Entities\Country;
 use DBD\Tests\Entities\TestBaseJson;
 
-class PgEntityTest extends PgAbstractTest
+trait EntityTest
 {
     public function testForJsonConversion()
     {

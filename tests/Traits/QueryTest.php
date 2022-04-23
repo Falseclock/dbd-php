@@ -1,26 +1,23 @@
 <?php
 /**
- * PgQueryTest
- *
  * @author    Nurlan Mukhanov <nurike@gmail.com>
  * @copyright 2020 Nurlan Mukhanov
  * @license   https://en.wikipedia.org/wiki/MIT_License MIT License
  * @link      https://github.com/Falseclock/dbd-php
- * @noinspection PhpComposerExtensionStubsInspection
+ * @noinspection SqlNoDataSourceInspection
+ * @noinspection SqlResolve
+ * @noinspection SqlWithoutWhere
+ * @noinspection PhpUnused
  */
 
 declare(strict_types=1);
 
-namespace DBD\Tests\Pg;
+namespace DBD\Tests\Traits;
 
 use DBD\Common\DBDException;
 use DBD\Pg;
 
-/**
- * @see Pg::query()
- * @see Pg::_query()
- */
-class PgQueryTest extends PgAbstractTest
+trait QueryTest
 {
 
     /**

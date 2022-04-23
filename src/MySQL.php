@@ -25,8 +25,7 @@ class MySQL extends DBD
      */
     public function connect(): DBD
     {
-
-        if ($this->Options->isOnDemand() == false) {
+        if (!$this->Options->isOnDemand()) {
             $this->_connect();
         }
 

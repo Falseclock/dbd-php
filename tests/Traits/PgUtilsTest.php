@@ -6,23 +6,25 @@
  * @link      https://github.com/Falseclock/dbd-php
  * @noinspection SqlNoDataSourceInspection
  * @noinspection SqlResolve
+ * @noinspection SqlWithoutWhere
+ * @noinspection PhpUnused
  */
 
 declare(strict_types=1);
 
-namespace DBD\Tests\Pg;
+namespace DBD\Tests\Traits;
 
 use DBD\Common\DBDException;
 use DBD\Entity\Common\EntityException;
 use DBD\Helpers\PgUtils;
 
-class PgUtilsTest extends PgAbstractTest
+trait PgUtilsTest
 {
     /**
      * @throws EntityException
      * @throws DBDException
      */
-    public function testCommon()
+    public function testUtilsCommon()
     {
         $this->db->do("DROP TABLE IF EXISTS public.city");
         $this->db->do("DROP TABLE IF EXISTS public.country");

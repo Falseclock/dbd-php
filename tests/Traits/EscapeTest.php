@@ -1,16 +1,16 @@
 <?php
 /**
  * @author    Nurlan Mukhanov <nurike@gmail.com>
- * @copyright 2020 Nurlan Mukhanov
+ * @copyright 2009-2022 Nurlan Mukhanov
  * @license   https://en.wikipedia.org/wiki/MIT_License MIT License
  * @link      https://github.com/Falseclock/dbd-php
+ * @noinspection PhpUnused
  * @noinspection PhpComposerExtensionStubsInspection
- * @noinspection SqlNoDataSourceInspection
  */
 
 declare(strict_types=1);
 
-namespace DBD\Tests\Pg;
+namespace DBD\Tests\Traits;
 
 use DateTime;
 use DateTimeZone;
@@ -18,19 +18,8 @@ use DBD\Common\DBDException;
 use Exception;
 use stdClass;
 
-/**
- * @see Pg::escape()
- * @see Pg::_escape()
- * @see Pg::escapeBinary()
- * @see Pg::_escapeBinary()
- */
-class PgEscapeTest extends PgAbstractTest
+trait EscapeTest
 {
-    const STRING = "string";
-    const INT = 12345;
-    const FLOAT = 98765.4321;
-    const NUMERIC = "1234567890987654321.1234567890987654321";
-
     /**
      * @throws DBDException
      * @throws Exception

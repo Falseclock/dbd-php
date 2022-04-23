@@ -7,19 +7,21 @@
  * @noinspection SqlNoDataSourceInspection
  * @noinspection SqlResolve
  * @noinspection SqlWithoutWhere
+ * @noinspection PhpUnused
  */
 
 declare(strict_types=1);
 
-namespace DBD\Tests\Pg;
+namespace DBD\Tests\Traits;
 
 use DBD\Common\CRUD;
 use DBD\Common\DBDException;
 use DBD\Helpers\Helper;
 use DBD\Helpers\InsertArguments;
 use DBD\Helpers\UpdateArguments;
+use DBD\Tests\DBDTest;
 
-class PgHelperTest extends PgAbstractTest
+trait HelperTest
 {
     /**
      * @throws DBDException

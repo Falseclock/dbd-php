@@ -25,8 +25,6 @@ use DBD\Helpers\ConversionMap;
 use DBD\Helpers\Helper;
 use DBD\Helpers\InsertArguments;
 use DBD\Helpers\UpdateArguments;
-use DBD\Tests\Pg\PgRowsTest;
-use DBD\Tests\Pg\PgTransactionTest;
 use Psr\SimpleCache\InvalidArgumentException;
 use ReflectionClass;
 use Throwable;

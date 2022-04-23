@@ -1,17 +1,15 @@
 <?php
 /**
- * PgBindTest
- *
  * @author    Nurlan Mukhanov <nurike@gmail.com>
- * @copyright 2021 Nurlan Mukhanov
+ * @copyright 2009-2022 Nurlan Mukhanov
  * @license   https://en.wikipedia.org/wiki/MIT_License MIT License
  * @link      https://github.com/Falseclock/dbd-php
- * @noinspection PhpComposerExtensionStubsInspection
+ * @noinspection PhpUnused
  */
 
 declare(strict_types=1);
 
-namespace DBD\Tests\Pg;
+namespace DBD\Tests\Traits;
 
 use DBD\Common\Bind;
 use DBD\Common\DBDException;
@@ -19,7 +17,7 @@ use DBD\Entity\Primitives\NumericPrimitives;
 use DBD\Entity\Primitives\StringPrimitives;
 use Exception;
 
-class PgBindTest extends PgAbstractTest
+trait BindTest
 {
     public function testBindNotInteger16()
     {
@@ -39,18 +37,27 @@ class PgBindTest extends PgAbstractTest
         new Bind(':some', '1', NumericPrimitives::Int64);
     }
 
+    /**
+     * @throws DBDException
+     */
     public function testBindNotIntegerArray16()
     {
         self::expectException(DBDException::class);
         new Bind(':some', [1, '1', 2], NumericPrimitives::Int16);
     }
 
+    /**
+     * @throws DBDException
+     */
     public function testBindNotIntegerArray32()
     {
         self::expectException(DBDException::class);
         new Bind(':some', [1, '1', 2], NumericPrimitives::Int32);
     }
 
+    /**
+     * @throws DBDException
+     */
     public function testBindNotIntegerArray64()
     {
         self::expectException(DBDException::class);

@@ -4,41 +4,27 @@
  * @copyright 2021 Nurlan Mukhanov
  * @license   https://en.wikipedia.org/wiki/MIT_License MIT License
  * @link      https://github.com/Falseclock/dbd-php
- * @noinspection PhpComposerExtensionStubsInspection
  * @noinspection SqlNoDataSourceInspection
+ * @noinspection SqlResolve
+ * @noinspection SqlWithoutWhere
+ * @noinspection PhpUnused
  */
 
 declare(strict_types=1);
 
-namespace DBD\Tests\Pg;
+namespace DBD\Tests\Traits;
 
 use DBD\Common\DBDException;
 use DBD\Entity\Primitives\NumericPrimitives;
 
-/**
- * @see Pg::_prepareNamed()
- * @see Pg::_executeNamed()
- */
-class PgNamedTest extends PgAbstractTest
+trait NamedTest
 {
-    /**
-     * @param string|null $name
-     * @param array $data
-     * @param string $dataName
-     * @throws DBDException
-     */
-    public function __construct(?string $name = null, array $data = [], $dataName = '')
-    {
-        parent::__construct($name, $data, $dataName);
-
-        $this->db->getOptions()->setPrepareExecute(true)->setConvertNumeric(true);
-    }
-
     /**
      * @throws DBDException
      */
     public function testWithParameters()
     {
+        $this->db->getOptions()->setPrepareExecute(true)->setConvertNumeric(true);
         $count = 10;
 
         $sth = $this->db->prepare("SELECT * FROM generate_series(?::int, ?::int) id");
@@ -54,6 +40,7 @@ class PgNamedTest extends PgAbstractTest
      */
     protected function checkResult($sth, int $expectedRows, ?array $arguments = null)
     {
+        $this->db->getOptions()->setPrepareExecute(true)->setConvertNumeric(true);
         self::assertSame($expectedRows, $sth->rows());
         $noCacheRows = $sth->fetchRowSet();
         self::assertCount($expectedRows, $noCacheRows);
@@ -82,6 +69,7 @@ class PgNamedTest extends PgAbstractTest
      */
     public function testWithoutParameters()
     {
+        $this->db->getOptions()->setPrepareExecute(true)->setConvertNumeric(true);
         $count = 10;
 
         $sth = $this->db->prepare("SELECT * FROM generate_series(1, $count) id");
@@ -95,6 +83,7 @@ class PgNamedTest extends PgAbstractTest
      */
     public function testWithBinds()
     {
+        $this->db->getOptions()->setPrepareExecute(true)->setConvertNumeric(true);
         $count = 10;
 
         $sth = $this->db->prepare("SELECT * FROM generate_series(:start, :end) id");

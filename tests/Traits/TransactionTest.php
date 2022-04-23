@@ -1,22 +1,23 @@
 <?php
 /**
- * PgTransactionTest
- * @note Tests of transactions
- *
  * @author    Nurlan Mukhanov <nurike@gmail.com>
  * @copyright 2021 Nurlan Mukhanov
  * @license   https://en.wikipedia.org/wiki/MIT_License MIT License
  * @link      https://github.com/Falseclock/dbd-php
+ * @noinspection SqlNoDataSourceInspection
+ * @noinspection SqlResolve
+ * @noinspection SqlWithoutWhere
+ * @noinspection PhpUnused
  */
 
 declare(strict_types=1);
 
-namespace DBD\Tests\Pg;
+namespace DBD\Tests\Traits;
 
 use DBD\Common\DBDException;
 use DBD\Pg;
 
-class PgTransactionTest extends PgAbstractTest
+trait TransactionTest
 {
     /**
      * @throws DBDException

@@ -1,27 +1,25 @@
 <?php
 /**
- * PgConvertTypesTest
- *
  * @author    Nurlan Mukhanov <nurike@gmail.com>
- * @copyright 2021 Nurlan Mukhanov
+ * @copyright 2009-2022 Nurlan Mukhanov
  * @license   https://en.wikipedia.org/wiki/MIT_License MIT License
  * @link      https://github.com/Falseclock/dbd-php
- * @noinspection PhpComposerExtensionStubsInspection
+ * @noinspection PhpUnused
  */
 
 declare(strict_types=1);
 
-namespace DBD\Tests\Pg;
+namespace DBD\Tests\Traits;
 
 use DBD\Common\DBDException;
 
-class PgConvertTypesTest extends PgAbstractTest
+trait ConvertTypesTest
 {
     /**
      * @throws DBDException
      * @see Pg::_convertTypes()
      */
-    public function atestConvertTypes()
+    public function testConvertTypes()
     {
         // ini_set('precision', (string)17);
 
