@@ -210,8 +210,11 @@ abstract class DBDTest extends CommonTest
         $this->db->do("DROP TABLE IF EXISTS testExecuteFetchRowSetKeyWithCache");
         $this->config->getCacheDriver()->delete(__METHOD__);
 
-        $sth = $this->db->prepare("CREATE TABLE testExecuteFetchRowSetKeyWithCache AS SELECT id, id%2 > 0 AS bool_var from generate_series(1,10) id");
-        $sth->execute();
+        $this->db->do("CREATE TABLE testExecuteFetchRowSetKeyWithCache (id int, bool_var bool)");
+        $sth = $this->db->prepare("INSERT INTO testExecuteFetchRowSetKeyWithCache VALUES (?,?)");
+        for ($i = 1; $i <= 10; $i++) {
+            $sth->execute($i, $i % 2 > 0);
+        }
 
         // taking from DB
         $sth = $this->db->prepare("SELECT * FROM testExecuteFetchRowSetKeyWithCache ORDER BY id");
@@ -266,8 +269,11 @@ abstract class DBDTest extends CommonTest
         $this->db->do("DROP TABLE IF EXISTS testExecuteFetchRowSetKeyWithCachePrepare");
         $this->config->getCacheDriver()->delete(__METHOD__);
 
-        $sth = $this->db->prepare("CREATE TABLE testExecuteFetchRowSetKeyWithCachePrepare AS SELECT id, id%2 > 0 AS bool_var from generate_series(1,10) id");
-        $sth->execute();
+        $this->db->do("CREATE TABLE testExecuteFetchRowSetKeyWithCachePrepare (id int, bool_var bool)");
+        $sth = $this->db->prepare("INSERT INTO testExecuteFetchRowSetKeyWithCachePrepare VALUES (?,?)");
+        for ($i = 1; $i <= 10; $i++) {
+            $sth->execute($i, $i % 2 > 0);
+        }
 
         // taking from DB
         $sth = $this->db->prepare("SELECT * FROM testExecuteFetchRowSetKeyWithCachePrepare ORDER BY id");
@@ -321,8 +327,11 @@ abstract class DBDTest extends CommonTest
         $this->db->do("DROP TABLE IF EXISTS testExecuteFetchRowSetWithCache");
         $this->config->getCacheDriver()->delete(__METHOD__);
 
-        $sth = $this->db->prepare("CREATE TABLE testExecuteFetchRowSetWithCache AS SELECT id, id%2 > 0 AS bool_var from generate_series(1,10) id");
-        $sth->execute();
+        $this->db->do("CREATE TABLE testExecuteFetchRowSetWithCache (id int, bool_var bool)");
+        $sth = $this->db->prepare("INSERT INTO testExecuteFetchRowSetWithCache VALUES (?,?)");
+        for ($i = 1; $i <= 10; $i++) {
+            $sth->execute($i, $i % 2 > 0);
+        }
 
         // taking from DB
         $sth = $this->db->prepare("SELECT * FROM testExecuteFetchRowSetWithCache ORDER BY id");
@@ -381,8 +390,11 @@ abstract class DBDTest extends CommonTest
         $this->db->do("DROP TABLE IF EXISTS testExecuteWithCache");
         $this->config->getCacheDriver()->delete(__METHOD__);
 
-        $sth = $this->db->prepare("CREATE TABLE testExecuteWithCache AS SELECT id, id%2 > 0 AS bool_var from generate_series(1,10) id");
-        $sth->execute();
+        $this->db->do("CREATE TABLE testExecuteWithCache (id int, bool_var bool)");
+        $sth = $this->db->prepare("INSERT INTO testExecuteWithCache VALUES (?,?)");
+        for ($i = 1; $i <= 10; $i++) {
+            $sth->execute($i, $i % 2 > 0);
+        }
 
         $sth = $this->db->prepare("SELECT * FROM testExecuteWithCache ORDER BY id");
         $sth->cache(__METHOD__);
@@ -432,8 +444,11 @@ abstract class DBDTest extends CommonTest
         $this->db->do("DROP TABLE IF EXISTS testExecuteWithCache");
         $this->config->getCacheDriver()->delete(__METHOD__);
 
-        $sth = $this->db->prepare("CREATE TABLE testExecuteWithCache AS SELECT id, id%2 > 0 AS bool_var from generate_series(1,10) id");
-        $sth->execute();
+        $this->db->do("CREATE TABLE testExecuteWithCache (id int, bool_var bool)");
+        $sth = $this->db->prepare("INSERT INTO testExecuteWithCache VALUES (?,?)");
+        for ($i = 1; $i <= 10; $i++) {
+            $sth->execute($i, $i % 2 > 0);
+        }
 
         $sth = $this->db->prepare("SELECT * FROM testExecuteWithCache ORDER BY id LIMIT 1");
         $sth->cache(__METHOD__);

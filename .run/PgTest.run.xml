@@ -1,0 +1,6 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="PgTest" type="PHPUnitRunConfigurationType" factoryName="PHPUnit">
+    <TestRunner class="DBD\Tests\PgTest" file="$PROJECT_DIR$/tests/PgTest.php" scope="Class" />
+    <method v="2" />
+  </configuration>
+</component>

@@ -377,7 +377,7 @@ abstract class DBD implements CRUD
      * @return string
      * @throws DBDException
      */
-    private function getPreparedQuery($ARGS, bool $overrideOption = false): string
+    protected function getPreparedQuery($ARGS, bool $overrideOption = false): string
     {
         if (is_null($this->query))
             throw new DBDException(self::ERROR_NOT_PREPARED);

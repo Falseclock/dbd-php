@@ -18,7 +18,7 @@ use DBD\Common\DBDException;
 use DBD\Common\Options;
 use DBD\MySQL;
 
-class MySQLTes
+class MySQLTest extends DBDTest
 {
     /** @var MySQL */
     protected $db;

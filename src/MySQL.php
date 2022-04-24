@@ -13,9 +13,8 @@ declare(strict_types=1);
 namespace DBD;
 
 use DBD\Common\Bind;
-use DBD\Common\CRUD;
 use DBD\Common\DBDException;
-use DBD\Helpers\Helper;
+use DBD\Helpers\ConversionMap;
 use DBD\Helpers\InsertArguments;
 use DBD\Helpers\UpdateArguments;
 use mysqli;
@@ -28,6 +27,7 @@ class MySQL extends DBD
     protected $resourceLink;
     /** @var mysqli_result|bool Query result data */
     protected $result;
+
     /**
      *
      * @return $this|DBD
@@ -91,9 +91,69 @@ class MySQL extends DBD
         return "UPDATE $table SET {$updateArguments['COLUMNS']}" . ($where ? " WHERE $where" : "");
     }
 
+    /**
+     * @param $data
+     * @return void
+     * @inheritDoc
+     */
     protected function _convertTypes(&$data): void
     {
-        // TODO: Implement _convertTypes() method.
+        if (is_iterable($data)) {
+            if (is_null($this->conversionMap))
+                $this->buildConversionMap($data);
+
+            foreach ($data as $key => &$value) {
+                if ($this->Options->isConvertNumeric()) {
+                    if (in_array($key, $this->conversionMap->floats))
+                        if (!is_null($value))
+                            $value = floatval($value);
+                    if (in_array($key, $this->conversionMap->integers))
+                        if (!is_null($value))
+                            $value = intval($value);
+                }
+                if ($this->Options->isConvertBoolean()) {
+                    if (in_array($key, $this->conversionMap->booleans)) {
+                        if ($value === 1)
+                            $value = true;
+                        else if ($value === 0)
+                            $value = false;
+                    }
+                }
+            }
+        }
+
+    }
+
+    private function buildConversionMap(array $resultRow): void
+    {
+        $fields = mysqli_fetch_fields($this->result);
+
+        $this->conversionMap = new ConversionMap();
+
+        foreach ($fields as $field) {
+            switch ($field->type) {
+                case MYSQLI_TYPE_DECIMAL:
+                case MYSQLI_TYPE_NEWDECIMAL:
+                case MYSQLI_TYPE_FLOAT:
+                case MYSQLI_TYPE_DOUBLE:
+                    $this->conversionMap->addFloat((string)$field->name);
+                    break;
+                case MYSQLI_TYPE_BIT:
+                case MYSQLI_TYPE_SHORT:
+                case MYSQLI_TYPE_LONG:
+                case MYSQLI_TYPE_LONGLONG:
+                case MYSQLI_TYPE_INT24:
+                case MYSQLI_TYPE_YEAR:
+                case MYSQLI_TYPE_ENUM:
+                    $this->conversionMap->addInteger((string)$field->name);
+                    break;
+                case MYSQLI_TYPE_TINY:
+                    if ($field->max_length == 1)
+                        $this->conversionMap->addBoolean((string)$field->name);
+                    else
+                        $this->conversionMap->addInteger((string)$field->name);
+            }
+        }
     }
 
     protected function _disconnect(): bool
@@ -111,6 +171,9 @@ class MySQL extends DBD
         if (is_null($value))
             return "NULL";
 
+        if (is_bool($value))
+            return $value ? 'TRUE' : 'FALSE';
+
         $str = mysqli_real_escape_string($this->resourceLink, (string)$value);
 
         return "'$str'";
@@ -121,14 +184,17 @@ class MySQL extends DBD
      * @param array $arguments
      *
      * @return mixed
-     * @see MSSQL::_executeNamed
+     * @throws DBDException
      * @see MySQL::_executeNamed
      * @see OData::_executeNamed
      * @see Pg::_executeNamed
+     * @see MSSQL::_executeNamed
      */
     protected function _executeNamed(string $uniqueName, array $arguments)
     {
-        // TODO: Implement _execute() method.
+        $query = $this->getPreparedQuery($arguments, true);
+
+        return $this->_query($query);
     }
 
     /**

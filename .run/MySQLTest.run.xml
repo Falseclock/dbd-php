@@ -1,0 +1,6 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="MySQLTest" type="PHPUnitRunConfigurationType" factoryName="PHPUnit">
+    <TestRunner class="DBD\Tests\MySQLTest" file="$PROJECT_DIR$/tests/MySQLTest.php" scope="Class" />
+    <method v="2" />
+  </configuration>
+</component>
