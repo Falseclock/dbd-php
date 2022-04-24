@@ -5,6 +5,7 @@
  * @license   https://en.wikipedia.org/wiki/MIT_License MIT License
  * @link      https://github.com/Falseclock/dbd-php
  * @noinspection SqlResolve
+ * @noinspection SqlWithoutWhere
  */
 
 declare(strict_types=1);
@@ -18,6 +19,7 @@ use DBD\Common\CRUD;
 use DBD\Common\DBDException;
 use DBD\Common\Options;
 use DBD\DBD;
+use DBD\MySQL;
 use DBD\Pg;
 use DBD\Tests\Traits\BindTest;
 use DBD\Tests\Traits\ConnectionTest;
@@ -510,31 +512,53 @@ abstract class DBDTest extends CommonTest
     {
         $this->options->setConvertNumeric(false);
         $this->options->setConvertBoolean(false);
-        $sth = $this->db->prepare("SELECT 1::smallint, 1::text, 2::int, 2::text, 3::bigint, 3::text, true, true::text, false, false::text");
+        $this->db->do("DROP TABLE IF EXISTS test_fetch");
+        $this->db->do("CREATE TABLE IF NOT EXISTS test_fetch (a smallint, b text, c integer, d text, e bigint, f text, g boolean, h text, i boolean, j text)");
+        $sth = $this->db->prepare("INSERT INTO test_fetch values (?,?,?,?,?,?,?,?,?,?)");
+        $sth->execute(1, '1', 2, '2', 3, '3', true, 'true', false, 'false');
+        $sth = $this->db->prepare("SELECT a,b,c,d,e,f,g,h,i,j FROM test_fetch");
         $sth->execute();
+
         $i = 0;
         while ($value = $sth->fetch()) {
             switch ($i) {
+                // smallint
                 case 0:
                 case 1:
                     self::assertSame("1", $value);
                     break;
+                // integer
                 case 2:
                 case 3:
                     self::assertSame("2", $value);
                     break;
+                // bigint
                 case 4:
                 case 5:
                     self::assertSame("3", $value);
                     break;
                 case 6:
-                    self::assertSame("t", $value);
+                    switch (true) {
+                        case $this->db instanceof Pg:
+                            self::assertSame("t", $value);
+                            break;
+                        case $this->db instanceof MySQL:
+                            self::assertSame("1", $value);
+                            break;
+                    }
                     break;
                 case 7:
                     self::assertSame("true", $value);
                     break;
                 case 8:
-                    self::assertSame("f", $value);
+                    switch (true) {
+                        case $this->db instanceof Pg:
+                            self::assertSame("f", $value);
+                            break;
+                        case $this->db instanceof MySQL:
+                            self::assertSame("0", $value);
+                            break;
+                    }
                     break;
                 case 9:
                     self::assertSame("false", $value);
@@ -542,11 +566,19 @@ abstract class DBDTest extends CommonTest
             }
             $i++;
         }
-        self::assertSame(10, $i);
+
+        switch (true) {
+            case $this->db instanceof Pg:
+                self::assertSame(10, $i);
+                break;
+            case $this->db instanceof MySQL:
+                self::assertSame(8, $i);
+                break;
+        }
 
         $this->options->setConvertNumeric(true);
         $this->options->setConvertBoolean(true);
-        $sth = $this->db->prepare("SELECT 1::smallint, 1::text, 2::int, 2::text, 3::bigint, 3::text, true, true::text, false, false::text");
+
         $sth->execute();
         $i = 0;
         while ($value = $sth->fetch()) {
@@ -578,7 +610,7 @@ abstract class DBDTest extends CommonTest
                     break;
                 case 8:
                 case 9:
-                    throw new DBDException("impossible situation");
+                    self::fail("impossible situation");
             }
             $i++;
         }
@@ -591,8 +623,12 @@ abstract class DBDTest extends CommonTest
      */
     public function testFetchRow()
     {
-        $sth = $this->db->prepare("CREATE TABLE test_fetch_row AS SELECT id, id%2 > 0 AS bool_var from generate_series(1,10) id");
-        $sth->execute();
+        $this->db->do("DROP TABLE IF EXISTS test_fetch_row");
+        $this->db->do("CREATE TABLE IF NOT EXISTS test_fetch_row (id int, bool_var bool)");
+        $sth = $this->db->prepare("INSERT INTO test_fetch_row VALUES (?,?)");
+        for ($i = 1; $i <= 10; $i++) {
+            $sth->execute($i, $i % 2 > 0);
+        }
 
         $this->options->setConvertNumeric(false);
         $this->options->setConvertBoolean(false);
@@ -606,9 +642,9 @@ abstract class DBDTest extends CommonTest
             self::assertSame((string)$i, $row['id']);
 
             if ($i % 2)
-                self::assertSame("t", $row['bool_var']);
+                self::assertContains($row['bool_var'], ["t", '1']);
             else
-                self::assertSame("f", $row['bool_var']);
+                self::assertContains($row['bool_var'], ["f", '0']);
         }
         self::assertSame(10, $i);
 
@@ -639,9 +675,11 @@ abstract class DBDTest extends CommonTest
     public function testFetchRowSet()
     {
         $this->db->do("DROP TABLE IF EXISTS test_fetch_row_set");
-
-        $sth = $this->db->prepare("CREATE TABLE test_fetch_row_set AS SELECT id, id%2 > 0 AS bool_var from generate_series(1,10) id");
-        $sth->execute();
+        $this->db->do("CREATE TABLE IF NOT EXISTS test_fetch_row_set (id int, bool_var bool)");
+        $sth = $this->db->prepare("INSERT INTO test_fetch_row_set VALUES (?,?)");
+        for ($i = 1; $i <= 10; $i++) {
+            $sth->execute($i, $i % 2 > 0);
+        }
 
         $this->options->setConvertNumeric(false);
         $this->options->setConvertBoolean(false);
@@ -658,9 +696,9 @@ abstract class DBDTest extends CommonTest
             self::assertSame((string)$i, $row['id']);
 
             if ($i % 2)
-                self::assertSame("t", $row['bool_var']);
+                self::assertContains($row['bool_var'], ["t", '1']);
             else
-                self::assertSame("f", $row['bool_var']);
+                self::assertContains($row['bool_var'], ["f", "0"]);
         }
 
         $this->options->setConvertNumeric(true);
@@ -691,9 +729,11 @@ abstract class DBDTest extends CommonTest
     public function testFetchRowSetWithKey()
     {
         $this->db->do("DROP TABLE IF EXISTS test_fetch_row_set");
-
-        $sth = $this->db->prepare("CREATE TABLE test_fetch_row_set AS SELECT id, id%2 > 0 AS bool_var from generate_series(1,10) id");
-        $sth->execute();
+        $this->db->do("CREATE TABLE IF NOT EXISTS test_fetch_row_set (id int, bool_var bool)");
+        $sth = $this->db->prepare("INSERT INTO test_fetch_row_set VALUES (?,?)");
+        for ($i = 1; $i <= 10; $i++) {
+            $sth->execute($i, $i % 2 > 0);
+        }
 
         $this->options->setConvertNumeric(false);
         $this->options->setConvertBoolean(false);
@@ -711,9 +751,9 @@ abstract class DBDTest extends CommonTest
             self::assertSame((string)$i, $row['id']);
 
             if ($i % 2)
-                self::assertSame("t", $row['bool_var']);
+                self::assertContains($row['bool_var'], ["t", "1"]);
             else
-                self::assertSame("f", $row['bool_var']);
+                self::assertContains($row['bool_var'], ["f", "0"]);
         }
 
         $this->options->setConvertNumeric(true);
@@ -771,12 +811,14 @@ abstract class DBDTest extends CommonTest
         $this->options->setConvertNumeric(true);
         $this->options->setConvertBoolean(true);
         $this->options->setUseDebug(true);
-
-        $this->db->do("DROP TABLE IF EXISTS testNoRows");
         $this->config->getCacheDriver()->delete(__METHOD__);
 
-        $sth = $this->db->prepare("CREATE TABLE testNoRows AS SELECT id, id%2 > 0 AS bool_var from generate_series(1,10) id");
-        $sth->execute();
+        $this->db->do("DROP TABLE IF EXISTS testNoRows");
+        $this->db->do("CREATE TABLE IF NOT EXISTS testNoRows (id int, bool_var bool)");
+        $sth = $this->db->prepare("INSERT INTO testNoRows VALUES (?,?)");
+        for ($i = 1; $i <= 10; $i++) {
+            $sth->execute($i, $i % 2 > 0);
+        }
 
         $sth = $this->db->prepare("SELECT * FROM testNoRows  WHERE id > ?");
         $sth->cache(__METHOD__);
@@ -852,15 +894,31 @@ abstract class DBDTest extends CommonTest
      */
     public function testSelect()
     {
-        $this->options->setConvertNumeric(true);
-        self::assertSame(1, $this->db->select("SELECT COUNT(1), 2"));
-        $this->options->setConvertNumeric(false);
-        self::assertSame("1", $this->db->select("SELECT COUNT(1), 2"));
+        $this->db->do("DROP TABLE IF EXISTS testSelect");
+        $this->db->do("CREATE TABLE IF NOT EXISTS testSelect (id bigint, test int, bool_var boolean)");
 
+        $this->db->do("INSERT INTO testSelect values (1,2,null)");
+        $this->options->setConvertNumeric(true);
+        self::assertSame(1, $this->db->select("SELECT id,test,bool_var FROM testSelect"));
+        $this->options->setConvertNumeric(false);
+        self::assertSame("1", $this->db->select("SELECT id,test,bool_var FROM testSelect"));
+        $this->db->do("DELETE FROM testSelect");
+
+        $this->db->do("INSERT INTO testSelect (bool_var, id, test) values (true,2,3)");
         $this->options->setConvertBoolean(true);
-        self::assertSame(true, $this->db->select("SELECT true, COUNT(1), 2"));
+        self::assertSame(true, $this->db->select("SELECT bool_var, id, test FROM testSelect"));
         $this->options->setConvertBoolean(false);
-        self::assertSame("t", $this->db->select("SELECT true, COUNT(1), 2"));
+        self::assertContains($this->db->select("SELECT bool_var, id, test FROM testSelect"), ["t", "1"]);
+        $this->db->do("DELETE FROM testSelect");
+
+        $this->db->do("INSERT INTO testSelect (bool_var, id, test) values (false,2,3)");
+        $this->options->setConvertBoolean(true);
+        self::assertSame(false, $this->db->select("SELECT bool_var, id, test FROM testSelect"));
+        $this->options->setConvertBoolean(false);
+        self::assertContains($this->db->select("SELECT bool_var, id, test FROM testSelect"), ["f", "0"]);
+        $this->db->do("DELETE FROM testSelect");
+
+        $this->db->do("DROP TABLE IF EXISTS testSelect");
 
         $this->assertException(DBDException::class, function () {
             $this->db->select("DROP TABLE fake_table");

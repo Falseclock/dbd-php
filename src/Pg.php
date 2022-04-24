@@ -378,6 +378,13 @@ class Pg extends DBD implements EntityOperable
     protected function _executeNamed(string $uniqueName, array $arguments)
     {
         try {
+            /**
+             * @see https://bugs.php.net/bug.php?id=44791
+             */
+            foreach ($arguments as &$argument)
+                if (is_bool($argument))
+                    $argument = $argument ? 't' : 'f';
+
             $resource = pg_execute($this->resourceLink, $uniqueName, $arguments);
             // @codeCoverageIgnoreStart
         } catch (Exception $e) {

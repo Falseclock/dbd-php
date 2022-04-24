@@ -844,6 +844,7 @@ abstract class DBD implements CRUD
 
     /**
      * Fetches first row, reduces result and returns shifted first element
+     * @note TODO: False, 0, null
      * @return null|mixed
      */
     public function fetch()
@@ -852,7 +853,7 @@ abstract class DBD implements CRUD
 
             if (is_null($this->CacheHolder)) {
 
-                $return = $this->_fetchArray();
+                $return = $this->_fetchAssoc();
 
                 if ($this->Options->isConvertNumeric() || $this->Options->isConvertBoolean()) {
                     $this->_convertTypes($return);

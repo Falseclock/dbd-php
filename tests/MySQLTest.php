@@ -1,9 +1,9 @@
 <?php
 /**
- * @author    Nurlan Mukhanov <nurike@gmail.com>
+ * @author Nurlan Mukhanov <nurike@gmail.com>
  * @copyright 2020 Nurlan Mukhanov
- * @license   https://en.wikipedia.org/wiki/MIT_License MIT License
- * @link      https://github.com/Falseclock/dbd-php
+ * @license https://en.wikipedia.org/wiki/MIT_License MIT License
+ * @link https://github.com/Falseclock/dbd-php
  * @noinspection SqlNoDataSourceInspection
  * @noinspection SqlResolve
  */
@@ -22,7 +22,7 @@ class MySQLTest extends DBDTest
 {
     /** @var MySQL */
     protected $db;
-    /**  @var MemCache */
+    /** @var MemCache */
     protected $cache;
 
     /**

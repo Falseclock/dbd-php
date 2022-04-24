@@ -100,31 +100,34 @@ class MySQL extends DBD
     {
         if (is_iterable($data)) {
             if (is_null($this->conversionMap))
-                $this->buildConversionMap($data);
+                $this->buildConversionMap();
 
             foreach ($data as $key => &$value) {
                 if ($this->Options->isConvertNumeric()) {
                     if (in_array($key, $this->conversionMap->floats))
                         if (!is_null($value))
                             $value = floatval($value);
+
                     if (in_array($key, $this->conversionMap->integers))
                         if (!is_null($value))
                             $value = intval($value);
                 }
                 if ($this->Options->isConvertBoolean()) {
                     if (in_array($key, $this->conversionMap->booleans)) {
-                        if ($value === 1)
+                        if ((int)$value === 1)
                             $value = true;
-                        else if ($value === 0)
+                        else if ((int)$value === 0)
                             $value = false;
                     }
                 }
             }
         }
-
     }
 
-    private function buildConversionMap(array $resultRow): void
+    /**
+     * @return void
+     */
+    private function buildConversionMap(): void
     {
         $fields = mysqli_fetch_fields($this->result);
 
@@ -148,7 +151,7 @@ class MySQL extends DBD
                     $this->conversionMap->addInteger((string)$field->name);
                     break;
                 case MYSQLI_TYPE_TINY:
-                    if ($field->max_length == 1)
+                    if ($field->length == 1)
                         $this->conversionMap->addBoolean((string)$field->name);
                     else
                         $this->conversionMap->addInteger((string)$field->name);
@@ -198,11 +201,25 @@ class MySQL extends DBD
     }
 
     /**
+     * @throws DBDException
+     */
+    protected function _query($statement)
+    {
+        $result = mysqli_query($this->resourceLink, $statement);
+
+        if ($result === false) {
+            throw new DBDException($this->resourceLink->error);
+        }
+
+        return $result;
+    }
+
+    /**
      * @return array|bool
      */
     protected function _fetchArray()
     {
-        return mysqli_fetch_array($this->resourceLink);
+        return mysqli_fetch_array($this->result, MYSQLI_NUM);
     }
 
     /**
@@ -210,7 +227,7 @@ class MySQL extends DBD
      */
     protected function _fetchAssoc()
     {
-        return mysqli_fetch_assoc($this->result);
+        return mysqli_fetch_array($this->result, MYSQLI_ASSOC);
     }
 
     /**
@@ -229,20 +246,6 @@ class MySQL extends DBD
         self::$preparedStatements[$uniqueName] = $statement;
 
         return true;
-    }
-
-    /**
-     * @throws DBDException
-     */
-    protected function _query($statement)
-    {
-        $result = mysqli_query($this->resourceLink, $statement);
-
-        if ($result === false) {
-            throw new DBDException($this->resourceLink->error);
-        }
-
-        return $result;
     }
 
     protected function _rollback(): bool
