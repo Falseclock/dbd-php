@@ -44,13 +44,13 @@ class Bind
             case NumericPrimitives::Int32:
             case NumericPrimitives::Int64:
                 if (!is_int($this->value) && !is_array($this->value) && !is_null($this->value)) {
-                    throw new DBDException("Bound parameter '$name' is not integer type");
+                    throw new DBDException(sprintf(CRUD::ERROR_BOUND_IS_NOT_INTEGER, $name));
                 }
                 if (is_array($this->value)) {
                     foreach ($this->value as $item) {
                         // check is integer
                         if (!is_int($item) && !is_null($item)) {
-                            throw new DBDException("One of value for bound parameter '$name' is not integer type");
+                            throw new DBDException(sprintf(CRUD::ERROR_BOUNDS_IS_NOT_INTEGER, $name));
                         }
                     }
                 }
@@ -58,13 +58,13 @@ class Bind
             case NumericPrimitives::FLOAT;
             case NumericPrimitives::Double;
                 if (!is_float($this->value) && !is_array($this->value) && !is_null($this->value))
-                    throw new DBDException("Bound parameter '$name' is not float type");
+                    throw new DBDException(sprintf(CRUD::ERROR_BOUND_IS_NOT_FLOAT, $name));
 
                 if (is_array($this->value)) {
                     foreach ($this->value as $item) {
                         // check is float
                         if (!is_float($item) && !is_null($item))
-                            throw new DBDException("One of value for bound parameter '$name' is not float type");
+                            throw new DBDException(sprintf(CRUD::ERROR_BOUNDS_IS_NOT_FLOAT, $name));
                     }
                 }
                 break;

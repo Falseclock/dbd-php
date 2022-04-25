@@ -13,7 +13,7 @@ namespace DBD\Tests\Traits;
 
 use DBD\Common\DBDException;
 
-trait ConvertTypesTest
+trait ConvertTypesTestMySQL
 {
     /**
      * @throws DBDException

@@ -14,6 +14,8 @@ namespace DBD;
 
 use DBD\Common\Bind;
 use DBD\Common\DBDException;
+use DBD\Entity\Primitives\NumericPrimitives;
+use DBD\Entity\Primitives\StringPrimitives;
 use DBD\Helpers\ConversionMap;
 use DBD\Helpers\InsertArguments;
 use DBD\Helpers\UpdateArguments;
@@ -27,6 +29,8 @@ class MySQL extends DBD
     protected $resourceLink;
     /** @var mysqli_result|bool Query result data */
     protected $result;
+    /** @var bool */
+    private $inTransaction = false;
 
     /**
      *
@@ -67,12 +71,20 @@ class MySQL extends DBD
 
     protected function _begin(): bool
     {
-        return mysqli_begin_transaction($this->resourceLink);
+        $result = mysqli_begin_transaction($this->resourceLink);
+
+        if ($result)
+            $this->inTransaction = true;
+
+        return $result;
     }
 
     protected function _commit(): bool
     {
-        return mysqli_commit($this->resourceLink);
+        $result = mysqli_commit($this->resourceLink);
+        $this->inTransaction = true;
+
+        return $result;
     }
 
     /**
@@ -161,7 +173,9 @@ class MySQL extends DBD
 
     protected function _disconnect(): bool
     {
-        return mysqli_close($this->resourceLink);
+        $result = mysqli_close($this->resourceLink);
+
+        return $result;
     }
 
     protected function _errorMessage(): string
@@ -250,7 +264,10 @@ class MySQL extends DBD
 
     protected function _rollback(): bool
     {
-        return mysqli_rollback($this->resourceLink);
+        $result = mysqli_rollback($this->resourceLink);
+        $this->inTransaction = false;
+
+        return $result;
     }
 
     /**
@@ -260,16 +277,55 @@ class MySQL extends DBD
      */
     protected function _escapeBinary(?string $binaryString): ?string
     {
-        // TODO: Implement _binaryEscape() method.
+        $str = mysqli_real_escape_string($this->resourceLink, (string)$binaryString);
+
+        return "'$str'";
     }
 
     protected function replaceBind(string &$preparedQuery, Bind $bind): void
     {
-        // TODO: Implement replaceBind() method.
+        switch ($bind->type) {
+            case NumericPrimitives::Int16:
+            case NumericPrimitives::Int32:
+            case NumericPrimitives::Int64:
+            case NumericPrimitives::Double:
+            case NumericPrimitives::FLOAT:
+                if (is_array($bind->value)) {
+                    $bind->value = array_map(function ($value) {
+                        return (float)$value;
+                    }, $bind->value);
+                    $preparedQuery = $this->_replaceBind($bind->name, implode(',', $bind->value ?? 'NULL'), $preparedQuery);
+                } else {
+                    $preparedQuery = $this->_replaceBind($bind->name, (float)$bind->value ?? 'NULL', $preparedQuery);
+                }
+                break;
+            case StringPrimitives::Binary:
+                $binary = $this->escapeBinary($bind->value);
+                $preparedQuery = $this->_replaceBind($bind->name, $binary ? "'$binary'" : 'NULL', $preparedQuery);
+                break;
+            default:
+                if (is_array($bind->value)) {
+                    $value = array_map(array($this, 'escape'), $bind->value);
+                    $preparedQuery = $this->_replaceBind($bind->name, implode(',', $value), $preparedQuery);
+                } else {
+                    $preparedQuery = $this->_replaceBind($bind->name, $bind->value ? $this->escape($bind->value) : 'NULL', $preparedQuery);
+                }
+        }
+    }
+
+    /**
+     * @param $name
+     * @param $value
+     * @param $subject
+     * @return string|string[]|null
+     */
+    private function _replaceBind($name, $value, $subject)
+    {
+        return preg_replace('~' . $name . '(::\w+)?(\W)~', sprintf("%s$1$2", $value), $subject);
     }
 
     protected function _inTransaction(): bool
     {
-        // TODO: Implement inTransaction() method.
+        return $this->inTransaction;
     }
 }

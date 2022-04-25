@@ -13,6 +13,7 @@ namespace DBD\Tests\Traits;
 
 use DBD\Common\CRUD;
 use DBD\Common\DBDException;
+use DBD\DBD;
 use DBD\Pg;
 
 trait ConnectionTest
@@ -25,11 +26,11 @@ trait ConnectionTest
     public function testConnect()
     {
         $this->db->disconnect();
-        self::assertInstanceOf(Pg::class, $this->db->connect());
+        self::assertInstanceOf(DBD::class, $this->db->connect());
         $this->db->disconnect();
 
         $this->db->getOptions()->setOnDemand(!$this->db->getOptions()->isOnDemand());
-        self::assertInstanceOf(Pg::class, $this->db->connect());
+        self::assertInstanceOf(DBD::class, $this->db->connect());
 
         $this->db->disconnect();
         $this->db->getConfig()->setPort(1);

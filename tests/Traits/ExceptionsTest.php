@@ -89,40 +89,4 @@ trait ExceptionsTest
             $this->db->execute();
         }, CRUD::ERROR_NOT_PREPARED);
     }
-
-    /**
-     * @throws EntityException
-     */
-    public function testGetPrimaryKeysForEntity()
-    {
-        $entity = new TestBaseNoPK();
-
-        $this->assertException(DBDException::class, function () use ($entity) {
-            $this->db->entityDelete($entity);
-        }, sprintf(CRUD::ERROR_ENTITY_NO_PK, TestBaseNoPK::class));
-
-        $this->assertException(DBDException::class, function () use ($entity) {
-            $this->db->entityUpdate($entity);
-        }, sprintf(CRUD::ERROR_ENTITY_NO_PK, TestBaseNoPK::class));
-
-        $this->assertException(DBDException::class, function () use ($entity) {
-            $this->db->entitySelect($entity);
-        }, sprintf(CRUD::ERROR_ENTITY_NO_PK, TestBaseNoPK::class));
-
-        $entity = new TestBase();
-        $keys = $entity::map()->getPrimaryKey();
-        $key = array_shift($keys);
-
-        $this->assertException(DBDException::class, function () use ($entity) {
-            $this->db->entityDelete($entity);
-        }, sprintf(CRUD::ERROR_PK_IS_NULL, TestBase::class, $key->name));
-
-        $this->assertException(DBDException::class, function () use ($entity) {
-            $this->db->entityUpdate($entity);
-        }, sprintf(CRUD::ERROR_PK_IS_NULL, TestBase::class, $key->name));
-
-        $this->assertException(DBDException::class, function () use ($entity) {
-            $this->db->entitySelect($entity);
-        }, sprintf(CRUD::ERROR_PK_IS_NULL, TestBase::class, $key->name));
-    }
 }

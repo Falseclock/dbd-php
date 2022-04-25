@@ -1,7 +1,7 @@
 {
   "name": "falseclock/dbd-php",
   "type": "library",
-  "description": "Database driver for PHP (PostgreSQL, MySQL, MSSQL, OData, YellowERP, 1С)",
+  "description": "Database driver for PHP (PostgreSQL, OData, YellowERP, 1С)",
   "keywords": [
     "pdo",
     "dbd",
@@ -11,9 +11,6 @@
     "driver",
     "postgre",
     "PostgreSQL",
-    "MySQL",
-    "MSSQL",
-    "Microsoft SQL Server",
     "OData",
     "1С",
     "1C",

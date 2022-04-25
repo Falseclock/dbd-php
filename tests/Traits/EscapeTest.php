@@ -26,6 +26,8 @@ trait EscapeTest
      */
     public function testEscape()
     {
+        $this->db->do("SELECT 1");
+
         $result = $this->db->escapeBinary(null);
         self::assertNull($result);
 
@@ -33,7 +35,7 @@ trait EscapeTest
         self::assertNotNull($result);
 
         // set timezone
-        $timeZone = $this->db->select("SELECT current_setting('TIMEZONE')");
+        $timeZone = $this->db->select($this::QUERY_TIMEZONE);
         date_default_timezone_set($timeZone);
 
         $dateTimeZone = new DateTimeZone($timeZone);
@@ -50,10 +52,11 @@ trait EscapeTest
         self::assertSame("TRUE", $this->db->escape(true));
         self::assertSame("FALSE", $this->db->escape(false));
         self::assertSame("''", $this->db->escape(''));
+        self::assertSame("'$timestamp'", $this->db->escape($timestamp));
+
         self::assertSame("''''", $this->db->escape("'"));
         self::assertSame("''''''", $this->db->escape("''"));
         self::assertSame("'''value'''", $this->db->escape("'value'"));
-        self::assertSame("'$timestamp'", $this->db->escape($timestamp));
 
         $this->assertException(DBDException::class, function () {
             $this->db->escape(new stdClass());

@@ -21,9 +21,9 @@ use DBD\Common\Options;
 use DBD\DBD;
 use DBD\MySQL;
 use DBD\Pg;
-use DBD\Tests\Traits\BindTest;
+use DBD\Tests\Traits\BindTestPg;
 use DBD\Tests\Traits\ConnectionTest;
-use DBD\Tests\Traits\ConvertTypesTest;
+use DBD\Tests\Traits\ConvertTypesTestPg;
 use DBD\Tests\Traits\EscapeTest;
 use DBD\Tests\Traits\ExceptionsTest;
 use DBD\Tests\Traits\HelperTest;
@@ -37,9 +37,7 @@ use Psr\SimpleCache\InvalidArgumentException;
 
 abstract class DBDTest extends CommonTest
 {
-    use BindTest;
     use ConnectionTest;
-    use ConvertTypesTest;
     use EscapeTest;
     use ExceptionsTest;
     use HelperTest;
@@ -54,6 +52,8 @@ abstract class DBDTest extends CommonTest
     const INT = 12345;
     const FLOAT = 98765.4321;
     const NUMERIC = "1234567890987654321.1234567890987654321";
+
+    const QUERY_TIMEZONE = "please set me";
 
     /** @var DBD */
     protected $db;

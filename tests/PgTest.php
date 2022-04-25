@@ -19,11 +19,17 @@ use DBD\Common\Options;
 use DBD\Entity\Common\EntityException;
 use DBD\Helpers\PgUtils;
 use DBD\Pg;
+use DBD\Tests\Traits\BindTestPg;
+use DBD\Tests\Traits\ConvertTypesTestPg;
 use DBD\Tests\Traits\EntityTest;
 
 class PgTest extends DBDTest
 {
     use EntityTest;
+    use BindTestPg;
+    use ConvertTypesTestPg;
+
+    const QUERY_TIMEZONE = "SELECT current_setting('TIMEZONE')";
 
     /** @var Pg */
     protected $db;

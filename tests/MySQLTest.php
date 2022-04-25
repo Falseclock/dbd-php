@@ -17,9 +17,16 @@ use DBD\Common\Config;
 use DBD\Common\DBDException;
 use DBD\Common\Options;
 use DBD\MySQL;
+use DBD\Tests\Traits\BindTestMySQL;
+use DBD\Tests\Traits\ConvertTypesTestMySQL;
 
 class MySQLTest extends DBDTest
 {
+    use BindTestMySQL;
+    use ConvertTypesTestMySQL;
+
+    const QUERY_TIMEZONE = "SELECT @@system_time_zone";
+
     /** @var MySQL */
     protected $db;
     /** @var MemCache */

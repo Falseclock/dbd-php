@@ -42,4 +42,8 @@ interface CRUD
     const ERROR_UNKNOWN_UPDATE_FORMAT = "Unknown format of record for update";
     const ERROR_NON_SQL_QUERY = "non SQL query: %s";
     const ERROR_UNIDENTIFIABLE_QUERY = "Can't identity query type";
+    const ERROR_BOUND_IS_NOT_INTEGER = "Bound parameter '%s' is not integer type";
+    const ERROR_BOUNDS_IS_NOT_INTEGER = "One of value for bound parameter '%s' is not integer type";
+    const ERROR_BOUND_IS_NOT_FLOAT = "Bound parameter '%s' is not float type";
+    const ERROR_BOUNDS_IS_NOT_FLOAT = "One of value for bound parameter '%s' is not float type";
 }

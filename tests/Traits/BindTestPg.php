@@ -17,7 +17,7 @@ use DBD\Entity\Primitives\NumericPrimitives;
 use DBD\Entity\Primitives\StringPrimitives;
 use Exception;
 
-trait BindTest
+trait BindTestPg
 {
     public function testBindNotInteger16()
     {

@@ -153,7 +153,7 @@ abstract class DBD implements CRUD
      */
     protected function isConnected(): bool
     {
-        return is_resource($this->resourceLink);
+        return !is_null($this->resourceLink);
     }
 
     /**
@@ -272,6 +272,8 @@ abstract class DBD implements CRUD
         $this->fetch = self::UNDEFINED;
         $this->conversionMap = null;
 
+        $this->connectionPreCheck();
+
         $executeArguments = func_get_args();
         $preparedQuery = $this->getPreparedQuery($executeArguments);
 
@@ -302,8 +304,6 @@ abstract class DBD implements CRUD
 
         // If not found in cache, then let's get from DB
         if ($this->result != self::GOT_FROM_CACHE) {
-
-            $this->connectionPreCheck();
 
             if ($this->Options->isUseDebug())
                 Debug::me()->startTimer();
