@@ -27,6 +27,7 @@
       "email": "nurike@gmail.com"
     }
   ],
+  "version": "v2.0.1",
   "require": {
     "php": "^7.2|^8.0",
     "psr/simple-cache": "^1.0.1",

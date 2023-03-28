@@ -520,4 +520,13 @@ class Pg extends DBD
 
         return "'$value'";
     }
+
+    /**
+     * @return bool
+     * @inheritDoc
+     */
+    protected function isConnected(): bool
+    {
+        return is_resource($this->resourceLink) || is_object($this->resourceLink);
+    }
 }
