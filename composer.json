@@ -1,6 +1,7 @@
 {
   "name": "falseclock/dbd-php",
   "type": "library",
+  "version": "3.0.0",
   "description": "Database driver for PHP (PostgreSQL, MySQL, MSSQL, OData, YellowERP, 1С)",
   "keywords": [
     "pdo",
@@ -27,12 +28,11 @@
       "email": "nurike@gmail.com"
     }
   ],
-  "version": "v2.0.1",
   "require": {
-    "php": "^7.2|^8.0",
+    "php": ">=8.0",
     "psr/simple-cache": "^1.0.1",
     "openlss/lib-array2xml": "^1.0.0",
-    "falseclock/dbd-php-entity": "^2.4.0",
+    "falseclock/dbd-php-entity": "^3.0.*",
     "ext-json": "*",
     "ext-simplexml": "*",
     "ext-dom": "*"
