@@ -13,14 +13,22 @@ namespace DBD\Tests\Pg;
 
 use DBD\Common\CRUD;
 use DBD\Common\DBDException;
+use DBD\Entity\Common\EntityException;
 use DBD\Tests\Entities\City;
 use DBD\Tests\Entities\Country;
 use DBD\Tests\Entities\TestBaseJson;
+use DBD\Tests\Entities\TestBaseJsonMap;
 
 class PgEntityTest extends PgAbstractTest
 {
+    /**
+     * @throws EntityException
+     * @throws DBDException
+     */
     public function testForJsonConversion()
     {
+        $this->db->getOptions()->setConvertNumeric(true);
+        $this->db->do(sprintf("DROP TABLE IF EXISTS %s", TestBaseJson::TABLE));
         $array = ['foo' => true, 'bar' => false];
 
         $entity = new TestBaseJson();
@@ -33,7 +41,27 @@ class PgEntityTest extends PgAbstractTest
 
         self::assertIsString($entity->value);
         self::assertEquals(json_encode($array, JSON_UNESCAPED_UNICODE), $entity->value);
+
+        //--------------------------------------------------
+        $this->db->do(sprintf("CREATE TABLE IF NOT EXISTS %s (%s serial, %s json)", TestBaseJson::TABLE, TestBaseJsonMap::me()->id->name, TestBaseJsonMap::me()->value->name));
+
+        unset($entity->id);
+        $this->db->entityInsert($entity);
         self::assertSame(1, $entity->id);
+
+        $array = [1, 2, 3, 4, 5];
+        $entity->value = $array;
+        $this->db->entityUpdate($entity);
+        self::assertSame($array, $entity->value);
+
+        // get from database and compare with current
+        $check = new TestBaseJson();
+        $check->id = 1;
+        $this->db->entitySelect($check);
+
+        self::assertSame($check->value, $entity->value);
+
+        $this->db->do(sprintf("DROP TABLE IF EXISTS %s", TestBaseJson::TABLE));
     }
 
     /**

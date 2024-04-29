@@ -65,7 +65,7 @@ class Pg extends DBD
     protected function _connect(): void
     {
         try {
-            $this->resourceLink = pg_connect($this->Config->getDsn());
+            $this->resourceLink = pg_connect($this->Config->getDsn()) or throw new DBDException(sprintf("Connection to %s:%s with username '%s' failed",$this->Config->getHost(), $this->Config->getPort(), $this->Config->getUsername()));
         } catch (Throwable $t) {
             throw new DBDException($t->getMessage());
         }
@@ -138,7 +138,6 @@ class Pg extends DBD
      * @return false|resource
      * @inheritDoc
      * @see PgQueryTest
-     * @noinspection PhpMissingReturnTypeInspection
      */
     protected function _query($statement)
     {

@@ -58,6 +58,10 @@ class PgTransactionTest extends PgAbstractTest
         $this->assertException(DBDException::class, function () {
             $this->db->begin();
         });
+
+        $this->db->rollback();
+
+        $this->db->disconnect();
     }
 
     /**
@@ -89,6 +93,7 @@ class PgTransactionTest extends PgAbstractTest
         }, "Commit not possible, in a failed transaction block");
         $this->db->rollback();
 
+        $this->db->disconnect();
     }
 
     /**
@@ -150,5 +155,6 @@ class PgTransactionTest extends PgAbstractTest
         $this->db->commit();
         self::assertFalse($this->db->inTransaction());
 
+        $this->db->disconnect();
     }
 }

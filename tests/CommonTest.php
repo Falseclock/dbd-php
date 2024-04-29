@@ -32,7 +32,7 @@ abstract class CommonTest extends TestCase
      * @param string $expectClass
      * @param callable $callback
      * @param string|null $expectMessage
-     * @return Throwable|void
+     * @return Throwable
      */
     protected function assertException(string $expectClass, callable $callback, string $expectMessage = null): Throwable
     {

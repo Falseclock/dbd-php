@@ -1,6 +1,0 @@
-<component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="DBD-PHP" type="PHPUnitRunConfigurationType" factoryName="PHPUnit">
-    <TestRunner configuration_file="/mnt/d/git/Falseclock/dbd-php/phpunit.xml" directory="$PROJECT_DIR$/tests" />
-    <method v="2" />
-  </configuration>
-</component>

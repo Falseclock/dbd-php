@@ -30,15 +30,15 @@ abstract class PgAbstractTest extends CommonTest
     /**
      * @throws DBDException
      */
-    public function __construct(?string $name = null, array $data = [], $dataName = '')
+    public function __construct(?string $name = null)
     {
-        parent::__construct($name, $data, $dataName);
+        parent::__construct($name);
 
         $host = getenv('PGHOST') ?: 'localhost';
         $port = intval(getenv('PGPORT')) ?: 5432;
         $database = getenv('PGDATABASE') ?: 'dbd_tests';
         $user = getenv('PGUSER') ?: 'postgres';
-        $password = getenv('PGPASSWORD') ?: '';
+        $password = getenv('PGPASSWORD') ?: 'postgres';
 
         // @todo make connection to cache on demand
         $this->memcache = new MemCache([[MemCache::HOST => '127.0.0.1', MemCache::PORT => 11211]]);
@@ -51,14 +51,5 @@ abstract class PgAbstractTest extends CommonTest
         $this->options->setUseDebug(true);
         $this->db = new Pg($this->config, $this->options);
         $this->db->connect();
-    }
-
-    /**
-     * @throws DBDException
-     */
-    public function __destruct()
-    {
-        $this->db->disconnect();
-        $this->memcache->disconnect();
     }
 }

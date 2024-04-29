@@ -18,6 +18,7 @@ use DBD\Common\DBDException;
 use DBD\Common\Debug;
 use DBD\Common\Options;
 use DBD\Common\Query;
+use DBD\Entity\Column;
 use DBD\Entity\Constraint;
 use DBD\Entity\Entity;
 use DBD\Entity\Primitives\StringPrimitives;
@@ -750,6 +751,8 @@ abstract class DBD implements CRUD
 
             $originName = $column->name;
 
+            $this->convertToJsonValue($entity, $propertyName, $column);
+
             if (!$column->nullable) {
                 // Mostly we always define properties for any columns
                 if (property_exists($entity, $propertyName)) {
@@ -856,12 +859,7 @@ abstract class DBD implements CRUD
 
         foreach ($columns as $propertyName => $column) {
 
-            // If column has json type and current value is not string, then convert it to the json string
-            if (property_exists($entity, $propertyName) and isset($entity->$propertyName)) {
-                if ($column->type == StringPrimitives::String and stripos($column->originType, 'json') !== false and !is_string($entity->$propertyName)) {
-                    $entity->$propertyName = json_encode($entity->$propertyName, JSON_UNESCAPED_UNICODE);
-                }
-            }
+            $this->convertToJsonValue($entity, $propertyName, $column);
 
             if ($column->nullable === false) {
                 if (property_exists($entity, $propertyName)) {
@@ -1233,4 +1231,20 @@ abstract class DBD implements CRUD
      * @see DBD::commit()
      */
     abstract protected function _commit(): bool;
+
+    /**
+     * @param Entity $entity
+     * @param int|string $propertyName
+     * @param Column $column
+     * @return void
+     */
+    private function convertToJsonValue(Entity $entity, int|string $propertyName, Column $column): void
+    {
+        // If column has json type and current value is not string, then convert it to the json string
+        if (property_exists($entity, $propertyName) and isset($entity->$propertyName)) {
+            if ($column->type == StringPrimitives::String and stripos($column->originType, 'json') !== false and !is_string($entity->$propertyName)) {
+                $entity->$propertyName = json_encode($entity->$propertyName, JSON_UNESCAPED_UNICODE);
+            }
+        }
+    }
 }

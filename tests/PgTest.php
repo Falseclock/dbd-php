@@ -24,9 +24,10 @@ use DBD\Tests\Entities\TestBaseNullable;
 use DBD\Tests\Entities\TestBaseNullable2;
 use DBD\Tests\Entities\TestBaseNullable2Map;
 use DBD\Tests\Entities\TestBaseNullableMap;
+use DBD\Tests\Pg\PgAbstractTest;
 use Psr\SimpleCache\InvalidArgumentException;
 
-class PgTest extends CommonTest
+class PgTest extends PgAbstractTest
 {
     /** @var Pg */
     protected $db;
@@ -36,38 +37,6 @@ class PgTest extends CommonTest
     protected $memcache;
     /** @var Options */
     protected $options;
-
-    /**
-     * PgTest constructor.
-     *
-     * @param null $name
-     * @param array $data
-     * @param string $dataName
-     *
-     * @throws DBDException
-     */
-    public function __construct($name = null, array $data = [], $dataName = '')
-    {
-        parent::__construct($name, $data, $dataName);
-
-        $host = getenv('PGHOST') ?: 'localhost';
-        $port = intval(getenv('PGPORT')) ?: 5432;
-        $database = getenv('PGDATABASE') ?: 'dbd_tests';
-        $user = getenv('PGUSER') ?: 'postgres';
-        $password = getenv('PGPASSWORD') ?: '';
-
-        // @todo make connection to cache on demand
-        $this->memcache = new MemCache([[MemCache::HOST => '127.0.0.1', MemCache::PORT => 11211]]);
-        $this->memcache->connect();
-
-        $this->config = new Config($host, $port, $database, $user, $password);
-        $this->config->setCacheDriver($this->memcache);
-
-        $this->options = new Options();
-        $this->options->setUseDebug(true);
-        $this->db = new Pg($this->config, $this->options);
-        $this->db->connect();
-    }
 
     /**
      * This should be last as transaction may be in fail state
