@@ -98,6 +98,49 @@ class PgTest extends PgAbstractTest
         $sth->cache(__METHOD__);
     }
 
+    /**
+     * @throws DBDException
+     * @throws InvalidArgumentException
+     */
+    public function testForceUpdateCache()
+    {
+        $this->config->setCacheDriver($this->memcache);
+        $this->options->setConvertNumeric(true);
+        $this->options->setConvertBoolean(true);
+        $this->options->setUseDebug(true);
+
+        $this->db->do("DROP TABLE IF EXISTS testForceUpdateCache");
+        $this->config->getCacheDriver()->delete(__METHOD__);
+
+        $sth = $this->db->prepare("CREATE TABLE testForceUpdateCache AS SELECT 1 as id, 'test1' as text");
+        $sth->execute();
+
+        $sth = $this->db->prepare("SELECT * FROM testForceUpdateCache");
+        $sth->cache(__METHOD__, '1 second');
+        $sth->execute();
+
+        $row = $sth->fetchRow();
+        self::assertSame($row['id'], 1);
+        self::assertSame($row['text'], 'test1');
+
+        $this->db->do("UPDATE testForceUpdateCache SET text = 'test2' WHERE id = 1");
+
+        // drop cache and check again
+        $sth->cache(__METHOD__, '1 second', true);
+        $sth->execute();
+
+        $row = $sth->fetchRow();
+        self::assertSame($row['id'], 1);
+        self::assertSame($row['text'], 'test2');
+
+        // Execute again and data should be taken from cache
+        $sth->cache(__METHOD__, '1 second', false);
+        $sth->execute();
+        $row = $sth->fetchRow();
+        self::assertSame($row['id'], 1);
+        self::assertSame($row['text'], 'test2');
+    }
+
     public function testConstructWithoutOptions()
     {
         $db = new Pg($this->config);
