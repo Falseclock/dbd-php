@@ -64,6 +64,8 @@ abstract class DBD implements CRUD
     protected $conversionMap;
     /** @var mixed */
     private $fetch = self::UNDEFINED;
+    /** @var bool */
+    private $cacheForceUpdate = false;
 
     /**
      * DBD constructor.
@@ -89,14 +91,20 @@ abstract class DBD implements CRUD
      * $sth->execute();
      * ```
      *
+     * Sometimes you know that a row has just been updated, and you need to get data from the repository, not the cache.
+     * In such cases, you can use $forceUpdate=true.
+     *
      * @param string $key
      * @param null $ttl
+     * @param bool $forceUpdate
      *
      * @return DBD
      * @throws DBDException
      */
-    public function cache(string $key, $ttl = null): DBD
+    public function cache(string $key, $ttl = null, bool $forceUpdate = false): DBD
     {
+        $this->cacheForceUpdate = $forceUpdate;
+
         if (isset($this->Config->cacheDriver)) {
 
             if (!isset($this->query))
@@ -282,7 +290,8 @@ abstract class DBD implements CRUD
         //--------------------------------------
         // Is query uses cache?
         //--------------------------------------
-        if (isset($this->Config->cacheDriver) and !is_null($this->CacheHolder)) {
+        if (isset($this->Config->cacheDriver) and !is_null($this->CacheHolder)
+            and !$this->cacheForceUpdate) {
 
             if ($this->Options->isUseDebug())
                 Debug::me()->startTimer();
