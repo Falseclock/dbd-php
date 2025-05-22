@@ -54,6 +54,8 @@ class PgUtilsTest extends PgAbstractTest
         ");
 
         $this->db->do("COMMENT ON COLUMN public.city.city_date IS 'Comment'");
+        $this->db->do("COMMENT ON TABLE public.city IS 'THIS IS city TABLE'");
+        $this->db->do("COMMENT ON TABLE public.country IS 'THIS IS country TABLE'");
 
         $utils = new PgUtils($this->db);
 

@@ -21,7 +21,7 @@ class PgConvertTypesTest extends PgAbstractTest
      * @throws DBDException
      * @see Pg::_convertTypes()
      */
-    public function atestConvertTypes()
+    public function testConvertTypes(): void
     {
         // ini_set('precision', (string)17);
 
@@ -64,8 +64,8 @@ class PgConvertTypesTest extends PgAbstractTest
                 337.01234567890123456::FLOAT            AS value_float,    -- double 337.0123456789012
                 339.01234567898765432::FLOAT8           AS value_float8,   -- double 339.01234567898763
             
-                --'1234567890.0987654321'::DECIMAL        AS value_decimal,  -- numeric
-                --'9876543210.9876543210'::NUMERIC        AS value_numeric,  -- numeric
+                '1234567890.0987654321'::DECIMAL(20,10)        AS value_decimal,  -- numeric
+                '9876543210.9876543210'::NUMERIC(20,10)        AS value_numeric,  -- numeric
             
                 TRUE                                    AS value_true,
                 FALSE                                   AS value_false,
@@ -118,6 +118,8 @@ class PgConvertTypesTest extends PgAbstractTest
         self::assertSame(302.0, $row['value_double_9'], $no['value_double_9']);
         self::assertSame(337.0123456789012, $row['value_float'], $no['value_float']);
         self::assertSame(339.01234567898763, $row['value_float8'], $no['value_float8']);
+        self::assertSame(1234567890.0987654321, $row['value_decimal'], $no['value_decimal']);
+        self::assertSame(9876543210.9876543210, $row['value_numeric'], $no['value_numeric']);
 
         $sth->execute();
         while ($column = $sth->fetch()) {

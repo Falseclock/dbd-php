@@ -287,56 +287,42 @@ class Pg extends DBD
     /**
      * @param array $resultRow
      * @return void
+     * @see https://github.com/postgres/postgres/blob/1722d5eb05d8e5d2e064cd1798abcae4f296ca9d/src/include/catalog/pg_type.dat#L32
      */
     private function buildConversionMap(array $resultRow): void
     {
-        $integers = [
-            'int',
-            'int2',
-            'int4',
-            'int8',
-            'serial2',
-            'serial4',
-            'serial8',
-            'smallint',
-            'bigint',
-            'serial',
-            'smallserial',
-            'bigserial',
-        ];
-        $floats = [
-            'real',
-            'float',
-            'float4',
-            'float8',
-        ];
+        // OID-ы основных типов (с учётом массивов)
+        static $boolOid   = 16;
+        static $intOids   = [20, 21, 23, 26, 1005, 1007, 1016];
+        static $floatOids = [700, 701, 1021, 1022, 1700, 1231];
+
+        // Собираем все OID-ы полей *одним проходом* и больше к БД не ходим
+        $fieldOids = [];
+        for ($i = 0, $n = pg_num_fields($this->result); $i < $n; $i++) {
+            // pg_field_type_oid() не делает лишний запрос – берёт OID из самого результата
+            $fieldOids[$i] = pg_field_type_oid($this->result, $i);
+        }
 
         $this->conversionMap = new ConversionMap();
 
         foreach ($resultRow as $key => $value) {
-            if (is_integer($key))
-                $fieldNumber = $key;
-            else
-                $fieldNumber = pg_field_num($this->result, $key);
+            $fieldNumber = is_int($key)
+                ? $key
+                : pg_field_num($this->result, $key);
 
-            // That's a limitation of PQfnumber in libpq-exec
-            if ($fieldNumber === -1) {
-                // @codeCoverageIgnoreStart
-                if (is_string($key) and !ctype_lower($key))
-                    $fieldNumber = pg_field_num($this->result, sprintf('"%s"', $key));
-                // @codeCoverageIgnoreEnd
+            if ($fieldNumber === -1 && is_string($key) && !ctype_lower($key)) {
+                $fieldNumber = pg_field_num($this->result, sprintf('"%s"', $key));
             }
 
-            $fieldType = pg_field_type($this->result, $fieldNumber);
+            $oid = $fieldOids[$fieldNumber] ?? null;
 
-            if ($fieldType == 'bool')
+            if ($oid === $boolOid) {
                 $this->conversionMap->addBoolean((string)$key);
-
-            if (in_array($fieldType, $integers))
+            } elseif (in_array($oid, $intOids, true)) {
                 $this->conversionMap->addInteger((string)$key);
-
-            if (in_array($fieldType, $floats))
+            } elseif (in_array($oid, $floatOids, true)) {
                 $this->conversionMap->addFloat((string)$key);
+            }
         }
     }
 

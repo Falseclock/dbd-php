@@ -70,8 +70,14 @@ class PgEntityTest extends PgAbstractTest
      */
     public function testForConstraint()
     {
+
+        $this->db->do("DROP TABLE IF EXISTS city");
+        $this->db->do("DROP TABLE IF EXISTS country");
+
         $this->db->do("CREATE TABLE IF NOT EXISTS country (country_id int, country_name varchar(128))");
         $this->db->do("CREATE TABLE IF NOT EXISTS city (city_id int, country_id int, city_name varchar(128))");
+        $this->db->do("COMMENT ON TABLE public.country IS 'THIS IS country TABLE'");
+        $this->db->do("COMMENT ON TABLE public.city IS 'THIS IS city TABLE'");
 
         $country = new Country();
         $country->id = 1;
