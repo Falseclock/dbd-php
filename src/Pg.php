@@ -291,10 +291,10 @@ class Pg extends DBD
      */
     private function buildConversionMap(array $resultRow): void
     {
-        // OID-ы основных типов (с учётом массивов)
+        // OID-ы основных типов
         static $boolOid   = 16;
-        static $intOids   = [20, 21, 23, 26, 1005, 1007, 1016];
-        static $floatOids = [700, 701, 1021, 1022, 1700, 1231];
+        static $intOids   = [20, 21, 23, 26];
+        static $floatOids = [700, 701, 1700];
 
         // Собираем все OID-ы полей *одним проходом* и больше к БД не ходим
         $fieldOids = [];
