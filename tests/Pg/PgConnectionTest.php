@@ -35,8 +35,9 @@ class PgConnectionTest extends PgAbstractTest
 
         $this->db->disconnect();
         $this->db->getConfig()->setPort(1);
-        self::expectException(DBDException::class);
-        $this->db->connect();
+        $this->assertException(DBDException::class, function () {
+            $this->db->connect();
+        });
     }
 
     /**

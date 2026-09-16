@@ -9,6 +9,9 @@
     <testsuites>
         <testsuite name="default">
             <directory>tests</directory>
+            <!-- abstract base classes are not test cases; PHPUnit 10 reports them as test runner warnings -->
+            <exclude>tests/CommonTest.php</exclude>
+            <exclude>tests/Pg/PgAbstractTest.php</exclude>
         </testsuite>
     </testsuites>
 

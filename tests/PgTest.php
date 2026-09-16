@@ -47,8 +47,9 @@ class PgTest extends PgAbstractTest
     public function testErrorQueryDirect()
     {
         $this->options->setPrepareExecute(true);
-        $this->expectException(DBDException::class);
-        $this->db->query("SELECT * FROM unknown_TABLE");
+        $this->assertException(DBDException::class, function () {
+            $this->db->query("SELECT * FROM unknown_TABLE");
+        });
     }
 
     /**
@@ -57,8 +58,9 @@ class PgTest extends PgAbstractTest
     public function testErrorQueryPrepare()
     {
         $this->options->setPrepareExecute(false);
-        $this->expectException(DBDException::class);
-        $this->db->query("SELECT * FROM unknown_TABLE");
+        $this->assertException(DBDException::class, function () {
+            $this->db->query("SELECT * FROM unknown_TABLE");
+        });
     }
 
     /**
