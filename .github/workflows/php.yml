@@ -1,72 +1,190 @@
-name: Build
+name: CI
 
 on:
   push:
     branches:
       - master
-    paths-ignore:
-      - '**.md'
   pull_request:
-    types:
-      - opened
-      - reopened
-      - edited
-      - synchronize
+
+permissions:
+  contents: read
+
+env:
+  # PgAbstractTest reads these; memcached is expected on 127.0.0.1:11211
+  PGHOST: 127.0.0.1
+  PGPORT: "5432"
+  PGUSER: postgres
+  PGPASSWORD: postgres
+  PGDATABASE: dbd_tests
+
 jobs:
-  run:
-    runs-on: ${{ matrix.operating-system }}
+  tests:
+    name: Tests (PHP ${{ matrix.php }})
+    runs-on: ubuntu-latest
+    continue-on-error: ${{ matrix.experimental }}
     strategy:
+      fail-fast: false
       matrix:
-        operating-system: [ ubuntu-20.04 ]
-        php-versions: [ '7.3', '7.4', '8.0' ]
-        phpunit-versions: ['latest']
-    env:
-      extensions: json, simplexml, dom, pgsql, memcache
+        # 8.2 and 8.3 are the release gate (dbd-php-entity 3.1.x, the release pairing);
+        # 8.1 is a compatibility test: Composer resolves dbd-php-entity 3.0.x there, exactly as it does for consumers
+        php: [ '8.1', '8.2', '8.3' ]
+        experimental: [ false ]
+        include:
+          # compatibility preview: the libraries still have PHP 8.4+ deprecations, tracked separately
+          - php: '8.4'
+            experimental: true
+          - php: '8.5'
+            experimental: true
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: dbd_tests
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d dbd_tests"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      memcached:
+        image: memcached:1.6-alpine
+        ports:
+          - 11211:11211
+
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
-      - name: Setup PHP
+      - name: Set up PHP ${{ matrix.php }}
         uses: shivammathur/setup-php@v2
         with:
-          php-version: ${{ matrix.php-versions }}
-          extensions: ${{ env.extensions }}
-          coverage: xdebug
-          tools: phpunit:${{ matrix.phpunit-versions }}
+          php-version: ${{ matrix.php }}
+          extensions: json, simplexml, dom, pgsql, memcache
+          coverage: none
+          tools: composer:v2
 
-      - name: Install required packages
-        run: |
-          sudo apt update
-          sudo apt purge postgresql*
-          sudo apt install memcached postgresql -y
-          sudo pg_lsclusters
-          PG_VERSION=$(sudo pg_lsclusters |grep 5432|awk ' {print $1} ')
-          PG_CLUSTER=$(sudo pg_lsclusters |grep 5432|awk ' {print $2} ')
-          echo -e "local all postgres peer\nlocal all all trust\nhost all all 0.0.0.0/0 trust\nhost all all ::0/0 trust" | sudo tee /etc/postgresql/$PG_VERSION/$PG_CLUSTER/pg_hba.conf
-          sudo pg_ctlcluster $PG_VERSION $PG_CLUSTER stop
-          sudo pg_ctlcluster $PG_VERSION $PG_CLUSTER start
-          sudo systemctl start memcached.service 
-          sudo -H -u postgres bash -c 'createdb dbd_tests'
+      - name: Validate composer.json
+        # not --strict: the intentional "version" field is reported as a publish warning, which --strict turns into a failure
+        run: composer validate --no-check-lock
 
-      - name: Cache Composer packages
-        id: composer-cache
-        uses: actions/cache@v3
+      - name: Install dependencies
+        run: composer install --prefer-dist --no-interaction --no-progress
+
+      - name: Show resolved dependencies
+        run: composer show falseclock/dbd-php-entity phpunit/phpunit psr/simple-cache
+
+      - name: Run tests
+        run: vendor/bin/phpunit --no-coverage
+
+  compat-php80:
+    # composer.json still declares php >=8.0. The root project cannot be installed on 8.0 (its require-dev needs 8.1+),
+    # so this job installs dbd-php the way a consumer does: as a dependency, production requirements only.
+    name: Production install (PHP 8.0)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up PHP 8.0
+        uses: shivammathur/setup-php@v2
         with:
-          path: vendor
-          key: ${{ runner.os }}-php-${{ hashFiles('**/composer.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-php-
+          php-version: '8.0'
+          extensions: json, simplexml, dom, pgsql, memcache
+          coverage: none
+          tools: composer:v2
 
-      - name: Install Composer dependencies
-        run: composer install --prefer-dist --no-progress
+      - name: Validate composer.json
+        run: composer validate --no-check-lock
 
-      - name: Run test suite
+      - name: Install dbd-php as a dependency of a consumer project
+        run: |
+          mkdir -p "$RUNNER_TEMP/consumer"
+          cd "$RUNNER_TEMP/consumer"
+          cat > composer.json <<JSON
+          {
+            "name": "ci/consumer",
+            "type": "project",
+            "repositories": [ { "type": "path", "url": "$GITHUB_WORKSPACE", "options": { "symlink": false } } ],
+            "require": { "falseclock/dbd-php": "*@dev" }
+          }
+          JSON
+          composer install --prefer-dist --no-interaction --no-progress
+          composer show
+
+      - name: Assert the PHP 8.0 compatible dependency branch was resolved
+        working-directory: ${{ runner.temp }}/consumer
+        run: composer show falseclock/dbd-php-entity --format=json | jq -e '.versions[0] | startswith("3.0.")'
+
+      - name: Lint sources with the PHP 8.0 parser
+        run: find src -name '*.php' -print0 | xargs -0 -n1 -P4 php -l > /dev/null && echo "syntax OK"
+
+      - name: Load production classes through the consumer autoloader
+        working-directory: ${{ runner.temp }}/consumer
+        run: |
+          # shellcheck disable=SC2016  # the $variables below belong to the PHP snippet, not to the shell
+          php -d display_errors=stderr -r '
+            require "vendor/autoload.php";
+            $classes = ["DBD\\DBD", "DBD\\Pg", "DBD\\Common\\Config", "DBD\\Common\\Options", "DBD\\Common\\DBDException", "DBD\\Common\\Bind",
+                        "DBD\\Cache", "DBD\\Cache\\MemCache", "DBD\\Helpers\\Helper", "DBD\\Helpers\\PgUtils", "DBD\\Entity\\Entity", "DBD\\Entity\\Mapper"];
+            foreach ($classes as $class) {
+              if (!class_exists($class)) { fwrite(STDERR, "cannot load $class\n"); exit(1); }
+            }
+            new DBD\Pg(new DBD\Common\Config("127.0.0.1", 5432, "db", "user", "pass"), new DBD\Common\Options());
+            new DBD\Cache\MemCache([]);
+            printf("PHP %s: %d classes loaded, Pg and MemCache constructed, dbd-php-entity %s\n", PHP_VERSION, count($classes),
+              \Composer\InstalledVersions::getPrettyVersion("falseclock/dbd-php-entity"));
+          '
+
+  coverage:
+    name: Coverage (PHP 8.3)
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: dbd_tests
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d dbd_tests"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      memcached:
+        image: memcached:1.6-alpine
+        ports:
+          - 11211:11211
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up PHP 8.3 with Xdebug
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: json, simplexml, dom, pgsql, memcache
+          coverage: xdebug
+          tools: composer:v2
+
+      - name: Install dependencies
+        run: composer install --prefer-dist --no-interaction --no-progress
+
+      - name: Run tests with coverage
         run: vendor/bin/phpunit --coverage-clover build/logs/clover.xml
-        working-directory: './'
 
-      - name: Build coverage report
+      - name: Upload coverage to Coveralls
+        # secondary external service: an outage must not block a release; forks do not get a token that can post
+        if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+        continue-on-error: true
         env:
           COVERALLS_REPO_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          COVERALLS_PARALLEL: true
-          COVERALLS_FLAG_NAME: ${{ matrix.php-versions }}
-        run: vendor/bin/php-coveralls --verbose --coverage_clover=build/logs/clover.xml
+        run: vendor/bin/php-coveralls --verbose --coverage_clover=build/logs/clover.xml --json_path=build/logs/coveralls-upload.json
