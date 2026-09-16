@@ -15,6 +15,7 @@ use DBD\Common\DBDException;
 use DBD\DBD;
 use DBD\Entity\Column;
 use DBD\Entity\Common\EntityException;
+use DBD\Entity\Common\Utils;
 use DBD\Entity\Constraint;
 use DBD\Entity\Key;
 use DBD\Entity\Primitive;
@@ -119,7 +120,7 @@ class PgUtils extends UtilsImpl
         $table->name = $tableName;
         $table->scheme = $schemeName;
 
-        $table->annotation = $this->db->select("SELECT obj_description(CONCAT(?::text, '.', ?::text)::REGCLASS)", $table->scheme, $table->name);
+        $table->annotation = (string)($this->db->select("SELECT obj_description(CONCAT(?::text, '.', ?::text)::REGCLASS)", $table->scheme, $table->name) ?? '');
 
         $sth = $this->db->prepare("
 			SELECT
@@ -153,7 +154,8 @@ class PgUtils extends UtilsImpl
                 $column = new Column($row['column_name']);
 
                 if (isset($row['is_nullable'])) {
-                    $column->nullable = false;
+                    // ext-pgsql returns PostgreSQL booleans as 't' / 'f' unless Options::convertBoolean is enabled
+                    $column->nullable = Utils::convertBoolVar($row['is_nullable']);
                 }
 
                 if (isset($row['character_maximum_length']))
