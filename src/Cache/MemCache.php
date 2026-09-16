@@ -65,10 +65,10 @@ class MemCache extends Cache
      *
      * @param iterable $keys A list of string-based keys to be deleted.
      *
-     * @return void True if the items were successfully removed. False if there was an error.
+     * @return bool True if the items were successfully removed. False if there was an error.
      * @throws DBDException
      */
-    public function deleteMultiple($keys)
+    public function deleteMultiple($keys): bool
     {
         throw new DBDException("Not supported method");
     }
@@ -98,10 +98,10 @@ class MemCache extends Cache
      * @param iterable $keys A list of keys that can obtained in a single operation.
      * @param mixed $default Default value to return for keys that do not exist.
      *
-     * @return void A list of key => value pairs. Cache keys that do not exist or are stale will have $default as value.
+     * @return iterable A list of key => value pairs. Cache keys that do not exist or are stale will have $default as value.
      * @throws DBDException
      */
-    public function getMultiple($keys, $default = null)
+    public function getMultiple($keys, $default = null): iterable
     {
         throw new DBDException("Not supported method");
     }
@@ -130,7 +130,7 @@ class MemCache extends Cache
      *
      * @return mixed The value of the item from the cache, or $default in case of cache miss.
      */
-    public function get($key, $default = null)
+    public function get($key, $default = null): mixed
     {
         $value = $this->link->get($key);
         if ($value === false) {
@@ -164,10 +164,10 @@ class MemCache extends Cache
      *                                       the driver supports TTL then the library may set a default value
      *                                       for it or let the driver take care of that.
      *
-     * @return void True on success and false on failure.
+     * @return bool True on success and false on failure.
      * @throws DBDException
      */
-    public function setMultiple($values, $ttl = null)
+    public function setMultiple($values, $ttl = null): bool
     {
         throw new DBDException("Not supported method");
     }
