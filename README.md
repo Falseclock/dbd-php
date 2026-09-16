@@ -1,12 +1,11 @@
 ## PostgreSQL Database driver for PHP
-[![PHP](https://github.com/Falseclock/dbd-php/actions/workflows/php.yml/badge.svg)](https://github.com/Falseclock/dbd-php/actions/workflows/php.yml)
-[![Coverage Status](https://coveralls.io/repos/github/Falseclock/dbd-php/badge.svg?branch=master)](https://coveralls.io/github/Falseclock/dbd-php?branch=master)
-[![PHP Version Require](http://poser.pugx.org/falseclock/dbd-php/require/php)](https://packagist.org/packages/falseclock/dbd-php)
 
-[![Latest Stable Version](https://poser.pugx.org/falseclock/dbd-php/v)](//packagist.org/packages/falseclock/dbd-php)
-[![Total Downloads](https://poser.pugx.org/falseclock/dbd-php/downloads)](//packagist.org/packages/falseclock/dbd-php)
-[![Latest Unstable Version](https://poser.pugx.org/falseclock/dbd-php/v/unstable)](//packagist.org/packages/falseclock/dbd-php)
-[![License](https://poser.pugx.org/falseclock/dbd-php/license)](//packagist.org/packages/falseclock/dbd-php)
+[![CI](https://github.com/Falseclock/dbd-php/actions/workflows/php.yml/badge.svg)](https://github.com/Falseclock/dbd-php/actions/workflows/php.yml)
+[![Coverage Status](https://coveralls.io/repos/github/Falseclock/dbd-php/badge.svg?branch=master)](https://coveralls.io/github/Falseclock/dbd-php?branch=master)
+[![Latest Stable Version](https://poser.pugx.org/falseclock/dbd-php/v)](https://packagist.org/packages/falseclock/dbd-php)
+[![PHP Version Require](https://poser.pugx.org/falseclock/dbd-php/require/php)](https://packagist.org/packages/falseclock/dbd-php)
+[![Total Downloads](https://poser.pugx.org/falseclock/dbd-php/downloads)](https://packagist.org/packages/falseclock/dbd-php)
+[![License](https://poser.pugx.org/falseclock/dbd-php/license)](https://packagist.org/packages/falseclock/dbd-php)
 
 
 #### Why not standard PDO?
