@@ -1,0 +1,18 @@
+build:
+  image: default-jammy
+
+  nodes:
+    analysis:
+      environment:
+        php: 8.2
+
+      tests:
+        override:
+          - php-scrutinizer-run
+
+checks:
+  php: true
+
+filter:
+  excluded_paths:
+    - vendor/*
