@@ -474,13 +474,19 @@ class Pg extends DBD
      * @param string|null $binaryString
      *
      * @return string|null
+     * @throws DBDException
      * @inheritdoc
      * @see PgEscapeTest
      */
     protected function _escapeBinary(?string $binaryString): ?string
     {
-        if (!is_null($binaryString))
-            $binaryString = pg_escape_bytea($binaryString);
+        if (!is_null($binaryString)) {
+            // never fall back to the implicit (last opened) PostgreSQL connection: escape through this instance's link
+            if (!$this->isConnected()) {
+                $this->_connect();
+            }
+            $binaryString = pg_escape_bytea($this->resourceLink, $binaryString);
+        }
 
         return $binaryString;
     }
@@ -490,6 +496,7 @@ class Pg extends DBD
      *
      * @param mixed $value
      * @return string
+     * @throws DBDException
      * @inheritDoc
      * @see PgEscapeTest
      */
@@ -501,7 +508,12 @@ class Pg extends DBD
         if (is_bool($value))
             return ($value) ? "TRUE" : "FALSE";
 
-        $value = pg_escape_string((string)$value);
+        // never fall back to the implicit (last opened) PostgreSQL connection: escape through this instance's link
+        if (!$this->isConnected()) {
+            $this->_connect();
+        }
+
+        $value = pg_escape_string($this->resourceLink, (string)$value);
 
         return "'$value'";
     }
