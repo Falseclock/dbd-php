@@ -460,6 +460,12 @@ class Pg extends DBD
     }
 
     /**
+     * Replaces named placeholder with its value.
+     *
+     * Trailing (\W|$) keeps :id from being replaced inside :idAccount, but,
+     * unlike a mandatory (\W), matches a placeholder standing at the very end
+     * of the query as well.
+     *
      * @param $name
      * @param $value
      * @param $subject
@@ -467,7 +473,7 @@ class Pg extends DBD
      */
     private function _replaceBind($name, $value, $subject)
     {
-        return preg_replace('~' . $name . '(::\w+)?(\W)~', sprintf("%s$1$2", $value), $subject);
+        return preg_replace('~' . $name . '(::\w+)?(\W|$)~', sprintf("%s$1$2", $value), $subject);
     }
 
     /**
