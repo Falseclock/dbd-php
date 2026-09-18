@@ -98,4 +98,43 @@ class PgBindTest extends PgAbstractTest
         self::assertSame('1.00011122', $row['sixes']);
         self::assertSame('{foo,bar,false,NULL}', $row['array_of_text']);
     }
+
+    /**
+     * Placeholder standing at the very end of the query must be replaced too.
+     *
+     * @throws DBDException
+     * @throws Exception
+     */
+    public function testBindAtTheEndOfQuery()
+    {
+        $sth = $this->db->prepare("SELECT :int AS num WHERE 'some string' = :string");
+        $sth->bind(':int', 1, NumericPrimitives::Int16)
+            ->bind(':string', 'some string');
+
+        $sth->execute();
+        $row = $sth->fetchRow();
+
+        self::assertIsArray($row);
+        self::assertEquals(1, $row['num']);
+    }
+
+    /**
+     * Shorter bind name must not be replaced inside a longer one.
+     *
+     * @throws DBDException
+     * @throws Exception
+     */
+    public function testBindNameIsPrefixOfAnother()
+    {
+        $sth = $this->db->prepare("SELECT :id AS first, :idAccount AS second");
+        $sth->bind(':id', 'one')
+            ->bind(':idAccount', 'two');
+
+        $sth->execute();
+        $row = $sth->fetchRow();
+
+        self::assertIsArray($row);
+        self::assertSame('one', $row['first']);
+        self::assertSame('two', $row['second']);
+    }
 }
